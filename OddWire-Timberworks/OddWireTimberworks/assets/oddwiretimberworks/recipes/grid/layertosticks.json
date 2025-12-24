@@ -1,0 +1,16 @@
+{
+	"ingredientPattern": "S",
+	"width": 1,
+	"height": 1,
+	"ingredients": {
+		"S": {
+			"type": "block",
+			"code": "game:stickslayer-wooden-*"
+		}
+	},
+	"output": {
+		"type": "item",
+		"code": "game:stick",
+		"quantity": 9
+	}
+}

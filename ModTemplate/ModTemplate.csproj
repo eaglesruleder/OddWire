@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OutputPath>bin\$(Configuration)\Mods\mod</OutputPath>
   </PropertyGroup>
@@ -36,6 +36,17 @@
     <Content Include="modinfo.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="assets\mymodid\blocktypes\" />
+    <Folder Include="assets\mymodid\entities\" />
+    <Folder Include="assets\mymodid\itemtypes\" />
+    <Folder Include="assets\mymodid\lang\" />
+    <Folder Include="assets\mymodid\recipes\grid\" />
+    <Folder Include="assets\mymodid\shapes\" />
+    <Folder Include="assets\mymodid\textures\" />
+    <Folder Include="assets\mymodid\worldgen\" />
   </ItemGroup>
 
 </Project>

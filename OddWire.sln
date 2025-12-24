@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CakeBuild", "OddWire-Timberworks\CakeBuild\CakeBuild.csproj", "{BE19B376-FAF3-4320-B8CC-DE391301A9F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OddWireTimberworks", "OddWire-Timberworks\OddWireTimberworks\OddWireTimberworks.csproj", "{29CF2E1A-EC5B-4574-A002-BB87FE2EF530}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BE19B376-FAF3-4320-B8CC-DE391301A9F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE19B376-FAF3-4320-B8CC-DE391301A9F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE19B376-FAF3-4320-B8CC-DE391301A9F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE19B376-FAF3-4320-B8CC-DE391301A9F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29CF2E1A-EC5B-4574-A002-BB87FE2EF530}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29CF2E1A-EC5B-4574-A002-BB87FE2EF530}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29CF2E1A-EC5B-4574-A002-BB87FE2EF530}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29CF2E1A-EC5B-4574-A002-BB87FE2EF530}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
