@@ -6,7 +6,7 @@
     "authors": [
         "EaglesRuleDer"
     ],
-    "description": "To be added",
+    "description": "Forestry and Woodworking improvements",
     "version": "0.0.1",
     "dependencies": {
         "game": "1.21.0"
