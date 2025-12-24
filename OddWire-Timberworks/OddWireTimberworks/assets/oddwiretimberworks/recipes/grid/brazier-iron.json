@@ -1,0 +1,22 @@
+{
+	"ingredientPattern": "R,B,R",
+	"width": 3,
+	"height": 2,
+	"ingredients": {
+		"R": {
+			"type": "item",
+			"code": "game:rod-iron",
+			"quantity": 2
+		},
+		"B": {
+			"type": "item",
+			"code": "game:powder-borax",
+			"quantity": 8
+		},
+	},
+	"output": {
+		"type": "item",
+		"code": "game:stick",
+		"quantity": 9
+	}
+}
