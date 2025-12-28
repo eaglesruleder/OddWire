@@ -1,0 +1,29 @@
+{
+	"ingredientPattern": "RBR,_P_",
+	"ingredients": {
+		"R": {
+			"type": "item",
+			"code": "game:rod-*",
+			"name": "metal",
+			allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+			"quantity": 4
+		},
+		"B": {
+			"type": "item",
+			"code": "game:powder-borax",
+			"quantity": 8
+		},
+		"P": {
+			"type": "item",
+			"code": "game:metalplate-*",
+			allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+			"name": "metal"
+		},
+	},
+	"width": 3,
+	"height": 2,
+	"output": {
+		"type": "block",
+		"code": "brazier-{metal}",
+	}
+}

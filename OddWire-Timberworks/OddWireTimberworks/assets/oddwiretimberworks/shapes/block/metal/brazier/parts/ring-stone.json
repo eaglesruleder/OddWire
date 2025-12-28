@@ -1,0 +1,367 @@
+{
+	"editor": {
+		"collapsedPaths": ",Root/origin,Root/stone-ring/Stones 1,Root/stone-ring/Stones 2,Root/stone-ring/Stunes 3,Root/StoneRing",
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {
+	},
+	"textures": {
+		"suevite1": "block/stone/cobblestone/suevite1",
+		"suevite3": "block/stone/cobblestone/suevite3",
+		"granite1": "block/stone/rock-cracked/granite1",
+		"granite2": "block/stone/rock-cracked/granite2"
+	},
+	"elements": [
+		{
+			"name": "Ring-stone",
+			"from": [ 8.0, 0.0, 8.0 ],
+			"to": [ 9.0, 1.0, 9.0 ],
+			"rotationOrigin": [ 8.0, 0.0, 8.0 ],
+			"faces": {
+				"north": { "texture": "#suevite1", "uv": [ 0.0, 0.0, 1.0, 1.0 ], "enabled": false },
+				"east": { "texture": "#suevite1", "uv": [ 0.0, 0.0, 1.0, 1.0 ], "enabled": false },
+				"south": { "texture": "#suevite1", "uv": [ 0.0, 0.0, 1.0, 1.0 ], "enabled": false },
+				"west": { "texture": "#suevite1", "uv": [ 0.0, 0.0, 1.0, 1.0 ], "enabled": false },
+				"up": { "texture": "#suevite1", "uv": [ 0.0, 0.0, 1.0, 1.0 ], "enabled": false },
+				"down": { "texture": "#suevite1", "uv": [ 0.0, 0.0, 1.0, 1.0 ], "enabled": false }
+			},
+			"children": [
+				{
+					"name": "Stones 1",
+					"from": [ 0.0, 0.0, 0.0 ],
+					"to": [ 0.0, 0.0, 0.0 ],
+					"faces": {
+						"north": { "texture": "#granite2", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"east": { "texture": "#granite2", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"south": { "texture": "#granite2", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"west": { "texture": "#granite2", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"up": { "texture": "#granite2", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"down": { "texture": "#granite2", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false }
+					},
+					"children": [
+						{
+							"name": "rock 1",
+							"from": [ 5.4, -0.5, -3.6 ],
+							"to": [ 9.4, 4.5, 1.4 ],
+							"rotationOrigin": [ 8.9, -0.5, -0.1 ],
+							"rotationX": 5.0,
+							"rotationY": 17.5,
+							"rotationZ": 3.0,
+							"faces": {
+								"north": { "texture": "#granite2", "uv": [ 0.0, 8.0, 4.0, 13.0 ] },
+								"east": { "texture": "#granite2", "uv": [ 7.0, 7.0, 12.0, 12.0 ] },
+								"south": { "texture": "#granite2", "uv": [ 2.0, 6.5, 6.0, 11.5 ] },
+								"west": { "texture": "#granite2", "uv": [ 6.0, 1.0, 11.0, 6.0 ] },
+								"up": { "texture": "#granite2", "uv": [ 5.5, 10.0, 9.5, 15.0 ] },
+								"down": { "texture": "#granite2", "uv": [ 7.0, 2.0, 11.0, 7.0 ] }
+							}
+						},
+						{
+							"name": "rock 2",
+							"from": [ -2.9, 3.0, -8.9 ],
+							"to": [ 0.1, 5.0, -5.9 ],
+							"rotationOrigin": [ -1.4, 3.0, -7.4 ],
+							"rotationY": 45.0,
+							"faces": {
+								"north": { "texture": "#granite2", "uv": [ 1.0, 8.5, 4.0, 10.5 ] },
+								"east": { "texture": "#granite2", "uv": [ 7.0, 1.0, 10.0, 3.0 ] },
+								"south": { "texture": "#granite2", "uv": [ 12.0, 13.0, 15.0, 15.0 ] },
+								"west": { "texture": "#granite2", "uv": [ 5.5, 1.0, 8.5, 3.0 ] },
+								"up": { "texture": "#granite2", "uv": [ 5.0, 3.5, 8.0, 6.5 ] },
+								"down": { "texture": "#granite2", "uv": [ 9.0, 0.5, 12.0, 3.5 ] }
+							}
+						},
+						{
+							"name": "rock 4",
+							"from": [ 0.3, -0.2, -9.5 ],
+							"to": [ 5.3, 3.8, -5.5 ],
+							"rotationOrigin": [ 2.8, -0.2, -6.5 ],
+							"rotationX": 6.0,
+							"rotationY": -51.5,
+							"rotationZ": 3.0,
+							"faces": {
+								"north": { "texture": "#granite2", "uv": [ 10.0, 5.5, 15.0, 9.5 ] },
+								"east": { "texture": "#granite2", "uv": [ 6.0, 4.0, 10.0, 8.0 ] },
+								"south": { "texture": "#granite2", "uv": [ 9.5, 7.0, 14.5, 11.0 ] },
+								"west": { "texture": "#granite2", "uv": [ 7.0, 7.5, 11.0, 11.5 ] },
+								"up": { "texture": "#granite2", "uv": [ 6.5, 9.5, 11.5, 13.5 ] },
+								"down": { "texture": "#granite2", "uv": [ 3.0, 8.0, 8.0, 12.0 ] }
+							}
+						},
+						{
+							"name": "rock 6",
+							"from": [ -8.8, 1.0, 4.8 ],
+							"to": [ -5.8, 2.5, 6.8 ],
+							"rotationOrigin": [ -7.3, 1.0, 5.8 ],
+							"rotationX": 7.0,
+							"rotationY": 22.5,
+							"rotationZ": 60.0,
+							"faces": {
+								"north": { "texture": "#granite2", "uv": [ 8.5, 6.5, 11.5, 8.0 ] },
+								"east": { "texture": "#granite2", "uv": [ 5.5, 8.0, 7.5, 9.5 ] },
+								"south": { "texture": "#granite2", "uv": [ 1.5, 7.0, 4.5, 8.5 ] },
+								"west": { "texture": "#granite2", "uv": [ 9.0, 0.5, 11.0, 2.0 ] },
+								"up": { "texture": "#granite2", "uv": [ 12.5, 8.0, 15.5, 10.0 ] },
+								"down": { "texture": "#granite2", "uv": [ 3.0, 7.0, 6.0, 9.0 ] }
+							}
+						},
+						{
+							"name": "rock 8",
+							"from": [ -8.1, 0.0, 5.7 ],
+							"to": [ -5.6, 3.0, 8.7 ],
+							"rotationOrigin": [ -6.6, 0.0, 7.7 ],
+							"rotationX": 6.0,
+							"rotationY": -112.5,
+							"faces": {
+								"north": { "texture": "#granite2", "uv": [ 11.5, 5.5, 14.0, 8.5 ] },
+								"east": { "texture": "#granite2", "uv": [ 9.5, 12.0, 12.5, 15.0 ] },
+								"south": { "texture": "#granite2", "uv": [ 6.0, 11.0, 8.5, 14.0 ] },
+								"west": { "texture": "#granite2", "uv": [ 4.5, 4.0, 7.5, 7.0 ] },
+								"up": { "texture": "#granite2", "uv": [ 12.0, 8.0, 14.5, 11.0 ] },
+								"down": { "texture": "#granite2", "uv": [ 6.0, 8.5, 8.5, 11.5 ] }
+							}
+						}
+					]
+				},
+				{
+					"name": "Stones 2",
+					"from": [ 0.0, 0.0, 0.0 ],
+					"to": [ 0.0, 0.0, 0.0 ],
+					"faces": {
+						"north": { "texture": "#suevite3", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"east": { "texture": "#suevite3", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"south": { "texture": "#suevite3", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"west": { "texture": "#suevite3", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"up": { "texture": "#suevite3", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"down": { "texture": "#suevite3", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false }
+					},
+					"children": [
+						{
+							"name": "rock 1",
+							"from": [ -4.1, 0.0, 4.2 ],
+							"to": [ -1.1, 4.0, 7.2 ],
+							"rotationOrigin": [ -0.6, 0.0, 7.7 ],
+							"rotationY": 45.0,
+							"faces": {
+								"north": { "texture": "#suevite3", "uv": [ 0.0, 8.0, 3.0, 12.0 ] },
+								"east": { "texture": "#suevite3", "uv": [ 7.0, 7.0, 10.0, 11.0 ] },
+								"south": { "texture": "#suevite3", "uv": [ 2.0, 6.5, 5.0, 10.5 ] },
+								"west": { "texture": "#suevite3", "uv": [ 6.0, 1.0, 9.0, 5.0 ] },
+								"up": { "texture": "#suevite3", "uv": [ 5.5, 0.5, 8.5, 3.5 ] },
+								"down": { "texture": "#suevite3", "uv": [ 7.0, 2.0, 10.0, 5.0 ] }
+							}
+						},
+						{
+							"name": "rock 2",
+							"from": [ -10.0, 0.0, -3.4 ],
+							"to": [ -7.0, 3.0, -0.4 ],
+							"rotationOrigin": [ -8.5, 0.0, -1.9 ],
+							"rotationX": 3.0,
+							"rotationZ": 5.0,
+							"faces": {
+								"north": { "texture": "#suevite3", "uv": [ 1.0, 8.5, 4.0, 11.5 ] },
+								"east": { "texture": "#suevite3", "uv": [ 7.0, 1.0, 10.0, 4.0 ] },
+								"south": { "texture": "#suevite3", "uv": [ 12.0, 13.0, 15.0, 16.0 ] },
+								"west": { "texture": "#suevite3", "uv": [ 5.5, 1.0, 8.5, 4.0 ] },
+								"up": { "texture": "#suevite3", "uv": [ 5.0, 3.5, 8.0, 6.5 ] },
+								"down": { "texture": "#suevite3", "uv": [ 9.0, 0.5, 12.0, 3.5 ] }
+							}
+						},
+						{
+							"name": "rock 4",
+							"from": [ 2.9, 0.0, -8.5 ],
+							"to": [ 5.9, 3.0, -5.5 ],
+							"rotationOrigin": [ 4.9, 0.0, -5.0 ],
+							"rotationX": -3.0,
+							"rotationY": -112.5,
+							"faces": {
+								"north": { "texture": "#suevite1", "uv": [ 10.0, 5.5, 13.0, 8.5 ] },
+								"east": { "texture": "#suevite1", "uv": [ 6.0, 4.0, 9.0, 7.0 ] },
+								"south": { "texture": "#suevite1", "uv": [ 9.5, 7.0, 12.5, 10.0 ] },
+								"west": { "texture": "#suevite1", "uv": [ 7.0, 7.5, 10.0, 10.5 ] },
+								"up": { "texture": "#suevite1", "uv": [ 6.5, 9.5, 9.5, 12.5 ] },
+								"down": { "texture": "#suevite1", "uv": [ 3.0, 8.0, 6.0, 11.0 ] }
+							}
+						},
+						{
+							"name": "rock 6",
+							"from": [ 4.7, 1.9, 3.0 ],
+							"to": [ 7.7, 4.4, 6.0 ],
+							"rotationOrigin": [ 6.2, 1.9, 4.0 ],
+							"rotationX": -10.0,
+							"rotationY": 22.5,
+							"rotationZ": 9.0,
+							"faces": {
+								"north": { "texture": "#suevite3", "uv": [ 8.5, 6.5, 11.5, 9.0 ] },
+								"east": { "texture": "#suevite3", "uv": [ 5.5, 8.0, 8.5, 10.5 ] },
+								"south": { "texture": "#suevite3", "uv": [ 1.5, 7.0, 4.5, 9.5 ] },
+								"west": { "texture": "#suevite3", "uv": [ 9.0, 0.5, 12.0, 3.0 ] },
+								"up": { "texture": "#suevite3", "uv": [ 12.5, 8.0, 15.5, 11.0 ] },
+								"down": { "texture": "#suevite3", "uv": [ 3.0, 7.0, 6.0, 10.0 ] }
+							}
+						},
+						{
+							"name": "rock 8",
+							"from": [ -8.7, 0.0, -7.3 ],
+							"to": [ -5.7, 2.0, -3.8 ],
+							"rotationOrigin": [ -7.2, 0.0, -5.8 ],
+							"rotationY": -45.0,
+							"faces": {
+								"north": { "texture": "#suevite3", "uv": [ 11.5, 5.5, 14.5, 7.5 ] },
+								"east": { "texture": "#suevite3", "uv": [ 9.5, 12.0, 13.0, 14.0 ] },
+								"south": { "texture": "#suevite3", "uv": [ 6.0, 11.0, 9.0, 13.0 ] },
+								"west": { "texture": "#suevite3", "uv": [ 4.5, 4.0, 8.0, 6.0 ] },
+								"up": { "texture": "#suevite3", "uv": [ 12.0, 8.0, 15.0, 11.5 ] },
+								"down": { "texture": "#suevite3", "uv": [ 6.0, 8.5, 9.0, 12.0 ] }
+							}
+						},
+						{
+							"name": "rock 7",
+							"from": [ -9.4, 2.0, -5.9 ],
+							"to": [ -5.9, 4.5, -1.9 ],
+							"rotationOrigin": [ -7.9, 2.0, -4.9 ],
+							"rotationX": -9.0,
+							"rotationY": 22.5,
+							"faces": {
+								"north": { "texture": "#suevite3", "uv": [ 8.5, 6.5, 12.0, 9.0 ] },
+								"east": { "texture": "#suevite3", "uv": [ 5.5, 8.0, 9.5, 10.5 ] },
+								"south": { "texture": "#suevite3", "uv": [ 1.5, 7.0, 5.0, 9.5 ] },
+								"west": { "texture": "#suevite3", "uv": [ 9.0, 0.5, 13.0, 3.0 ] },
+								"up": { "texture": "#suevite3", "uv": [ 8.0, 10.0, 11.5, 14.0 ] },
+								"down": { "texture": "#suevite3", "uv": [ 3.0, 7.0, 6.5, 11.0 ] }
+							}
+						}
+					]
+				},
+				{
+					"name": "Stones 3",
+					"from": [ 0.0, 0.0, 0.0 ],
+					"to": [ 0.0, 0.0, 0.0 ],
+					"faces": {
+						"north": { "texture": "#granite1", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"east": { "texture": "#granite1", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"south": { "texture": "#granite1", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"west": { "texture": "#granite1", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"up": { "texture": "#granite1", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false },
+						"down": { "texture": "#granite1", "uv": [ 0.0, 0.0, 0.5, 0.5 ], "enabled": false }
+					},
+					"children": [
+						{
+							"name": "rock 1",
+							"from": [ -10.8, 0.0, 0.3 ],
+							"to": [ -5.8, 4.0, 5.3 ],
+							"rotationOrigin": [ -7.3, 0.0, 3.8 ],
+							"rotationY": -22.5,
+							"faces": {
+								"north": { "texture": "#granite1", "uv": [ 0.0, 8.0, 5.0, 12.0 ] },
+								"east": { "texture": "#granite1", "uv": [ 8.0, 7.0, 13.0, 11.0 ] },
+								"south": { "texture": "#granite1", "uv": [ 2.0, 9.5, 7.0, 13.5 ] },
+								"west": { "texture": "#granite1", "uv": [ 5.5, 5.0, 10.5, 9.0 ] },
+								"up": { "texture": "#granite1", "uv": [ 9.0, 0.5, 14.0, 5.5 ] },
+								"down": { "texture": "#granite1", "uv": [ 7.0, 2.0, 12.0, 7.0 ] }
+							}
+						},
+						{
+							"name": "rock 2",
+							"from": [ 5.6, 0.0, 2.2 ],
+							"to": [ 8.6, 2.5, 5.7 ],
+							"rotationOrigin": [ 6.6, 0.0, 3.2 ],
+							"rotationX": 4.0,
+							"rotationY": -22.5,
+							"rotationZ": -13.0,
+							"faces": {
+								"north": { "texture": "#granite1", "uv": [ 1.0, 8.5, 4.0, 11.0 ] },
+								"east": { "texture": "#granite1", "uv": [ 7.0, 1.0, 10.5, 3.5 ] },
+								"south": { "texture": "#granite1", "uv": [ 12.0, 13.0, 15.0, 15.5 ] },
+								"west": { "texture": "#granite1", "uv": [ 5.5, 1.0, 9.0, 3.5 ] },
+								"up": { "texture": "#granite1", "uv": [ 5.0, 3.5, 8.0, 7.0 ] },
+								"down": { "texture": "#granite1", "uv": [ 9.0, 0.5, 12.0, 4.0 ] }
+							}
+						},
+						{
+							"name": "rock 4",
+							"from": [ -6.1, 0.0, -9.9 ],
+							"to": [ -0.1, 3.0, -5.9 ],
+							"rotationOrigin": [ -3.1, 0.0, -7.9 ],
+							"rotationX": -5.0,
+							"rotationY": 22.5,
+							"faces": {
+								"north": { "texture": "#granite1", "uv": [ 10.0, 5.5, 16.0, 8.5 ] },
+								"east": { "texture": "#granite1", "uv": [ 6.0, 4.0, 10.0, 7.0 ] },
+								"south": { "texture": "#granite1", "uv": [ 9.5, 7.0, 15.5, 10.0 ] },
+								"west": { "texture": "#granite1", "uv": [ 7.0, 11.5, 11.0, 14.5 ] },
+								"up": { "texture": "#granite1", "uv": [ 9.5, 10.5, 15.5, 14.5 ] },
+								"down": { "texture": "#granite1", "uv": [ 5.0, 9.5, 11.0, 13.5 ] }
+							}
+						},
+						{
+							"name": "rock 6",
+							"from": [ -0.7, 0.0, -9.2 ],
+							"to": [ 1.3, 3.0, -7.2 ],
+							"rotationOrigin": [ 1.3, 0.0, -8.2 ],
+							"rotationX": 5.0,
+							"rotationY": -38.0,
+							"faces": {
+								"north": { "texture": "#granite1", "uv": [ 8.5, 6.5, 10.5, 9.5 ] },
+								"east": { "texture": "#granite1", "uv": [ 5.5, 8.0, 7.5, 11.0 ] },
+								"south": { "texture": "#granite1", "uv": [ 1.5, 7.0, 3.5, 10.0 ] },
+								"west": { "texture": "#granite1", "uv": [ 9.0, 0.5, 11.0, 3.5 ] },
+								"up": { "texture": "#granite1", "uv": [ 12.5, 11.5, 14.5, 13.5 ] },
+								"down": { "texture": "#granite1", "uv": [ 8.0, 13.0, 10.0, 15.0 ] }
+							}
+						},
+						{
+							"name": "rock 8",
+							"from": [ 2.6, 0.0, 5.2 ],
+							"to": [ 5.6, 3.0, 9.2 ],
+							"rotationOrigin": [ 4.1, 0.0, 7.2 ],
+							"rotationX": 5.0,
+							"rotationY": -45.0,
+							"rotationZ": -6.0,
+							"faces": {
+								"north": { "texture": "#granite1", "uv": [ 11.0, 12.5, 14.0, 15.5 ] },
+								"east": { "texture": "#granite1", "uv": [ 9.5, 12.5, 13.5, 15.5 ] },
+								"south": { "texture": "#granite1", "uv": [ 3.5, 12.0, 6.5, 15.0 ] },
+								"west": { "texture": "#granite1", "uv": [ 4.5, 4.0, 8.5, 7.0 ] },
+								"up": { "texture": "#granite1", "uv": [ 12.0, 8.0, 15.0, 12.0 ] },
+								"down": { "texture": "#granite1", "uv": [ 6.0, 8.5, 9.0, 12.5 ] }
+							}
+						},
+						{
+							"name": "rock 7",
+							"from": [ -1.5, 0.0, 6.8 ],
+							"to": [ 1.5, 2.5, 9.8 ],
+							"rotationOrigin": [ 0.4, 0.0, 8.8 ],
+							"rotationX": 6.0,
+							"rotationY": -22.5,
+							"faces": {
+								"north": { "texture": "#granite1", "uv": [ 5.5, 8.5, 8.5, 11.0 ] },
+								"east": { "texture": "#granite1", "uv": [ 12.5, 4.5, 15.5, 7.0 ] },
+								"south": { "texture": "#granite1", "uv": [ 2.5, 3.5, 5.5, 6.0 ] },
+								"west": { "texture": "#granite1", "uv": [ 9.0, 9.0, 12.0, 11.5 ] },
+								"up": { "texture": "#granite1", "uv": [ 4.0, 5.0, 7.0, 8.0 ] },
+								"down": { "texture": "#granite1", "uv": [ 7.5, 7.0, 10.5, 10.0 ] }
+							}
+						},
+						{
+							"name": "rock 56",
+							"from": [ -6.1, 0.0, 4.1 ],
+							"to": [ -4.1, 3.5, 6.6 ],
+							"rotationOrigin": [ -5.1, 0.0, 5.1 ],
+							"faces": {
+								"north": { "texture": "#granite1", "uv": [ 1.0, 8.5, 3.0, 12.0 ] },
+								"east": { "texture": "#granite1", "uv": [ 7.0, 1.0, 9.5, 4.5 ] },
+								"south": { "texture": "#granite1", "uv": [ 11.0, 8.5, 13.0, 12.0 ] },
+								"west": { "texture": "#granite1", "uv": [ 5.5, 1.0, 8.0, 4.5 ] },
+								"up": { "texture": "#granite1", "uv": [ 5.0, 3.5, 7.0, 6.0 ] },
+								"down": { "texture": "#granite1", "uv": [ 9.0, 0.5, 11.0, 3.0 ] }
+							}
+						}
+					]
+				}
+			]
+		}
+	]}
