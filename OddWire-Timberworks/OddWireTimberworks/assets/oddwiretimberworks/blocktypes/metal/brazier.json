@@ -1,5 +1,23 @@
 {
 	"code": "brazier",
+
+
+	class: "BlockBlockBrazier",
+	entityClass: "BlockBrazier",
+	entityBehaviors: [
+		{ name: "FirepitAmbient" },
+		{ name: "TemperatureSensitive" }
+	],
+	behaviorsByType: {
+		"*-construct*": [ {name: "Unstable"}],
+		"*": [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
+	},
+	variantgroups: [
+		{ code:"burnstate", states: ["construct1", "construct2", "construct3", "construct4", "extinct", "lit", "cold"] }
+	],
+	
+	
+	
 	"attributes": {
 		"reinforcable": true,
 		"humanoidTraversalCost": 100
