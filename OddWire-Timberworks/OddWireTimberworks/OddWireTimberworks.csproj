@@ -9,6 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Reference Include="Vintagestory">
+          <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Vintagestory.dll</HintPath>
+        </Reference>
         <Reference Include="VintagestoryAPI">
             <HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
             <Private>false</Private>
