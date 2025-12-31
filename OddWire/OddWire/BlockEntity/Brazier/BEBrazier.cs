@@ -51,6 +51,12 @@ namespace OddWire.GameContent
 
         bool shouldRedraw;
 
+        InventoryGeneric groundCraftingInventory;
+        GroundCraftingResolvedRecipe groundCraftingRecipe;
+        string groundCraftingRecipePattern;
+        int groundCraftingStepIndex;
+        int groundCraftingHammerHitsRemaining;
+
         public bool IsHot => IsBurning;
         public float emptyBrazierBurnTimeMulBonus = 4f;
 
@@ -105,6 +111,7 @@ namespace OddWire.GameContent
         {
             inventory = new InventorySmelting(null, null);
             inventory.SlotModified += OnSlotModifid;
+            groundCraftingInventory = new InventoryGeneric(16, null, null);
         }
 
 
@@ -115,6 +122,7 @@ namespace OddWire.GameContent
 
             inventory.pos = Pos;
             inventory.LateInitialize("smelting-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, api);
+            groundCraftingInventory.LateInitialize("groundcrafting-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, api);
 
             RegisterGameTickListener(OnBurnTick, 100);
             RegisterGameTickListener(On500msTick, 500);
@@ -589,6 +597,15 @@ namespace OddWire.GameContent
                 Inventory.AfterBlocksLoaded(Api.World);
             }
 
+            if (tree.GetTreeAttribute("groundcrafting") != null)
+            {
+                groundCraftingInventory.FromTreeAttributes(tree.GetTreeAttribute("groundcrafting"));
+            }
+
+            groundCraftingStepIndex = tree.GetInt("groundCraftingStepIndex");
+            groundCraftingHammerHitsRemaining = tree.GetInt("groundCraftingHammerHitsRemaining");
+            groundCraftingRecipePattern = tree.GetString("groundCraftingRecipePattern");
+
 
             furnaceTemperature = tree.GetFloat("furnaceTemperature");
             maxTemperature = tree.GetInt("maxTemperature");
@@ -620,6 +637,12 @@ namespace OddWire.GameContent
         void UpdateRenderer()
         {
             if (renderer == null) return;
+
+            if (HasGroundCraftingSteps())
+            {
+                renderer.SetCraftingSteps(GetGroundCraftingStacksForRender());
+                return;
+            }
 
             ItemStack contentStack = inputStack == null ? outputStack : inputStack;
 
@@ -654,6 +677,146 @@ namespace OddWire.GameContent
             {
                 renderer.SetContents(null, null);
             }
+        }
+
+        public bool TryHandleGroundCraftingInteraction(IPlayer byPlayer, ItemSlot activeSlot)
+        {
+            if (activeSlot?.Itemstack == null) return false;
+            if (!inputSlot.Empty || !outputSlot.Empty) return false;
+
+            ResolveGroundCraftingRecipe();
+            if (groundCraftingRecipe == null) return false;
+
+            if (groundCraftingHammerHitsRemaining > 0)
+            {
+                if (!IsHammer(activeSlot.Itemstack)) return false;
+                groundCraftingHammerHitsRemaining--;
+                if (groundCraftingHammerHitsRemaining <= 0)
+                {
+                    groundCraftingStepIndex++;
+                    TryCompleteGroundCrafting();
+                }
+
+                MarkDirty(true);
+                UpdateRenderer();
+                return true;
+            }
+
+            if (!groundCraftingRecipe.MatchesStep(activeSlot.Itemstack, groundCraftingStepIndex, Api))
+            {
+                return false;
+            }
+
+            float requiredTemp = groundCraftingRecipe.GetRequiredTemperature(groundCraftingStepIndex);
+            if (requiredTemp > 0 && activeSlot.Itemstack.Collectible.GetTemperature(Api.World, activeSlot.Itemstack) < requiredTemp)
+            {
+                (Api as ICoreClientAPI)?.TriggerIngameError(this, "groundcrafting-toocold", Lang.GetWithFallback("groundcrafting-toocold", "That part needs to be heated before it can be added."));
+                return false;
+            }
+
+            ItemStack placed = activeSlot.TakeOut(1);
+            activeSlot.MarkDirty();
+            if (placed == null) return false;
+
+            groundCraftingInventory[groundCraftingStepIndex].Itemstack = placed;
+            groundCraftingInventory[groundCraftingStepIndex].MarkDirty();
+
+            int requiredHits = groundCraftingRecipe.GetRequiredHammerHits(groundCraftingStepIndex);
+            if (requiredHits > 0)
+            {
+                groundCraftingHammerHitsRemaining = requiredHits;
+            }
+            else
+            {
+                groundCraftingStepIndex++;
+            }
+
+            TryCompleteGroundCrafting();
+            UpdateRenderer();
+            MarkDirty(true);
+            return true;
+        }
+
+        void ResolveGroundCraftingRecipe()
+        {
+            if (groundCraftingRecipe != null) return;
+
+            OddWireModSystem modSystem = Api?.ModLoader.GetModSystem<OddWireModSystem>();
+            if (modSystem?.GroundCraftingRecipes == null) return;
+
+            if (!string.IsNullOrWhiteSpace(groundCraftingRecipePattern))
+            {
+                groundCraftingRecipe = modSystem.GroundCraftingRecipes.ResolveFor(Block, groundCraftingRecipePattern);
+            }
+
+            groundCraftingRecipe ??= modSystem.GroundCraftingRecipes.ResolveFor(Block);
+            if (groundCraftingRecipe != null && string.IsNullOrWhiteSpace(groundCraftingRecipePattern))
+            {
+                groundCraftingRecipePattern = groundCraftingRecipe.Pattern;
+            }
+        }
+
+        void TryCompleteGroundCrafting()
+        {
+            if (groundCraftingRecipe == null) return;
+            if (groundCraftingHammerHitsRemaining > 0) return;
+            if (groundCraftingStepIndex < groundCraftingRecipe.Steps.Length) return;
+
+            ItemStack output = groundCraftingRecipe.CreateOutputStack(Api.World);
+            if (output == null) return;
+
+            if (outputSlot.Empty)
+            {
+                outputSlot.Itemstack = output;
+                outputSlot.MarkDirty();
+            }
+            else
+            {
+                Api.World.SpawnItemEntity(output, Pos.ToVec3d().Add(0.5, 0.5, 0.5));
+            }
+
+            ClearGroundCraftingState();
+            UpdateRenderer();
+        }
+
+        void ClearGroundCraftingState()
+        {
+            groundCraftingStepIndex = 0;
+            groundCraftingHammerHitsRemaining = 0;
+            groundCraftingRecipe = null;
+            groundCraftingRecipePattern = null;
+            for (int i = 0; i < groundCraftingInventory.Count; i++)
+            {
+                groundCraftingInventory[i].Itemstack = null;
+            }
+        }
+
+        bool HasGroundCraftingSteps()
+        {
+            if (groundCraftingInventory == null) return false;
+            for (int i = 0; i < groundCraftingInventory.Count; i++)
+            {
+                if (!groundCraftingInventory[i].Empty) return true;
+            }
+
+            return false;
+        }
+
+        ItemStack[] GetGroundCraftingStacksForRender()
+        {
+            List<ItemStack> stacks = new List<ItemStack>();
+            for (int i = 0; i < groundCraftingInventory.Count; i++)
+            {
+                if (groundCraftingInventory[i].Empty) continue;
+                stacks.Add(groundCraftingInventory[i].Itemstack);
+            }
+
+            return stacks.ToArray();
+        }
+
+        static bool IsHammer(ItemStack stack)
+        {
+            return stack?.Collectible?.Tool == EnumTool.Hammer;
         }
 
 
@@ -692,6 +855,13 @@ namespace OddWire.GameContent
             ITreeAttribute invtree = new TreeAttribute();
             Inventory.ToTreeAttributes(invtree);
             tree["inventory"] = invtree;
+
+            ITreeAttribute craftingTree = new TreeAttribute();
+            groundCraftingInventory.ToTreeAttributes(craftingTree);
+            tree["groundcrafting"] = craftingTree;
+            tree.SetInt("groundCraftingStepIndex", groundCraftingStepIndex);
+            tree.SetInt("groundCraftingHammerHitsRemaining", groundCraftingHammerHitsRemaining);
+            tree.SetString("groundCraftingRecipePattern", groundCraftingRecipePattern);
 
             tree.SetFloat("furnaceTemperature", furnaceTemperature);
             tree.SetInt("maxTemperature", maxTemperature);
