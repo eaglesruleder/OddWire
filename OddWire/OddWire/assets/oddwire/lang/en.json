@@ -1,4 +1,18 @@
 {
-    "game:tabname-brazier": "Brazier",
-    "block-brazier-*-*": "Brazier ({metal})"
+    "block-brazier-*-scrap": "Brazier (Scrapmetal)",
+    "block-brazier-*-copper": "Brazier (Copper)",
+    "block-brazier-*-blackbronze": "Brazier (Black bronze)",
+    "block-brazier-construct1-iron": "Brazier (Iron1)",
+    "block-brazier-construct2-iron": "Brazier (Iron2)",
+    "block-brazier-construct3-iron": "Brazier (Iron3)",
+    "block-brazier-construct4-iron": "Brazier (Iron4)",
+    "block-brazier-extinct-iron": "Brazier (Iron extinct)",
+    "block-brazier-lit-iron": "Brazier (Iron lit)",
+    "block-brazier-cold-iron": "Brazier (Iron cold)",
+    "block-brazier-*-iron": "Brazier (Iron)",
+    "block-brazier-*-meteoriciron": "Brazier (Meteoric Iron)",
+    "block-brazier-*-steel": "Brazier (Steel)",
+    "oddwire.blockhelp-brazier-open":  "Open",
+    "oddwire.blockhelp-brazier-ignite": "Ignite",
+    "oddwire.blockhelp-brazier-refuel":  "Refuel"
 }

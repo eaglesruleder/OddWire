@@ -12,36 +12,24 @@ namespace OddWire.GameContent
 {
     public class BlockBrazier : Block, IIgnitable, ISmokeEmitter
     {
-
         public int Stage { get {
-            switch (LastCodePart())
-                {
-                    case "construct1":
-                        return 1;
-                    case "construct2":
-                        return 2;
-                    case "construct3":
-                        return 3;
-                    case "construct4":
-                        return 4;
-                }
-                return 5;
+            if(WildCardMatch("*-construct1-*")) return 1;
+            if(WildCardMatch("*-construct2-*")) return 2;
+            if(WildCardMatch("*-construct3-*")) return 3;
+            if(WildCardMatch("*-construct4-*")) return 4;
+            return 5;
         } }
 
         public string NextStageCodePart
         {
             get
             {
-                switch (LastCodePart())
+                switch (Stage)
                 {
-                    case "construct1":
-                        return "construct2";
-                    case "construct2":
-                        return "construct3";
-                    case "construct3":
-                        return "construct4";
-                    case "construct4":
-                        return "cold";
+                    case 1: return "construct2";
+                    case 2: return "construct3";
+                    case 3: return "construct4";
+                    case 4: return "cold";
                 }
                 return "cold";
             }
@@ -58,9 +46,13 @@ namespace OddWire.GameContent
         {
             base.OnLoaded(api);
 
-            IsExtinct = LastCodePart() != "lit";
+            api.Logger.Warning("BlockBrazier:OnLoaded");
+            
+            IsExtinct = !WildCardMatch("*-lit-*");
 
-            if (!IsExtinct && api.Side == EnumAppSide.Client)
+            if (!IsExtinct && api.Side == EnumAppSide.Client && this.ParticleProperties == null)
+                api.Logger.Error("BlockBrazier:OnLoaded this.ParticleProperties == null");
+            if (!IsExtinct && api.Side == EnumAppSide.Client && this.ParticleProperties != null)
             {
                 ringParticles = new AdvancedParticleProperties[this.ParticleProperties.Length*4];
                 basePos = new Vec3f[ringParticles.Length];
@@ -218,22 +210,25 @@ namespace OddWire.GameContent
         {
             if (blockSel != null && !world.Claims.TryAccess(byPlayer, blockSel.Position, EnumBlockAccessFlags.Use))
             {
+                api.Logger.Warning("OnBlockInteractStart => !blockSel && !Claims.TryAccess");
                 return false;
             }
 
             int stage = Stage;
+            api.Logger.Warning($"OnBlockInteractStart Stage: {stage}");
+            
             ItemStack stack = byPlayer.InventoryManager.ActiveHotbarSlot?.Itemstack;
 
             if (stage == 5)
             {
-                BlockEntityBrazier bef = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityBrazier;
+                BlockEntityBrazier beBrazier = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityBrazier;
                 
-                if (bef!=null && stack?.Block != null && stack.Block.HasBehavior<BlockBehaviorCanIgnite>() && bef.GetIgnitableState(0) == EnumIgniteState.Ignitable)
+                if (beBrazier!=null && stack?.Block != null && stack.Block.HasBehavior<BlockBehaviorCanIgnite>() && beBrazier.GetIgnitableState(0) == EnumIgniteState.Ignitable)
                 {
                     return false;
                 }
 
-                if (bef != null && stack != null)
+                if (beBrazier != null && stack != null)
                 {
                     bool activated = false;
 
@@ -242,14 +237,14 @@ namespace OddWire.GameContent
                         if (stack.Collectible.CombustibleProps != null && stack.Collectible.CombustibleProps.MeltingPoint > 0)
                         {
                             ItemStackMoveOperation op = new ItemStackMoveOperation(world, EnumMouseButton.Left, 0, EnumMergePriority.DirectMerge, 1);
-                            byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(bef.inputSlot, ref op);
+                            byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(beBrazier.inputSlot, ref op);
                             if (op.MovedQuantity > 0) activated = true;
                         }
 
                         if (stack.Collectible.CombustibleProps != null && stack.Collectible.CombustibleProps.BurnTemperature > 0)
                         {
                             ItemStackMoveOperation op = new ItemStackMoveOperation(world, EnumMouseButton.Left, 0, EnumMergePriority.DirectMerge, 1);
-                            byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(bef.fuelSlot, ref op);
+                            byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(beBrazier.fuelSlot, ref op);
                             if (op.MovedQuantity > 0) activated = true;
                         }
                     }
@@ -257,13 +252,13 @@ namespace OddWire.GameContent
                     if (stack.Collectible.Attributes?.IsTrue("mealContainer") == true && !activated)
                     {
                         ItemSlot potSlot = null;
-                        if (bef.inputStack?.Collectible is BlockCookedContainer)
+                        if (beBrazier.inputStack?.Collectible is BlockCookedContainer)
                         {
-                            potSlot = bef.inputSlot;
+                            potSlot = beBrazier.inputSlot;
                         }
-                        if (bef.outputStack?.Collectible is BlockCookedContainer)
+                        if (beBrazier.outputStack?.Collectible is BlockCookedContainer)
                         {
-                            potSlot = bef.outputSlot;
+                            potSlot = beBrazier.outputSlot;
                         }
 
                         if (potSlot != null)
@@ -282,9 +277,9 @@ namespace OddWire.GameContent
                             }
                             else blockPot.ServeIntoStack(targetSlot, potSlot, world);
                         }
-                        else if (!bef.inputSlot.Empty || byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(api.World, bef.inputSlot, 1) == 0)
+                        else if (!beBrazier.inputSlot.Empty || byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(api.World, beBrazier.inputSlot, 1) == 0)
                         {
-                            bef.OnPlayerRightClick(byPlayer, blockSel);
+                            beBrazier.OnPlayerRightClick(byPlayer, blockSel);
                         }
 
                         activated = true;
@@ -292,7 +287,7 @@ namespace OddWire.GameContent
 
                     if (stack?.Collectible is BlockSmeltingContainer or BlockSmeltedContainer && !activated)
                     {
-                        if (byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(api.World, bef.inputSlot, 1) > 0) activated = true;
+                        if (byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(api.World, beBrazier.inputSlot, 1) > 0) activated = true;
                     }
 
                     if (activated)
@@ -314,8 +309,7 @@ namespace OddWire.GameContent
 
                 return base.OnBlockInteractStart(world, byPlayer, blockSel);
             }
-
-
+            
             if (stack != null && TryConstruct(world, blockSel.Position, stack.Collectible, byPlayer))
             {
                 if (byPlayer != null && byPlayer.WorldData.CurrentGameMode != EnumGameMode.Creative)
@@ -332,10 +326,13 @@ namespace OddWire.GameContent
         public bool TryConstruct(IWorldAccessor world, BlockPos pos, CollectibleObject obj, IPlayer player) {
             int stage = Stage;
 
-            if (obj.Attributes?.IsTrue("brazierConstructable") != true) return false;
+            api.Logger.Warning($"TryConstruct Stage: {stage}");
+            
+            if (obj.Attributes?.IsTrue("firepitConstructable") != true) return false;
 
             if (stage == 5) return false;
 
+            /*
             if (stage == 4 && IsFirewoodPile(world, pos.DownCopy()))
             {
                 Block charcoalPitBlock = world.GetBlock(new AssetLocation("charcoalpit"));
@@ -351,6 +348,7 @@ namespace OddWire.GameContent
                     return true;
                 }
             }
+            */
 
             Block block = world.GetBlock(CodeWithParts(NextStageCodePart));
             world.BlockAccessor.ExchangeBlock(block.BlockId, pos);
@@ -371,6 +369,7 @@ namespace OddWire.GameContent
             return true;
         }
 
+        /*
         public static bool IsFirewoodPile(IWorldAccessor world, BlockPos pos)
         {
             var beg = world.BlockAccessor.GetBlockEntity<BlockEntityGroundStorage>(pos);
@@ -382,6 +381,7 @@ namespace OddWire.GameContent
             var beg = world.BlockAccessor.GetBlockEntity<BlockEntityGroundStorage>(pos);
             return beg?.Inventory[0]?.StackSize ?? 0;
         }
+        */
 
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer)
         {

@@ -950,7 +950,7 @@ namespace OddWire.GameContent
                 MeshData[] meshes = new MeshData[17];
                 ITesselatorAPI mesher = ((ICoreClientAPI)Api).Tesselator;
 
-                mesher.TesselateShape(block, Shape.TryGet(Api, "shapes/block/wood/brazier/" + key + ".json"), out meshdata);
+                mesher.TesselateShape(block, Shape.TryGet(Api, "oddwire:shapes/block/metal/brazier/" + key + ".json"), out meshdata);
             }
 
             return meshdata;

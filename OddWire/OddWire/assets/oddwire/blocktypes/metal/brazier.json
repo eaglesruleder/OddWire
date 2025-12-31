@@ -4,9 +4,8 @@
 	class: "BlockBrazier",
 	entityClass: "Brazier",
 	entityBehaviors: [
-		{ name: "game:FirepitAmbient" },
-		{ name: "game:TemperatureSensitive" }
 	],
+	creativeinventory: { general: ["brazier-extinct-iron"], decorative: ["brazier-extinct-iron"] },
 	
 	"attributes": {
 		"reinforcable": true,
@@ -16,6 +15,7 @@
 	"enabled": true,
 	"heldTpIdleAnimation": "holdbothhands",
 	"variantgroups": [
+		{ code:"burnstate", states: ["construct1", "construct2", "construct3", "construct4", "extinct", "lit", "cold"] },
 		{ "code":"metal", "states": ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"] },
 	],
 	behaviorsByType: {
@@ -30,36 +30,35 @@
 			"base": "game:block/metal/sheet-plain/{metal}3"
 		}
 	},
-	"creativeinventory": { "general": ["*"], "oddwire": ["*"] },
 	"blockmaterial": "Metal",
 	"lightAbsorption": 0,
 	"lightHsvByType": {
-		"*-extinct": [7, 7, 3],
-		"*-lit": [7, 7, 16],
+		"*-extinct-*": [7, 7, 3],
+		"*-lit-*": [7, 7, 16],
 	},
 	"particlePropertiesByType": {
-		"*-extinct": [
+		"*-extinct-*": [
 			{
 				hsvaColor: [{ avg: 0, var: 0 }, { avg: 0, var: 0 }, { avg: 70, var: 30 },  { avg: 220, var: 50 }],
 				opacityEvolve: { transform: "quadratic", factor: -16 },
 				gravityEffect: { avg: 0, var: 0 },
-				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0.5, var: 0 }, { avg: 0, var: 0.2 }],
-				velocity: [ { avg: 0, var: 0.05 }, { avg: 0.1, var: 0.05 }, { avg: 0, var: 0.05 }],
+				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0, var: 0 }, { avg: 0, var: 0.2 }],
+				velocity: [ { avg: 0.1, var: 0.05 }, { avg: 0.01, var: 0.05 }, { avg: 0.1, var: 0.05 }],
 				quantity: { avg: 0.02 },
-				size: { avg: 0.3, var: 0.05 },
+				size: { avg: 0.3, var: 0.15 },
 				sizeEvolve: { transform: "linear", factor: 1.5 },
 				particleModel: "Quad",
 				windAffectednes: 0.7
 			}
 		],
-		"*-lit": [
+		"*-lit-*": [
 			{
 				// Ember cubicles
 				hsvaColor: [{ avg: 30, var: 20 }, { avg: 255, var: 50 }, { avg: 255, var: 50 },  { avg: 255, var: 0 }],
 				gravityEffect: { dist: "invexp", avg: -0.1, var: 0.4 },
-				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0.5, var: 0 }, { avg: 0, var: 0.2 }],
-				velocity: [ { avg: 0, var: 0.15 }, { avg: 0.5, var: 0.1 }, { avg: 0, var: 0.15 }],
-				quantity: { avg: 0.015 },
+				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0, var: 0 }, { avg: 0, var: 0.2 }],
+				velocity: [ { avg: 0.3, var: 0.15 }, { avg: 1.0, var: 0.1 }, { avg: 0.3, var: 0.15 }],
+				quantity: { avg: 0.02, var: 0.01 },
 				size: { avg: 0.4, var: 0 },
 				sizeEvolve: { transform: "quadratic", factor: -0.7 },
 				lifeLength: { avg: 1.5 },
@@ -71,9 +70,9 @@
 				hsvaColor: [{ avg: 0, var: 0 }, { avg: 0, var: 0 }, { avg: 70, var: 30 },  { avg: 220, var: 50 }],
 				opacityEvolve: { transform: "linear", factor: -255 },
 				gravityEffect: { avg: 0, var: 0 },
-				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0.5, var: 0 }, { avg: 0, var: 0.2 }],
-				velocity: [ { avg: 0, var: 0.025 }, { avg: 0.2, var: 0.05 }, { avg: 0, var: 0.025 }],
-				quantity: { avg: 0.08 },
+				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0, var: 0 }, { avg: 0, var: 0.2 }],
+				velocity: [ { avg: 0.05, var: 0.025 }, { avg: 0.3, var: 0.05 }, { avg: 0.05, var: 0.025 }],
+				quantity: { avg: 0.2, var: 0.1 },
 				size: { avg: 0.3, var: 0.05 },
 				sizeEvolve: { transform: "linear", factor: 1.5 },
 				particleModel: "Quad",
@@ -86,9 +85,9 @@
 				hsvaColor: [{ avg: 20, var: 20 }, { avg: 255, var: 50 }, { avg: 255, var: 50 },  { avg: 255, var: 0 }],
 				opacityEvolve: { transform: "quadratic", factor: -16 },
 				gravityEffect: { avg: 0, var: 0 },
-				posOffset: [ { avg: 0, var: 0.1 }, { avg: 0.4, var: 0 }, { avg: 0, var: 0.1 }],
-				velocity: [ { avg: 0, var: 0.1 }, { avg: 0.125, var: 0.05 }, { avg: 0, var: 0.1 }],
-				quantity: { avg: 1 },
+				posOffset: [ { avg: 0, var: 0.1 }, { avg: 0, var: 0 }, { avg: 0, var: 0.1 }],
+				velocity: [ { avg: 0.2, var: 0.1 }, { avg: 0.2, var: 0.05 }, { avg: 0.2, var: 0.1 }],
+				quantity: { avg: 2, "var": 1 },
 				size: { avg: 0.35, var: 0.05 },
 				lifeLength: { avg: 0.25 },
 				sizeEvolve: { transform: "linear", factor: 0.25 },
