@@ -52,7 +52,7 @@ namespace OddWire.GameContent
         bool shouldRedraw;
 
         InventoryGeneric groundCraftingInventory;
-        GroundCraftingResolvedRecipe groundCraftingRecipe;
+        SmithingResolvedRecipe groundCraftingRecipe;
         string groundCraftingRecipePattern;
         int groundCraftingStepIndex;
         int groundCraftingHammerHitsRemaining;
@@ -742,14 +742,14 @@ namespace OddWire.GameContent
             if (groundCraftingRecipe != null) return;
 
             OddWireModSystem modSystem = Api?.ModLoader.GetModSystem<OddWireModSystem>();
-            if (modSystem?.GroundCraftingRecipes == null) return;
+            if (modSystem?.SmithingRecipes == null) return;
 
             if (!string.IsNullOrWhiteSpace(groundCraftingRecipePattern))
             {
-                groundCraftingRecipe = modSystem.GroundCraftingRecipes.ResolveFor(Block, groundCraftingRecipePattern);
+                groundCraftingRecipe = modSystem.SmithingRecipes.ResolveFor(Block, groundCraftingRecipePattern);
             }
 
-            groundCraftingRecipe ??= modSystem.GroundCraftingRecipes.ResolveFor(Block);
+            groundCraftingRecipe ??= modSystem.SmithingRecipes.ResolveFor(Block);
             if (groundCraftingRecipe != null && string.IsNullOrWhiteSpace(groundCraftingRecipePattern))
             {
                 groundCraftingRecipePattern = groundCraftingRecipe.Pattern;

@@ -8,72 +8,77 @@ using Vintagestory.API.Util;
 
 namespace OddWire.GameContent
 {
-    public class GroundCraftingRecipeManager
+    public class SmithingRecipeManager
     {
         readonly ICoreAPI api;
-        readonly Dictionary<string, GroundCraftingRecipe> recipesByPattern = new Dictionary<string, GroundCraftingRecipe>();
+        readonly List<SmithingRecipe> recipes = new List<SmithingRecipe>();
 
-        public GroundCraftingRecipeManager(ICoreAPI api)
+        public SmithingRecipeManager(ICoreAPI api)
         {
             this.api = api;
             LoadRecipes();
         }
 
-        public GroundCraftingResolvedRecipe ResolveFor(Block block)
+        public SmithingResolvedRecipe ResolveFor(Block block)
         {
-            foreach (GroundCraftingRecipe recipe in recipesByPattern.Values)
+            foreach (SmithingRecipe recipe in recipes)
             {
-                GroundCraftingResolvedRecipe resolved = recipe.ResolveFor(block);
+                SmithingResolvedRecipe resolved = recipe.ResolveFor(block);
                 if (resolved != null) return resolved;
             }
 
             return null;
         }
 
-        public GroundCraftingResolvedRecipe ResolveFor(Block block, string pattern)
+        public SmithingResolvedRecipe ResolveFor(Block block, string pattern)
         {
             if (pattern == null) return null;
 
-            return recipesByPattern.TryGetValue(pattern, out GroundCraftingRecipe recipe)
-                ? recipe.ResolveFor(block)
-                : null;
+            foreach (SmithingRecipe recipe in recipes)
+            {
+                if (!string.Equals(recipe.Pattern, pattern, StringComparison.OrdinalIgnoreCase)) continue;
+                SmithingResolvedRecipe resolved = recipe.ResolveFor(block);
+                if (resolved != null) return resolved;
+            }
+
+            return null;
         }
 
         void LoadRecipes()
         {
-            foreach (IAsset asset in api.Assets.GetMany(new AssetLocation("recipes/groundcrafting")))
+            foreach (IAsset asset in api.Assets.GetMany(new AssetLocation("recipes/smithing")))
             {
-                GroundCraftingRecipeFile recipeFile = asset.ToObject<GroundCraftingRecipeFile>();
+                SmithingRecipeFile recipeFile = asset.ToObject<SmithingRecipeFile>();
                 if (recipeFile?.IngredientsByType == null) continue;
 
-                foreach (KeyValuePair<string, GroundCraftingRecipeDefinition> entry in recipeFile.IngredientsByType)
+                foreach (KeyValuePair<string, SmithingRecipeDefinition> entry in recipeFile.IngredientsByType)
                 {
                     if (entry.Value == null || entry.Value.Steps == null || entry.Value.Steps.Length == 0) continue;
-                    recipesByPattern[entry.Key] = new GroundCraftingRecipe(entry.Key, entry.Value);
+                    recipes.Add(new SmithingRecipe(entry.Key, entry.Value));
                 }
             }
         }
     }
 
-    public class GroundCraftingRecipeFile
+    public class SmithingRecipeFile
     {
         [JsonProperty("ingredientsByType")]
-        public Dictionary<string, GroundCraftingRecipeDefinition> IngredientsByType { get; set; }
+        public Dictionary<string, SmithingRecipeDefinition> IngredientsByType { get; set; }
     }
 
-    public class GroundCraftingRecipeDefinition
+    public class SmithingRecipeDefinition
     {
         [JsonProperty("allowedvariants")]
         public string[] AllowedVariants { get; set; } = Array.Empty<string>();
 
         [JsonProperty("steps")]
-        public GroundCraftingStepDefinition[] Steps { get; set; } = Array.Empty<GroundCraftingStepDefinition>();
+        public SmithingStepDefinition[] Steps { get; set; } = Array.Empty<SmithingStepDefinition>();
 
         [JsonProperty("output")]
         public string Output { get; set; }
     }
 
-    public class GroundCraftingStepDefinition
+    public class SmithingStepDefinition
     {
         [JsonProperty("name")]
         public string Name { get; set; }
@@ -85,18 +90,18 @@ namespace OddWire.GameContent
         public int? HammerHits { get; set; }
     }
 
-    public class GroundCraftingRecipe
+    public class SmithingRecipe
     {
         public string Pattern { get; }
-        public GroundCraftingRecipeDefinition Definition { get; }
+        public SmithingRecipeDefinition Definition { get; }
 
-        public GroundCraftingRecipe(string pattern, GroundCraftingRecipeDefinition definition)
+        public SmithingRecipe(string pattern, SmithingRecipeDefinition definition)
         {
             Pattern = pattern;
             Definition = definition;
         }
 
-        public GroundCraftingResolvedRecipe ResolveFor(Block block)
+        public SmithingResolvedRecipe ResolveFor(Block block)
         {
             if (block == null) return null;
 
@@ -110,7 +115,7 @@ namespace OddWire.GameContent
             }
 
             string output = ResolvePattern(Definition.Output ?? Pattern, metal);
-            return new GroundCraftingResolvedRecipe(Pattern, output, Definition.Steps, metal);
+            return new SmithingResolvedRecipe(Pattern, output, Definition.Steps, metal);
         }
 
         static string ResolvePattern(string pattern, string metal)
@@ -119,14 +124,14 @@ namespace OddWire.GameContent
         }
     }
 
-    public class GroundCraftingResolvedRecipe
+    public class SmithingResolvedRecipe
     {
         public string Pattern { get; }
         public string OutputCode { get; }
-        public GroundCraftingStepDefinition[] Steps { get; }
+        public SmithingStepDefinition[] Steps { get; }
         public string Metal { get; }
 
-        public GroundCraftingResolvedRecipe(string pattern, string outputCode, GroundCraftingStepDefinition[] steps, string metal)
+        public SmithingResolvedRecipe(string pattern, string outputCode, SmithingStepDefinition[] steps, string metal)
         {
             Pattern = pattern;
             OutputCode = outputCode;
