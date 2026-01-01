@@ -1,0 +1,35 @@
+{
+  "ingredientsByType": {
+    "brazier-*-{metal}": {
+      "allowedvariants": ["copper", "bronze", "brass"],
+      "steps": [
+        { "name": "metalplate-{metal}" },
+        { "name": "rod", "temp": 800, "hammerHits": 2 },
+        { "name": "borax" },
+        { "name": "metalbit-{metal}", "hammerHits": 1 },
+        { "name": "rod", "temp": 800, "hammerHits": 2 },
+        { "name": "borax" },
+        { "name": "metalbit-{metal}", "hammerHits": 1 },
+        { "name": "rod", "temp": 800, "hammerHits": 2 },
+        { "name": "borax" },
+        { "name": "metalbit-{metal}", "hammerHits": 1 },
+        { "name": "rod", "temp": 800, "hammerHits": 2 },
+        { "name": "borax" },
+        { "name": "metalbit-{metal}", "hammerHits": 1 },
+        { "name": "rod", "temp": 800, "hammerHits": 2 },
+        { "name": "borax" },
+        { "name": "metalbit-{metal}", "hammerHits": 1 },
+        { "name": "rod", "temp": 800, "hammerHits": 2 },
+        { "name": "borax" },
+        { "name": "metalbit-{metal}", "hammerHits": 1 },
+        { "name": "rod", "temp": 800, "hammerHits": 2 },
+        { "name": "borax" },
+        { "name": "metalbit-{metal}", "hammerHits": 1 },
+        { "name": "rod", "temp": 800, "hammerHits": 2 },
+        { "name": "borax" },
+        { "name": "metalbit-{metal}", "hammerHits": 1 }
+      ],
+      "output": "brazier-{metal}"
+    }
+  }
+}
