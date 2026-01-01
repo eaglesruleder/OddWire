@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
@@ -16,8 +14,6 @@ namespace OddWire.GameContent
         int fabricationStepIndex;
         int fabricationHammerHitsRemaining;
 
-        BrazierContentsRenderer renderer;
-
         public BlockEntityFabricate()
         {
             fabricationInventory = new InventoryGeneric(16, null, null);
@@ -30,17 +26,10 @@ namespace OddWire.GameContent
 
             fabricationInventory.LateInitialize("fabrication-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, api);
 
-            if (api is ICoreClientAPI clientApi)
-            {
-                renderer = new BrazierContentsRenderer(clientApi, Pos);
-                clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "fabrication");
-                UpdateRenderer();
-            }
         }
 
         void OnSlotModified(int slotId)
         {
-            UpdateRenderer();
             MarkDirty(Api?.Side == EnumAppSide.Server);
         }
 
@@ -62,7 +51,6 @@ namespace OddWire.GameContent
                 }
 
                 MarkDirty(true);
-                UpdateRenderer();
                 return true;
             }
 
@@ -96,7 +84,6 @@ namespace OddWire.GameContent
             }
 
             TryCompleteFabrication();
-            UpdateRenderer();
             MarkDirty(true);
             return true;
         }
@@ -142,7 +129,6 @@ namespace OddWire.GameContent
             if (output == null) return;
 
             ClearFabricationState();
-            UpdateRenderer();
             MarkDirty(true);
 
             if (output.Class == EnumItemClass.Block && output.Block != null)
@@ -167,45 +153,9 @@ namespace OddWire.GameContent
             }
         }
 
-        bool HasFabricationSteps()
-        {
-            if (fabricationInventory == null) return false;
-            for (int i = 0; i < fabricationInventory.Count; i++)
-            {
-                if (!fabricationInventory[i].Empty) return true;
-            }
-
-            return false;
-        }
-
-        ItemStack[] GetFabricationStacksForRender()
-        {
-            List<ItemStack> stacks = new List<ItemStack>();
-            for (int i = 0; i < fabricationInventory.Count; i++)
-            {
-                if (fabricationInventory[i].Empty) continue;
-                stacks.Add(fabricationInventory[i].Itemstack);
-            }
-
-            return stacks.ToArray();
-        }
-
         static bool IsHammer(ItemStack stack)
         {
             return stack?.Collectible?.Tool == EnumTool.Hammer;
-        }
-
-        void UpdateRenderer()
-        {
-            if (renderer == null) return;
-
-            if (HasFabricationSteps())
-            {
-                renderer.SetCraftingSteps(GetFabricationStacksForRender());
-                return;
-            }
-
-            renderer.SetCraftingSteps(null);
         }
 
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
@@ -220,11 +170,6 @@ namespace OddWire.GameContent
             fabricationStepIndex = tree.GetInt("fabricationStepIndex");
             fabricationHammerHitsRemaining = tree.GetInt("fabricationHammerHitsRemaining");
             fabricationRecipePattern = tree.GetString("fabricationRecipePattern");
-
-            if (Api?.Side == EnumAppSide.Client)
-            {
-                UpdateRenderer();
-            }
         }
 
         public override void ToTreeAttributes(ITreeAttribute tree)
@@ -242,9 +187,6 @@ namespace OddWire.GameContent
         public override void OnBlockRemoved()
         {
             base.OnBlockRemoved();
-
-            renderer?.Dispose();
-            renderer = null;
         }
     }
 }
