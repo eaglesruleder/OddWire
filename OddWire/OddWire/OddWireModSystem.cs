@@ -5,13 +5,13 @@ namespace OddWire
 {
     public class OddWireModSystem : ModSystem
     {
-        public SmithingRecipeManager SmithingRecipes { get; private set; }
+        public FabricationRecipeManager FabricationRecipes { get; private set; }
 
         public override void Start(ICoreAPI api)
         {
             api.RegisterBlockClass(Mod.Info.ModID+".", typeof(BlockBrazier));
             api.RegisterBlockEntityClass(Mod.Info.ModID+".", typeof(BlockEntityBrazier));
-            SmithingRecipes = new SmithingRecipeManager(api);
+            FabricationRecipes = new FabricationRecipeManager(api);
             base.Start(api);
         }
     }

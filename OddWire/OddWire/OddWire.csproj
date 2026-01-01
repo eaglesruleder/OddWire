@@ -12,6 +12,9 @@
         <Reference Include="cairo-sharp">
           <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Lib\cairo-sharp.dll</HintPath>
         </Reference>
+        <Reference Include="Newtonsoft.Json">
+          <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Lib\Newtonsoft.Json.dll</HintPath>
+        </Reference>
         <Reference Include="Vintagestory">
           <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Vintagestory.dll</HintPath>
         </Reference>

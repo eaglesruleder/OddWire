@@ -237,7 +237,7 @@ namespace OddWire.GameContent
                 {
                     bool activated = false;
 
-                    if (bef.TryHandleGroundCraftingInteraction(byPlayer, byPlayer.InventoryManager.ActiveHotbarSlot))
+                    if (bef.TryHandleFabricationInteraction(byPlayer, byPlayer.InventoryManager.ActiveHotbarSlot))
                     {
                         (byPlayer as IClientPlayer)?.TriggerFpAnimation(EnumHandInteract.HeldItemInteract);
                         return true;
