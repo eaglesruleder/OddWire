@@ -232,12 +232,6 @@ namespace OddWire.GameContent
                 {
                     bool activated = false;
 
-                    if (bef.TryHandleFabricationInteraction(byPlayer, byPlayer.InventoryManager.ActiveHotbarSlot))
-                    {
-                        (byPlayer as IClientPlayer)?.TriggerFpAnimation(EnumHandInteract.HeldItemInteract);
-                        return true;
-                    }
-
                     if (byPlayer.Entity.Controls.ShiftKey)
                     {
                         if (stack.Collectible.CombustibleProps != null && stack.Collectible.CombustibleProps.MeltingPoint > 0)

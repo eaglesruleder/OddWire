@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -50,12 +49,6 @@ namespace OddWire.GameContent
         BrazierContentsRenderer renderer;
 
         bool shouldRedraw;
-
-        InventoryGeneric fabricationInventory;
-        FabricationResolvedRecipe fabricationRecipe;
-        string fabricationRecipePattern;
-        int fabricationStepIndex;
-        int fabricationHammerHitsRemaining;
 
         public bool IsHot => IsBurning;
         public float emptyBrazierBurnTimeMulBonus = 4f;
@@ -111,7 +104,6 @@ namespace OddWire.GameContent
         {
             inventory = new InventorySmelting(null, null);
             inventory.SlotModified += OnSlotModifid;
-            fabricationInventory = new InventoryGeneric(16, null, null);
         }
 
 
@@ -122,7 +114,6 @@ namespace OddWire.GameContent
 
             inventory.pos = Pos;
             inventory.LateInitialize("smelting-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, api);
-            fabricationInventory.LateInitialize("fabrication-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, api);
 
             RegisterGameTickListener(OnBurnTick, 100);
             RegisterGameTickListener(On500msTick, 500);
@@ -597,16 +588,6 @@ namespace OddWire.GameContent
                 Inventory.AfterBlocksLoaded(Api.World);
             }
 
-            if (tree.GetTreeAttribute("fabrication") != null)
-            {
-                fabricationInventory.FromTreeAttributes(tree.GetTreeAttribute("fabrication"));
-            }
-
-            fabricationStepIndex = tree.GetInt("fabricationStepIndex");
-            fabricationHammerHitsRemaining = tree.GetInt("fabricationHammerHitsRemaining");
-            fabricationRecipePattern = tree.GetString("fabricationRecipePattern");
-
-
             furnaceTemperature = tree.GetFloat("furnaceTemperature");
             maxTemperature = tree.GetInt("maxTemperature");
             inputStackCookingTime = tree.GetFloat("oreCookingTime");
@@ -637,12 +618,6 @@ namespace OddWire.GameContent
         void UpdateRenderer()
         {
             if (renderer == null) return;
-
-            if (HasFabricationSteps())
-            {
-                renderer.SetCraftingSteps(GetFabricationStacksForRender());
-                return;
-            }
 
             ItemStack contentStack = inputStack == null ? outputStack : inputStack;
 
@@ -679,153 +654,6 @@ namespace OddWire.GameContent
             }
         }
 
-        public bool TryHandleFabricationInteraction(IPlayer byPlayer, ItemSlot activeSlot)
-        {
-            if (activeSlot?.Itemstack == null
-            ||  inputSlot.Empty || outputSlot.Empty
-                ) return false;
-
-            ResolveFabricationRecipe();
-            if (fabricationRecipe == null) return false;
-
-            if (fabricationHammerHitsRemaining > 0)
-            {
-                if (!IsHammer(activeSlot.Itemstack)) return false;
-                fabricationHammerHitsRemaining--;
-                if (fabricationHammerHitsRemaining <= 0)
-                {
-                    fabricationStepIndex++;
-                    TryCompleteFabrication();
-                }
-
-                MarkDirty(true);
-                UpdateRenderer();
-                return true;
-            }
-
-            if (!fabricationRecipe.MatchesStep(activeSlot.Itemstack, fabricationStepIndex, Api))
-            {
-                return false;
-            }
-
-            float requiredTemp = fabricationRecipe.GetRequiredTemperature(fabricationStepIndex);
-            if (requiredTemp > 0 && activeSlot.Itemstack.Collectible.GetTemperature(Api.World, activeSlot.Itemstack) < requiredTemp)
-            {
-                (Api as ICoreClientAPI)?.TriggerIngameError(this, "fabrication-toocold", Lang.GetWithFallback("fabrication-toocold", "That part needs to be heated before it can be added."));
-                return false;
-            }
-
-            ItemStack placed = activeSlot.TakeOut(1);
-            activeSlot.MarkDirty();
-            if (placed == null) return false;
-
-            fabricationInventory[fabricationStepIndex].Itemstack = placed;
-            fabricationInventory[fabricationStepIndex].MarkDirty();
-
-            int requiredHits = fabricationRecipe.GetRequiredHammerHits(fabricationStepIndex);
-            if (requiredHits > 0)
-            {
-                fabricationHammerHitsRemaining = requiredHits;
-            }
-            else
-            {
-                fabricationStepIndex++;
-            }
-
-            TryCompleteFabrication();
-            UpdateRenderer();
-            MarkDirty(true);
-            return true;
-        }
-
-        void ResolveFabricationRecipe()
-        {
-            if (fabricationRecipe is not null)
-                return;
-
-            OddWireModSystem modSystem = Api?.ModLoader.GetModSystem<OddWireModSystem>();
-            if (modSystem?.FabricationRecipes == null)
-                return;
-
-            if (!string.IsNullOrWhiteSpace(fabricationRecipePattern))
-            {
-                fabricationRecipe = modSystem.FabricationRecipes
-                                        .ResolveFor(Block, fabricationRecipePattern);
-            }
-
-            fabricationRecipe ??= modSystem.FabricationRecipes.ResolveFor(Block);
-            if (fabricationRecipe != null
-            && !string.IsNullOrWhiteSpace(fabricationRecipePattern)
-                )
-            {
-                fabricationRecipePattern = fabricationRecipe.Pattern;
-            }
-        }
-
-        void TryCompleteFabrication()
-        {
-            if (fabricationRecipe == null) return;
-            if (fabricationHammerHitsRemaining > 0) return;
-            if (fabricationStepIndex < fabricationRecipe.Steps.Length) return;
-
-            ItemStack output = fabricationRecipe.CreateOutputStack(Api.World);
-            if (output == null) return;
-
-            if (outputSlot.Empty)
-            {
-                outputSlot.Itemstack = output;
-                outputSlot.MarkDirty();
-            }
-            else
-            {
-                Api.World.SpawnItemEntity(output, Pos.ToVec3d().Add(0.5, 0.5, 0.5));
-            }
-
-            ClearFabricationState();
-            UpdateRenderer();
-        }
-
-        void ClearFabricationState()
-        {
-            fabricationStepIndex = 0;
-            fabricationHammerHitsRemaining = 0;
-            fabricationRecipe = null;
-            fabricationRecipePattern = null;
-            for (int i = 0; i < fabricationInventory.Count; i++)
-            {
-                fabricationInventory[i].Itemstack = null;
-            }
-        }
-
-        bool HasFabricationSteps()
-        {
-            if (fabricationInventory == null) return false;
-            for (int i = 0; i < fabricationInventory.Count; i++)
-            {
-                if (!fabricationInventory[i].Empty) return true;
-            }
-
-            return false;
-        }
-
-        ItemStack[] GetFabricationStacksForRender()
-        {
-            List<ItemStack> stacks = new List<ItemStack>();
-            for (int i = 0; i < fabricationInventory.Count; i++)
-            {
-                if (fabricationInventory[i].Empty) continue;
-                stacks.Add(fabricationInventory[i].Itemstack);
-            }
-
-            return stacks.ToArray();
-        }
-
-        static bool IsHammer(ItemStack stack)
-        {
-            return stack?.Collectible?.Tool == EnumTool.Hammer;
-        }
-
-
         void SetDialogValues(ITreeAttribute dialogTree)
         {
             dialogTree.SetFloat("furnaceTemperature", furnaceTemperature);
@@ -861,13 +689,6 @@ namespace OddWire.GameContent
             ITreeAttribute invtree = new TreeAttribute();
             Inventory.ToTreeAttributes(invtree);
             tree["inventory"] = invtree;
-
-            ITreeAttribute craftingTree = new TreeAttribute();
-            fabricationInventory.ToTreeAttributes(craftingTree);
-            tree["fabrication"] = craftingTree;
-            tree.SetInt("fabricationStepIndex", fabricationStepIndex);
-            tree.SetInt("fabricationHammerHitsRemaining", fabricationHammerHitsRemaining);
-            tree.SetString("fabricationRecipePattern", fabricationRecipePattern);
 
             tree.SetFloat("furnaceTemperature", furnaceTemperature);
             tree.SetInt("maxTemperature", maxTemperature);
