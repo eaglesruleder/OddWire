@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -123,8 +124,7 @@ namespace OddWire.GameContent
             {
                 ICoreClientAPI clientApi = api as ICoreClientAPI;
                 ModelTransform contentTransform = CreateBrazierContentTransform();
-                Vec3f contentOffset = GetBrazierContentOffset();
-                renderer = new BrazierContentsRenderer(clientApi, Pos, contentTransform, contentOffset);
+                renderer = new BrazierContentsRenderer(clientApi, Pos, contentTransform, Vec3f.Zero);
                 clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier");
 
                 fuelRenderer = new StackContentsRenderer(clientApi, Pos);
@@ -726,15 +726,6 @@ namespace OddWire.GameContent
             transform.ScaleXYZ.Y = 0.25f;
             transform.ScaleXYZ.Z = 0.25f;
             return transform;
-        }
-
-        Vec3f GetBrazierContentOffset()
-        {
-            Vec3f fallback = new Vec3f(0f, 0.6f, 0f);
-            AttachmentPoint point = Block?.Shape?.GetAttachmentPoint("Stack0");
-            if (point == null) return fallback;
-
-            return new Vec3f(point.PosX / 16f, point.PosY / 16f, point.PosZ / 16f);
         }
 
         void SetDialogValues(ITreeAttribute dialogTree)

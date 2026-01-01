@@ -29,7 +29,7 @@ namespace OddWire.GameContent
             this.pos = pos;
         }
 
-        public void SetInventory(InventoryBase inventory, Func<int, Vec3f> offsetSelector, ModelTransform transform = null)
+        public void SetInventory(InventoryBase inventory, Vintagestory.API.Common.Func<int, Vec3f> offsetSelector, ModelTransform transform = null)
         {
             if (inventory == null)
             {
@@ -49,7 +49,7 @@ namespace OddWire.GameContent
             SetStacks(inventoryStacks, transform, inventoryOffsets);
         }
 
-        public void SetSlots(ItemSlot[] slots, Func<int, Vec3f> offsetSelector, ModelTransform transform = null)
+        public void SetSlots(ItemSlot[] slots, Vintagestory.API.Common.Func<int, Vec3f> offsetSelector, ModelTransform transform = null)
         {
             if (slots == null)
             {
