@@ -47,6 +47,7 @@ namespace OddWire.GameContent
         bool clientSidePrevBurning;
 
         BrazierContentsRenderer renderer;
+        StackContentsRenderer fuelRenderer;
 
         bool shouldRedraw;
 
@@ -120,8 +121,14 @@ namespace OddWire.GameContent
 
             if (api is ICoreClientAPI)
             {
-                renderer = new BrazierContentsRenderer(api as ICoreClientAPI, Pos);
-                (api as ICoreClientAPI).Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier");
+                ICoreClientAPI clientApi = api as ICoreClientAPI;
+                ModelTransform contentTransform = CreateBrazierContentTransform();
+                Vec3f contentOffset = GetBrazierContentOffset();
+                renderer = new BrazierContentsRenderer(clientApi, Pos, contentTransform, contentOffset);
+                clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier");
+
+                fuelRenderer = new StackContentsRenderer(clientApi, Pos);
+                clientApi.Event.RegisterRenderer(fuelRenderer, EnumRenderStage.Opaque, "brazier-fuel");
 
                 UpdateRenderer();
             }
@@ -652,6 +659,82 @@ namespace OddWire.GameContent
             {
                 renderer.SetContents(null, null);
             }
+
+            UpdateFuelRenderer();
+        }
+
+        void UpdateFuelRenderer()
+        {
+            if (fuelRenderer == null) return;
+
+            ItemStack[] fuelStacks = GetFuelStacksForRender();
+            if (fuelStacks == null || fuelStacks.Length == 0)
+            {
+                fuelRenderer.SetStacks(null, (ModelTransform)null, null);
+                return;
+            }
+
+            fuelRenderer.SetStacks(fuelStacks, CreateBrazierFuelTransform(), GetFuelOffsets(fuelStacks.Length));
+        }
+
+        ItemStack[] GetFuelStacksForRender()
+        {
+            if (fuelSlot == null || fuelSlot.Empty) return null;
+            return new[] { fuelSlot.Itemstack };
+        }
+
+        static Vec3f[] GetFuelOffsets(int count)
+        {
+            if (count <= 0) return null;
+            Vec3f[] offsets = new Vec3f[count];
+            for (int i = 0; i < count; i++)
+            {
+                offsets[i] = new Vec3f(0.5f, 0.1f, 0.5f);
+            }
+
+            return offsets;
+        }
+
+        static ModelTransform CreateBrazierFuelTransform()
+        {
+            ModelTransform transform = new ModelTransform().EnsureDefaultValues();
+            transform.Origin.X = 8 / 16f;
+            transform.Origin.Y = 1 / 16f;
+            transform.Origin.Z = 8 / 16f;
+            transform.Rotation.X = 90;
+            transform.Rotation.Y = 90;
+            transform.Rotation.Z = 0;
+            transform.ScaleXYZ.X = 0.2f;
+            transform.ScaleXYZ.Y = 0.2f;
+            transform.ScaleXYZ.Z = 0.2f;
+            return transform;
+        }
+
+        static ModelTransform CreateBrazierContentTransform()
+        {
+            ModelTransform transform = new ModelTransform().EnsureDefaultValues();
+            transform.Origin.X = 8 / 16f;
+            transform.Origin.Y = 1 / 16f;
+            transform.Origin.Z = 8 / 16f;
+            transform.Rotation.X = 90;
+            transform.Rotation.Y = 90;
+            transform.Rotation.Z = 0;
+            transform.Translation.X = 0 / 32f;
+            transform.Translation.Y = 4f / 16f;
+            transform.Translation.Z = 0 / 32f;
+            transform.ScaleXYZ.X = 0.25f;
+            transform.ScaleXYZ.Y = 0.25f;
+            transform.ScaleXYZ.Z = 0.25f;
+            return transform;
+        }
+
+        Vec3f GetBrazierContentOffset()
+        {
+            Vec3f fallback = new Vec3f(0f, 0.6f, 0f);
+            AttachmentPoint point = Block?.Shape?.GetAttachmentPoint("Stack0");
+            if (point == null) return fallback;
+
+            return new Vec3f(point.PosX / 16f, point.PosY / 16f, point.PosZ / 16f);
         }
 
         void SetDialogValues(ITreeAttribute dialogTree)
@@ -709,6 +792,8 @@ namespace OddWire.GameContent
 
             renderer?.Dispose();
             renderer = null;
+            fuelRenderer?.Dispose();
+            fuelRenderer = null;
 
             if (clientDialog != null)
             {
