@@ -1,0 +1,73 @@
+[
+    {
+        "ingredients": {
+            "+": {
+                "type": "block",
+                "code": "oddwire:brazier-*",
+                allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+                "name": "metal"
+                },
+            "R": {
+                "type": "item",
+                "code": "game:rod-*",
+                "name": "metal",
+                allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+                },
+            "M": {
+                "type": "item",
+                "code": "game:metalbit-*",
+                "name": "metal",
+                allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+                },
+            "B": {
+                "type": "item",
+                "code": "game:powder-borax",
+                },
+        },
+        "steps": [
+            { "ingredientPattern": "+",   "tempMax": 100 },
+            { "ingredientPattern": "RMB", "tempMax": 100, "hammerHits": 1 },
+            { "ingredientPattern": "RMB", "tempMax": 100, "hammerHits": 1 },
+            { "ingredientPattern": "RMB", "tempMax": 100, "hammerHits": 1 },
+            { "ingredientPattern": "RMB", "tempMax": 100, "hammerHits": 1 },
+            { "ingredientPattern": "RMB", "tempMax": 100, "hammerHits": 1 },
+            { "ingredientPattern": "RMB", "tempMax": 100, "hammerHits": 1 },
+            { "ingredientPattern": "RMB", "tempMax": 100, "hammerHits": 1 },
+            { "ingredientPattern": "RMB", "tempMax": 100, "hammerHits": 1 },
+            { "tempMin": 800, "cookTime": 60.0 }
+            ],
+        "output": { type: "block", code: "braziertall-{metal}" },
+    },
+    {
+        "ingredients": {
+            "+": {
+                "type": "block",
+                "code": "oddwire:brazier-*",
+                allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+                "name": "metal"
+                },
+            "R": {
+                "type": "item",
+                "code": "game:rod-*",
+                "name": "metal",
+                allowedVariants: ["iron", "meteoric", "steel"],
+                },
+            "B": {
+                "type": "item",
+                "code": "game:powder-borax",
+                },
+        },
+        "steps": [
+            { "ingredientPattern": "+",  "tempMin": 100 },
+            { "ingredientPattern": "RB", "tempMin": 800, "hammerHits": 3 },
+            { "ingredientPattern": "RB", "tempMin": 800, "hammerHits": 3 },
+            { "ingredientPattern": "RB", "tempMin": 800, "hammerHits": 3 },
+            { "ingredientPattern": "RB", "tempMin": 800, "hammerHits": 3 },
+            { "ingredientPattern": "RB", "tempMin": 800, "hammerHits": 3 },
+            { "ingredientPattern": "RB", "tempMin": 800, "hammerHits": 3 },
+            { "ingredientPattern": "RB", "tempMin": 800, "hammerHits": 3 },
+            { "ingredientPattern": "RB", "tempMin": 800, "hammerHits": 3 },
+            ],
+        "output": { type: "block", code: "brazier-{metal}" },
+    },
+]
