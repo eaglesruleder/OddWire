@@ -92,6 +92,88 @@ namespace OddWire.GameContent
         #endregion
 
         
+        public float InputStackTemp
+        {   get => GetTemp(inputStack);
+            set => SetTemp(inputStack, value);
+        }
+
+        public float OutputStackTemp
+        {   get => GetTemp(outputStack);
+            set => SetTemp(outputStack, value);
+        }
+
+        float GetTemp(ItemStack stack)
+        {
+            if (stack == null)
+                return enviromentTemperature;
+
+            if (inventory.CookingSlots.Length <= 0)
+                return stack.Collectible.GetTemperature(Api.World, stack);
+            
+            bool haveStack = false;
+            float lowestTemp = 0;
+            for (int i = 0; i < inventory.CookingSlots.Length; i++)
+            {
+                ItemStack cookingStack = inventory.CookingSlots[i].Itemstack;
+                if (cookingStack != null)
+                {
+                    float stackTemp = cookingStack.Collectible.GetTemperature(Api.World, cookingStack);
+                    lowestTemp = haveStack ? Math.Min(lowestTemp, stackTemp) : stackTemp;
+                    haveStack = true;
+                }
+            }
+
+            return lowestTemp;
+        }
+
+        void SetTemp(ItemStack stack, float value)
+        {
+            if (stack == null)
+                return;
+            
+            if (inventory.CookingSlots.Length > 0)
+                for (int i = 0; i < inventory.CookingSlots.Length; i++)
+                    inventory.CookingSlots[i].Itemstack?.Collectible.SetTemperature(Api.World, inventory.CookingSlots[i].Itemstack, value);
+            else
+                stack.Collectible.SetTemperature(Api.World, stack, value);
+        }
+        
+        
+        // Current temperature of the furnace
+        public float furnaceTemperature = 20;
+        
+        // Maximum temperature that can be reached with the currently used fuel
+        public int maxTemperature;
+        
+        // How much of the current fuel is consumed
+        public float fuelBurnTime;
+        
+        // How much fuel is available
+        public float maxFuelBurnTime;
+        
+        /// If true, then the fire pit is currently hot enough to ignite fuel-
+        public bool canIgniteFuel;
+        
+        // For how long the ore has been cooking
+        public float inputStackCookingTime;
+        
+        public double extinguishedTotalHours;
+        
+        // Resting temperature
+        public virtual int enviromentTemperature => 20;
+        public virtual float HeatModifier => 1;
+        public virtual float BurnDurationModifier => 1;
+        public virtual bool BurnsAllFuel => true;
+        
+        public float emptyBrazierBurnTimeMulBonus = 4f;
+        
+        
+        BrazierContentsRenderer renderer;
+        
+        GuiDialogBlockEntityBrazier clientDialog;
+        public virtual string DialogTitle => Lang.Get("Brazier");
+        
+        
         public BlockEntityBrazier()
         {
             inventory = new InventorySmelting(null, null);
@@ -111,11 +193,8 @@ namespace OddWire.GameContent
             if (api is ICoreClientAPI clientApi)
             {
                 ModelTransform contentTransform = CreateBrazierContentTransform();
-                contentsRenderer = new BrazierContentsRenderer(clientApi, Pos, contentTransform, Vec3f.Zero);
-                clientApi.Event.RegisterRenderer(contentsRenderer, EnumRenderStage.Opaque, "brazier-contents");
-                
-                fuelRenderer = new StackContentsRenderer(clientApi, Pos);
-                clientApi.Event.RegisterRenderer(fuelRenderer, EnumRenderStage.Opaque, "brazier-fuel");
+                renderer = new BrazierContentsRenderer(clientApi, Pos, contentTransform, Vec3f.Zero);
+                clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier-contents");
 
                 UpdateRenderer();
             }
@@ -140,10 +219,8 @@ namespace OddWire.GameContent
         {
             base.OnBlockRemoved();
 
-            contentsRenderer?.Dispose();
-            contentsRenderer = null;
-            fuelRenderer?.Dispose();
-            fuelRenderer = null;
+            renderer?.Dispose();
+            renderer = null;
 
             if (clientDialog != null)
             {
@@ -157,7 +234,7 @@ namespace OddWire.GameContent
         {
             base.OnBlockUnloaded();
 
-            contentsRenderer?.Dispose();
+            renderer?.Dispose();
         }
         
         
@@ -184,7 +261,7 @@ namespace OddWire.GameContent
             // Only tick on the server and merely sync to client
             if (Api is ICoreClientAPI)
             {
-                contentsRenderer?.contentStackRenderer?.OnUpdate(InputStackTemp);
+                renderer?.contentStackRenderer?.OnUpdate(InputStackTemp);
                 return;
             }
 
@@ -397,56 +474,8 @@ namespace OddWire.GameContent
 
             prevFurnaceTemperature = furnaceTemperature;
         }
-
-        
-        // Current temperature of the furnace
-        public float furnaceTemperature = 20;
-        
-        // Maximum temperature that can be reached with the currently used fuel
-        public int maxTemperature;
-        
-        // How much of the current fuel is consumed
-        public float fuelBurnTime;
-        
-        // How much fuel is available
-        public float maxFuelBurnTime;
-        
-        /// If true, then the fire pit is currently hot enough to ignite fuel-
-        public bool canIgniteFuel;
         
         
-        // For how long the ore has been cooking
-        public float inputStackCookingTime;
-        
-        public double extinguishedTotalHours;
-        
-        // Resting temperature
-        public virtual int enviromentTemperature => 20;
-        public virtual float HeatModifier => 1;
-        public virtual float BurnDurationModifier => 1;
-        public virtual bool BurnsAllFuel => true;
-        
-        
-        
-        public float emptyBrazierBurnTimeMulBonus = 4f;
-        
-
-        
-        
-        
-        
-        BrazierContentsRenderer contentsRenderer;
-        StackContentsRenderer fuelRenderer;
-        
-        private static ModelTransform CreateBrazierFuelTransform()
-        {
-            ModelTransform transform = new ModelTransform().EnsureDefaultValues();
-            transform.Origin.Set(0.5f, 1 / 16f, 0.5f);
-            transform.Rotation.Set(90, 90, 0);
-            transform.ScaleXYZ.Set(0.2f, 0.2f, 0.2f);
-            return transform;
-        }
-
         private static ModelTransform CreateBrazierContentTransform()
         {
             ModelTransform transform = new ModelTransform().EnsureDefaultValues();
@@ -482,29 +511,29 @@ namespace OddWire.GameContent
         
         void UpdateRenderer()
         {
-            if (contentsRenderer == null)
+            if (renderer == null)
                 return;
 
             ItemStack contentStack = inputStack ?? outputStack;
 
             bool useOldRenderer =
-                contentsRenderer.ContentStack != null
-            &&  contentsRenderer.contentStackRenderer != null
+                renderer.ContentStack != null
+            &&  renderer.contentStackRenderer != null
             &&  contentStack?.Collectible is IInBrazierRendererSupplier
-            &&  contentsRenderer.ContentStack.Equals(Api.World, contentStack, GlobalConstants.IgnoredStackAttributes);
+            &&  renderer.ContentStack.Equals(Api.World, contentStack, GlobalConstants.IgnoredStackAttributes);
 
             if (useOldRenderer)
                 return; // Otherwise the cooking sounds restarts all the time
 
-            contentsRenderer.contentStackRenderer?.Dispose();
-            contentsRenderer.contentStackRenderer = null;
+            renderer.contentStackRenderer?.Dispose();
+            renderer.contentStackRenderer = null;
 
             if (contentStack?.Collectible is IInBrazierRendererSupplier contentRenderSupplier)
             {
                 IInBrazierRenderer childrenderer = contentRenderSupplier.GetRendererWhenInBrazier(contentStack, this, contentStack == outputStack);
                 if (childrenderer != null)
                 {
-                    contentsRenderer.SetChildRenderer(contentStack, childrenderer);
+                    renderer.SetChildRenderer(contentStack, childrenderer);
                     return;
                 }
             }
@@ -514,49 +543,100 @@ namespace OddWire.GameContent
             &&!(contentStack?.Collectible is IInBrazierMeshSupplier)
             &&  props != null
                 )
-                contentsRenderer.SetContents(contentStack, props.Transform);
+                renderer.SetContents(contentStack, props.Transform);
             else
-                contentsRenderer.SetContents(null, null);
-
-            UpdateFuelRenderer();
+                renderer.SetContents(null, null);
         }
         
-        void UpdateFuelRenderer()
+        public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
-            if (fuelRenderer == null)
-                return;
+            ItemStack contentStack = inputStack ?? outputStack;
+            MeshData contentmesh = getContentMesh(contentStack, tesselator);
+            if (contentmesh != null)
+                mesher.AddMeshData(contentmesh);
 
-            ItemStack[] fuelStacks = GetFuelStacksForRender();
-            if (fuelStacks == null || fuelStacks.Length == 0)
+            string burnState = Block.Variant["burnstate"];
+            if (burnState == null)
+                return true;
+            
+            string contentState = CurrentModel.ToString().ToLowerInvariant();
+            if (burnState == "cold"
+            &&  fuelSlot.Empty
+                )
+                burnState = "extinct";
+            
+            mesher.AddMeshData(getOrCreateMesh(burnState, contentState));
+
+            return true;
+        }
+        
+        private MeshData getContentMesh(ItemStack contentStack, ITesselatorAPI tesselator)
+        {
+            CurrentModel = EnumBrazierModel.Normal;
+
+            if (contentStack == null)
+                return null;
+
+            if (contentStack.Collectible is IInBrazierMeshSupplier contentMeshSupplier)
             {
-                fuelRenderer.SetStacks(null, (ModelTransform)null, null);
-                return;
+                EnumBrazierModel model = EnumBrazierModel.Normal;
+                MeshData mesh = contentMeshSupplier.GetMeshWhenInBrazier(contentStack, Api.World, Pos, ref model);
+                CurrentModel = model;
+
+                if (mesh != null)
+                    return mesh;
             }
 
-            fuelRenderer.SetStacks(fuelStacks, CreateBrazierFuelTransform(), GetFuelOffsets(fuelStacks.Length));
-        }
-        
-        ItemStack[] GetFuelStacksForRender()
-        {
-            if (fuelSlot == null || fuelSlot.Empty) return null;
-            return new[] { fuelStack };
-        }
+            if (contentStack.Collectible is IInBrazierRendererSupplier contentRendererSupplier)
+            {
+                EnumBrazierModel model = contentRendererSupplier.GetDesiredBrazierModel(contentStack, this, contentStack == outputStack);
+                CurrentModel = model;
+                return null;
+            }
 
-        static Vec3f[] GetFuelOffsets(int count)
-        {
-            if (count <= 0)
+            InBrazierProps renderProps = GetRenderProps(contentStack);
+            if (renderProps == null)
+            {
+                if (renderer.RequireSpit)
+                    CurrentModel = EnumBrazierModel.Spit;
+                return null; // Mesh drawing is handled by the BrazierContentsRenderer
+            }
+            
+            CurrentModel = renderProps.UseBrazierModel;
+            if (contentStack.Class == EnumItemClass.Item)
                 return null;
             
-            Vec3f[] offsets = new Vec3f[count];
-            for (int i = 0; i < count; i++)
-                offsets[i] = new Vec3f(0.5f, 0.1f, 0.5f);
+            tesselator.TesselateBlock(contentStack.Block, out MeshData ingredientMesh);
 
-            return offsets;
+            ingredientMesh.ModelTransform(renderProps.Transform);
+
+            // Lower by 1 voxel if extinct
+            if(!IsBurning
+            &&  renderProps.UseBrazierModel != EnumBrazierModel.Spit
+                )
+                ingredientMesh.Translate(0, -1 / 16f, 0);
+
+            return ingredientMesh;
+        }
+
+        public MeshData getOrCreateMesh(string burnstate, string contentstate)
+        {
+            Dictionary<string, MeshData> Meshes = ObjectCacheUtil.GetOrCreate(Api, "brazier-meshes", () => new Dictionary<string, MeshData>());
+
+            string key = burnstate + "-" + contentstate;
+            if (!Meshes.TryGetValue(key, out MeshData meshdata))
+            {
+                Block block = Api.World.BlockAccessor.GetBlock(Pos);
+                if (block.BlockId == 0)
+                    return null;
+                
+                ITesselatorAPI mesher = ((ICoreClientAPI)Api).Tesselator;
+                mesher.TesselateShape(block, Shape.TryGet(Api, "oddwire:shapes/block/metal/brazier/" + key + ".json"), out meshdata);
+            }
+
+            return meshdata;
         }
         
-        
-        GuiDialogBlockEntityBrazier clientDialog;
-        public virtual string DialogTitle => Lang.Get("Brazier");
         
         void SetDialogValues(ITreeAttribute dialogTree)
         {
@@ -581,61 +661,6 @@ namespace OddWire.GameContent
             dialogTree.SetInt("haveCookingContainer", inventory.HaveCookingContainer ? 1 : 0);
             dialogTree.SetInt("quantityCookingSlots", inventory.CookingSlots.Length);
         }
-        
-        
-        
-        
-        
-        
-        
-        public float InputStackTemp
-        {   get => GetTemp(inputStack);
-            set => SetTemp(inputStack, value);
-        }
-
-        public float OutputStackTemp
-        {   get => GetTemp(outputStack);
-            set => SetTemp(outputStack, value);
-        }
-
-        float GetTemp(ItemStack stack)
-        {
-            if (stack == null)
-                return enviromentTemperature;
-
-            if (inventory.CookingSlots.Length <= 0)
-                return stack.Collectible.GetTemperature(Api.World, stack);
-            
-            bool haveStack = false;
-            float lowestTemp = 0;
-            for (int i = 0; i < inventory.CookingSlots.Length; i++)
-            {
-                ItemStack cookingStack = inventory.CookingSlots[i].Itemstack;
-                if (cookingStack != null)
-                {
-                    float stackTemp = cookingStack.Collectible.GetTemperature(Api.World, cookingStack);
-                    lowestTemp = haveStack ? Math.Min(lowestTemp, stackTemp) : stackTemp;
-                    haveStack = true;
-                }
-            }
-
-            return lowestTemp;
-        }
-
-        void SetTemp(ItemStack stack, float value)
-        {
-            if (stack == null)
-                return;
-            
-            if (inventory.CookingSlots.Length > 0)
-                for (int i = 0; i < inventory.CookingSlots.Length; i++)
-                    inventory.CookingSlots[i].Itemstack?.Collectible.SetTemperature(Api.World, inventory.CookingSlots[i].Itemstack, value);
-            else
-                stack.Collectible.SetTemperature(Api.World, stack, value);
-        }
-        
-        
-        
         
         
         public override void OnReceivedServerPacket(int packetid, byte[] data)
@@ -726,96 +751,6 @@ namespace OddWire.GameContent
 
                 slot.Itemstack.Collectible.OnStoreCollectibleMappings(Api.World, slot, blockIdMapping, itemIdMapping);
             }
-        }
-        
-        
-        public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
-        {
-            ItemStack contentStack = inputStack ?? outputStack;
-            MeshData contentmesh = getContentMesh(contentStack, tesselator);
-            if (contentmesh != null)
-                mesher.AddMeshData(contentmesh);
-
-            string burnState = Block.Variant["burnstate"];
-            if (burnState == null)
-                return true;
-            
-            string contentState = CurrentModel.ToString().ToLowerInvariant();
-            if (burnState == "cold"
-            &&  fuelSlot.Empty
-                )
-                burnState = "extinct";
-            
-            mesher.AddMeshData(getOrCreateMesh(burnState, contentState));
-
-            return true;
-        }
-        
-        private MeshData getContentMesh(ItemStack contentStack, ITesselatorAPI tesselator)
-        {
-            CurrentModel = EnumBrazierModel.Normal;
-
-            if (contentStack == null)
-                return null;
-
-            if (contentStack.Collectible is IInBrazierMeshSupplier contentMeshSupplier)
-            {
-                EnumBrazierModel model = EnumBrazierModel.Normal;
-                MeshData mesh = contentMeshSupplier.GetMeshWhenInBrazier(contentStack, Api.World, Pos, ref model);
-                CurrentModel = model;
-
-                if (mesh != null)
-                    return mesh;
-            }
-
-            if (contentStack.Collectible is IInBrazierRendererSupplier contentRendererSupplier)
-            {
-                EnumBrazierModel model = contentRendererSupplier.GetDesiredBrazierModel(contentStack, this, contentStack == outputStack);
-                CurrentModel = model;
-                return null;
-            }
-
-            InBrazierProps renderProps = GetRenderProps(contentStack);
-            if (renderProps == null)
-            {
-                if (contentsRenderer.RequireSpit)
-                    CurrentModel = EnumBrazierModel.Spit;
-                return null; // Mesh drawing is handled by the BrazierContentsRenderer
-            }
-            
-            CurrentModel = renderProps.UseBrazierModel;
-            if (contentStack.Class == EnumItemClass.Item)
-                return null;
-            
-            tesselator.TesselateBlock(contentStack.Block, out MeshData ingredientMesh);
-
-            ingredientMesh.ModelTransform(renderProps.Transform);
-
-            // Lower by 1 voxel if extinct
-            if(!IsBurning
-            &&  renderProps.UseBrazierModel != EnumBrazierModel.Spit
-                )
-                ingredientMesh.Translate(0, -1 / 16f, 0);
-
-            return ingredientMesh;
-        }
-
-        public MeshData getOrCreateMesh(string burnstate, string contentstate)
-        {
-            Dictionary<string, MeshData> Meshes = ObjectCacheUtil.GetOrCreate(Api, "brazier-meshes", () => new Dictionary<string, MeshData>());
-
-            string key = burnstate + "-" + contentstate;
-            if (!Meshes.TryGetValue(key, out MeshData meshdata))
-            {
-                Block block = Api.World.BlockAccessor.GetBlock(Pos);
-                if (block.BlockId == 0)
-                    return null;
-                
-                ITesselatorAPI mesher = ((ICoreClientAPI)Api).Tesselator;
-                mesher.TesselateShape(block, Shape.TryGet(Api, "oddwire:shapes/block/metal/brazier/" + key + ".json"), out meshdata);
-            }
-
-            return meshdata;
         }
     }
 }
