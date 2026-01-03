@@ -692,7 +692,7 @@ namespace OddWire.GameContent
             
             if (clientSidePrevBurning != IsBurning || shouldRedraw)
             {
-                GetBehavior<BEBehaviorBrazierAmbient>()?.ToggleAmbientSounds(IsBurning);
+                GetBehavior<BEBehaviorBrazierAmbient>()?.EnableAmbientSounds(IsBurning);
                 clientSidePrevBurning = IsBurning;
                 MarkDirty(true);
                 shouldRedraw = false;

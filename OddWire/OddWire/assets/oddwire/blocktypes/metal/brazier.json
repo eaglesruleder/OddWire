@@ -4,6 +4,8 @@
 	class: "BlockBrazier",
 	entityClass: "Brazier",
 	entityBehaviors: [
+		"BEBehaviorBrazierAmbient",
+		"BEBehaviorBrazierMusic"
 	],
 	creativeinventory: { general: ["brazier-extinct-iron"], decorative: ["brazier-extinct-iron"] },
 	

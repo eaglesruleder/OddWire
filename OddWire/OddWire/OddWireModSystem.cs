@@ -9,11 +9,15 @@ namespace OddWire
 
         public override void Start(ICoreAPI api)
         {
-            api.RegisterBlockClass(Mod.Info.ModID+".", typeof(BlockBrazier));
-            api.RegisterBlockClass(Mod.Info.ModID+".", typeof(BlockFabricate));
-            api.RegisterBlockEntityClass(Mod.Info.ModID+".", typeof(BlockEntityBrazier));
-            api.RegisterBlockEntityClass(Mod.Info.ModID+".", typeof(BlockEntityFabricate));
             FabricationRecipes = new FabricationRecipeManager(api);
+            
+            api.RegisterBlockClass($"{Mod.Info.ModID}.BlockBrazier", typeof(BlockBrazier));
+            api.RegisterBlockClass($"{Mod.Info.ModID}.BlockFabricate", typeof(BlockFabricate));
+            api.RegisterBlockEntityClass($"{Mod.Info.ModID}.BlockEntityBrazier", typeof(BlockEntityBrazier));
+            api.RegisterBlockEntityClass($"{Mod.Info.ModID}.BlockEntityFabricate", typeof(BlockEntityFabricate));
+            api.RegisterBlockEntityBehaviorClass($"{Mod.Info.ModID}.BEBehaviorBrazierAmbient", typeof(BEBehaviorBrazierAmbient));
+            api.RegisterBlockEntityBehaviorClass($"{Mod.Info.ModID}.BEBehaviorBrazierMusic", typeof(BEBehaviorBrazierMusic));
+            
             base.Start(api);
         }
     }
