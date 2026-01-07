@@ -43,8 +43,8 @@ namespace OddWire.GameContent
                         MouseButton = EnumMouseButton.Right,
                         Itemstacks = canIgniteStacks.ToArray(),
                         GetMatchingStacks = (wi, bs, es) => {
-                            BlockEntityBrazier bef = api.World.BlockAccessor.GetBlockEntity(bs.Position) as BlockEntityBrazier;
-                            if (bef == null || bef.IsBurning || (bef.fuelSlot?.Empty ?? true))
+                            BlockEntityBrazier beBrazier = api.World.BlockAccessor.GetBlockEntity(bs.Position) as BlockEntityBrazier;
+                            if (beBrazier == null || beBrazier.IsBurning || (beBrazier.FuelSlot?.Empty ?? true))
                                 return null;
                             return wi.Itemstacks;
                         }
@@ -59,10 +59,8 @@ namespace OddWire.GameContent
             });
         }
 
-        public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer)
-        {
-            return _interactions.Append(base.GetPlacedBlockInteractionHelp(world, selection, forPlayer));
-        }
+        public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer) =>
+            _interactions.Append(base.GetPlacedBlockInteractionHelp(world, selection, forPlayer));
         
         private void OnLoaded_Particles(ICoreAPI api)
         {
@@ -122,9 +120,10 @@ namespace OddWire.GameContent
         
         public override float GetTraversalCost(BlockPos pos, EnumAICreatureType creatureType)
         {
-            if (creatureType is EnumAICreatureType.LandCreature or EnumAICreatureType.Humanoid)
-                return GetBlockEntity<BlockEntityBrazier>(pos)?.IsBurning == true ? 10000f : 1f;
-
+            if (creatureType is EnumAICreatureType.LandCreature or EnumAICreatureType.Humanoid
+            &&  GetBlockEntity<BlockEntityBrazier>(pos)?.IsBurning == true
+                )
+                return 10000f;
             return base.GetTraversalCost(pos, creatureType);
         }
         
@@ -132,30 +131,41 @@ namespace OddWire.GameContent
         #region IIgnitable
         public EnumIgniteState OnTryIgniteStack(EntityAgent byEntity, BlockPos pos, ItemSlot slot, float secondsIgniting)
         {
-            BlockEntityBrazier bef = api.World.BlockAccessor.GetBlockEntity(pos) as BlockEntityBrazier;
-            if (bef?.IsBurning == false)
-                return secondsIgniting > 2
-                ?   EnumIgniteState.IgniteNow
-                :   EnumIgniteState.Ignitable;
-            return EnumIgniteState.NotIgnitable;
+            if (api.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityBrazier beBrazier
+            || !beBrazier.IsBurning
+               )
+                return EnumIgniteState.NotIgnitable;
+            
+            return secondsIgniting > 2
+            ?   EnumIgniteState.IgniteNow
+            :   EnumIgniteState.Ignitable;
         }
+        
         public EnumIgniteState OnTryIgniteBlock(EntityAgent byEntity, BlockPos pos, float secondsIgniting)
         {
-            BlockEntityBrazier bef = api.World.BlockAccessor.GetBlockEntity(pos) as BlockEntityBrazier;
-            if (bef != null) 
-                return bef.GetIgnitableState(secondsIgniting);
-            return EnumIgniteState.NotIgnitable;
+            if (api.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityBrazier beBrazier)
+                return EnumIgniteState.NotIgnitable;
+            
+            if (beBrazier.IsBurning
+            ||  beBrazier.FuelSlot.Empty
+                )
+                return EnumIgniteState.NotIgnitablePreventDefault;
+
+            return secondsIgniting > 3
+            ?   EnumIgniteState.IgniteNow
+            :   EnumIgniteState.Ignitable;
         }
 
         public void OnTryIgniteBlockOver(EntityAgent byEntity, BlockPos pos, float secondsIgniting, ref EnumHandling handling)
         {
-            BlockEntityBrazier bef = api.World.BlockAccessor.GetBlockEntity(pos) as BlockEntityBrazier;
-            if (bef?.canIgniteFuel == false)
+            if (api.World.BlockAccessor.GetBlockEntity(pos) is BlockEntityBrazier beBrazier
+            && !beBrazier.canIgniteFuel
+               )
             {
-                bef.canIgniteFuel = true;
-                bef.extinguishedTotalHours = api.World.Calendar.TotalHours;
+                beBrazier.canIgniteFuel = true;
+                beBrazier.extinguishedTotalHours = api.World.Calendar.TotalHours;
             }
-
+            
             handling = EnumHandling.PreventDefault;
         }
         #endregion
@@ -163,24 +173,24 @@ namespace OddWire.GameContent
         #region ISmokeEmitter
         public bool EmitsSmoke(BlockPos pos)
         {
-            var bebrazier = api.World.BlockAccessor.GetBlockEntity(pos) as BlockEntityBrazier;
-            return bebrazier?.IsBurning == true;
+            if (api.World.BlockAccessor.GetBlockEntity(pos) is BlockEntityBrazier beBrazier) 
+                return beBrazier.IsBurning;
+            return false;
         }
         #endregion
 
         public override bool ShouldReceiveClientParticleTicks(IWorldAccessor world, IPlayer player, BlockPos pos, out bool isWindAffected)
         {
-            bool val = base.ShouldReceiveClientParticleTicks(world, player, pos, out _);
             isWindAffected = true;
-            return val;
+            return base.ShouldReceiveClientParticleTicks(world, player, pos, out _);
         }
 
         public override void OnAsyncClientParticleTick(IAsyncParticleManager manager, BlockPos pos, float windAffectednessAtPos, float secondsTicking)
         {
-            BlockEntityBrazier bef = manager.BlockAccess.GetBlockEntity(pos) as BlockEntityBrazier;
             if (IsExtinct
-            ||  bef?.CurrentModel != EnumBrazierModel.Wide
-                )
+            ||  (manager.BlockAccess.GetBlockEntity(pos) is BlockEntityBrazier beBrazier
+            &&  !beBrazier.IsWide
+                ))
             {
                 base.OnAsyncClientParticleTick(manager, pos, windAffectednessAtPos, secondsTicking);
                 return;
@@ -207,14 +217,13 @@ namespace OddWire.GameContent
                 return false;
             
             ItemStack stack = byPlayer.InventoryManager.ActiveHotbarSlot?.Itemstack;
-            BlockEntityBrazier beBrazier = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityBrazier;
             if (stack is null
-            ||  beBrazier == null
+            ||  world.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityBrazier beBrazier
                 )
                 return base.OnBlockInteractStart(world, byPlayer, blockSel);
             
             if (stack.Block.HasBehavior<BlockBehaviorCanIgnite>()
-            &&  beBrazier.GetIgnitableState(0) == EnumIgniteState.Ignitable
+            &&  OnTryIgniteBlock(byPlayer.Entity, blockSel.Position, 0) == EnumIgniteState.Ignitable
                 )
                 return false;
             
@@ -228,7 +237,7 @@ namespace OddWire.GameContent
                 if (stack.ItemAttributes?["placeSound"].Exists == true)
                 {
                     var loc = AssetLocation.Create(stack.ItemAttributes["placeSound"].AsString(), stack.Collectible.Code.Domain);
-                    api.World.PlaySoundAt(loc.WithPathPrefixOnce("sounds/"), blockSel.Position.X, blockSel.Position.InternalY, blockSel.Position.Z, byPlayer, 0.88f + (float)api.World.Rand.NextDouble() * 0.24f, 16);
+                    world.PlaySoundAt(loc.WithPathPrefixOnce("sounds/"), blockSel.Position.X, blockSel.Position.InternalY, blockSel.Position.Z, byPlayer, 0.88f + (float)world.Rand.NextDouble() * 0.24f, 16);
                 }
 
                 return true;
@@ -243,19 +252,24 @@ namespace OddWire.GameContent
             ||  stack.Collectible.CombustibleProps == null
                 )
                 return false;
-
-            ItemSlot moveSlot = null;
-            if (stack.Collectible.CombustibleProps.MeltingPoint > 0)
-                moveSlot = beBrazier.inputSlot;
-            else if (stack.Collectible.CombustibleProps.BurnTemperature > 0)
-                moveSlot = beBrazier.fuelSlot;
-
-            if (moveSlot == null)
-                return false;
             
-            ItemStackMoveOperation moveOp = new ItemStackMoveOperation(world, EnumMouseButton.Left, 0, EnumMergePriority.DirectMerge, 1);
-            byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(moveSlot, ref moveOp);
-            return moveOp.MovedQuantity > 0;
+            if (stack.Collectible.CombustibleProps.MeltingPoint > 0)
+            {
+                ItemStackMoveOperation moveMeltOp = new ItemStackMoveOperation(world, EnumMouseButton.Left, 0, EnumMergePriority.DirectMerge, 1);
+                byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(beBrazier.InputSlot, ref moveMeltOp);
+                if (moveMeltOp.MovedQuantity > 0)
+                    return true;
+            }
+            
+            if (stack.Collectible.CombustibleProps.BurnTemperature > 0)
+            {
+                ItemStackMoveOperation moveBurnOp = new ItemStackMoveOperation(world, EnumMouseButton.Left, 0, EnumMergePriority.DirectMerge, 1);
+                byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(beBrazier.FuelSlot, ref moveBurnOp);
+                if (moveBurnOp.MovedQuantity > 0)
+                    return true;
+            }
+            
+            return false;
         }
         
         private bool OnBlockInteractStart_tryMealContainer(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, BlockEntityBrazier beBrazier, ItemStack stack)
@@ -264,10 +278,10 @@ namespace OddWire.GameContent
                 return false;
             
             ItemSlot potSlot = null;
-            if (beBrazier.inputStack?.Collectible is BlockCookedContainer)
-                potSlot = beBrazier.inputSlot;
-            if (beBrazier.outputStack?.Collectible is BlockCookedContainer)
-                potSlot = beBrazier.outputSlot;
+            if (beBrazier.InputStack?.Collectible is BlockCookedContainer)
+                potSlot = beBrazier.InputSlot;
+            if (beBrazier.OutputStack?.Collectible is BlockCookedContainer)
+                potSlot = beBrazier.OutputSlot;
 
             if (potSlot != null)
             {
@@ -285,19 +299,16 @@ namespace OddWire.GameContent
                     blockPot.ServeIntoStack(targetSlot, potSlot, world);
             }
             else
-            if(!beBrazier.inputSlot.Empty
-            ||  byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(api.World, beBrazier.inputSlot, 1) == 0
+            if(!beBrazier.InputSlot.Empty
+            ||  byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(world, beBrazier.InputSlot, 1) == 0
               )
                 beBrazier.OnPlayerRightClick(byPlayer, blockSel);
 
             return true;
         }
 
-        private bool OnBlockInteractStart_trySmeltingContainer(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, BlockEntityBrazier beBrazier, ItemStack stack)
-        {
-            return
-                stack?.Collectible is BlockSmeltingContainer or BlockSmeltedContainer
-            &&  byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(api.World, beBrazier.inputSlot, 1) > 0;
-        }
+        private bool OnBlockInteractStart_trySmeltingContainer(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, BlockEntityBrazier beBrazier, ItemStack stack) =>
+            stack?.Collectible is BlockSmeltingContainer or BlockSmeltedContainer
+        &&  byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(world, beBrazier.InputSlot, 1) > 0;
     }
 }
