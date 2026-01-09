@@ -13,8 +13,8 @@ namespace OddWire
             
             api.RegisterBlockClass($"{Mod.Info.ModID}.BlockBrazier", typeof(BlockBrazier));
             api.RegisterBlockClass($"{Mod.Info.ModID}.BlockFabricate", typeof(BlockFabricate));
-            api.RegisterBlockEntityClass($"{Mod.Info.ModID}.BlockEntityBrazier", typeof(BlockEntityBrazier));
-            api.RegisterBlockEntityClass($"{Mod.Info.ModID}.BlockEntityFabricate", typeof(BlockEntityFabricate));
+            api.RegisterBlockEntityClass($"{Mod.Info.ModID}.Brazier", typeof(BlockEntityBrazier));
+            api.RegisterBlockEntityClass($"{Mod.Info.ModID}.Fabricate", typeof(BlockEntityFabricate));
             
             base.Start(api);
         }

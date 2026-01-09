@@ -222,7 +222,7 @@ namespace OddWire.GameContent
                 )
                 return base.OnBlockInteractStart(world, byPlayer, blockSel);
             
-            if (stack.Block.HasBehavior<BlockBehaviorCanIgnite>()
+            if (stack.Block?.HasBehavior<BlockBehaviorCanIgnite>() == true
             &&  OnTryIgniteBlock(byPlayer.Entity, blockSel.Position, 0) == EnumIgniteState.Ignitable
                 )
                 return false;

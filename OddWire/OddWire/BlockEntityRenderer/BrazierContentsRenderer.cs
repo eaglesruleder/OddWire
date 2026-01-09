@@ -21,53 +21,32 @@ namespace OddWire.GameContent
         ModelTransform defaultTransform;
 
         public IInFirepitRenderer contentStackRenderer;
-        public bool RequireSpit
-        {
-            get
-            {
-                return contentStackRenderer == null && ContentStack?.Item != null;
-            }
-        }
+        public bool RequireSpit =>
+            contentStackRenderer == null
+        &&  ContentStack?.Item != null;
 
-        public double RenderOrder
-        {
-            get { return 0.5; }
-        }
-
-        public int RenderRange
-        {
-            get { return 48; }
-        }
+        public double RenderOrder => 0.5;
+        public int RenderRange => 48;
 
         public BrazierContentsRenderer(ICoreClientAPI api, BlockPos pos)
         {
             this.api = api;
             this.pos = pos;
             transform = new ModelTransform().EnsureDefaultValues();
-            transform.Origin.X = 8 / 16f;
-            transform.Origin.Y = 1 / 16f;
-            transform.Origin.Z = 8 / 16f;
-            transform.Rotation.X = 90;
-            transform.Rotation.Y = 90;
-            transform.Rotation.Z = 0;
-            transform.Translation.X = 0 / 32f;
-            transform.Translation.Y = 4f / 16f;
-            transform.Translation.Z = 0 / 32f;
-            transform.ScaleXYZ.X = 0.25f;
-            transform.ScaleXYZ.Y = 0.25f;
-            transform.ScaleXYZ.Z = 0.25f;
+            transform.Origin.Set(8 / 16f, 1 / 16f, 8 / 16f);
+            transform.Rotation.Set(90, 90, 0);
+            transform.Translation.Set(0 / 32f, 4f / 16f, 0 / 32f);
+            transform.ScaleXYZ.Set(0.25f, 0.25f, 0.25f);
 
             defaultTransform = transform;
-
         }
 
 
         internal void SetChildRenderer(ItemStack contentStack, IInFirepitRenderer renderer)
         {
-            this.ContentStack = contentStack;
+            ContentStack = contentStack;
             meshref?.Dispose();
             meshref = null;
-            
             contentStackRenderer = renderer;
         }
 
@@ -77,15 +56,18 @@ namespace OddWire.GameContent
             contentStackRenderer = null;
 
             this.transform = transform;
-            if (transform == null) this.transform = defaultTransform;
+            if (transform == null)
+                this.transform = defaultTransform;
             this.transform.EnsureDefaultValues();
 
             meshref?.Dispose();
             meshref = null;
             
-            if (newContentStack == null || newContentStack.Class == EnumItemClass.Block)
+            if (newContentStack == null
+            ||  newContentStack.Class == EnumItemClass.Block
+               )
             {
-                this.ContentStack = null;
+                ContentStack = null;
                 return;
             }
 
@@ -102,7 +84,7 @@ namespace OddWire.GameContent
             }
 
             meshref = api.Render.UploadMultiTextureMesh(ingredientMesh);
-            this.ContentStack = newContentStack;
+            ContentStack = newContentStack;
         }
 
         public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
@@ -113,7 +95,8 @@ namespace OddWire.GameContent
                 return;
             }
 
-            if (meshref == null) return;
+            if (meshref == null)
+                return;
             
             IRenderAPI rpi = api.Render;
             Vec3d camPos = api.World.Player.Entity.CameraPos;
@@ -145,7 +128,7 @@ namespace OddWire.GameContent
 
             prog.RgbaLightIn = lightrgbs;
             
-            prog.ExtraGlow = (int)GameMath.Clamp((temp - 500) / 4, 0, 255);
+            prog.ExtraGlow = GameMath.Clamp((temp - 500) / 4, 0, 255);
             
             prog.ModelMatrix = ModelMat
                 .Identity()
@@ -156,8 +139,7 @@ namespace OddWire.GameContent
                 .RotateZ(transform.Rotation.Z * GameMath.DEG2RAD)
                 .Scale(transform.ScaleXYZ.X, transform.ScaleXYZ.Y, transform.ScaleXYZ.Z)
                 .Translate(-transform.Origin.X, -transform.Origin.Y, -transform.Origin.Z)
-                .Values
-            ;
+                .Values;
 
             prog.ViewMatrix = rpi.CameraMatrixOriginf;
             prog.ProjectionMatrix = rpi.CurrentProjectionMatrix;
@@ -174,6 +156,5 @@ namespace OddWire.GameContent
             meshref?.Dispose();
             contentStackRenderer?.Dispose();
         }
-
     }
 }

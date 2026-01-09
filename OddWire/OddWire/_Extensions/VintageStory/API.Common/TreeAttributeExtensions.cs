@@ -7,6 +7,7 @@ namespace OddWire.VintageStory.API.Common
     {
         public static void SetCombustibleProps(this ITreeAttribute tree, string key, CombustibleProperties props)
         {
+            if (props is null) return;
             if(props.BurnDuration != 0)    tree.SetFloat($"{key}.BurnDuration", props.BurnDuration);
             if(props.BurnTemperature != 0) tree.SetInt($"{key}.BurnTemperature", props.BurnTemperature);
             if(props.HeatResistance != 0)  tree.SetInt($"{key}.HeatResistance", props.HeatResistance);

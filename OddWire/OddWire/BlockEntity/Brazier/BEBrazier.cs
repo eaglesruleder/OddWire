@@ -261,7 +261,7 @@ namespace OddWire.GameContent
 
             // Furnace is burning: Heat furnace
             if (IsBurning)
-                furnaceTemperature = CalcTemperatureChange(furnaceTemperature, _burnProps?.MaxTemperature ?? 0, dt);
+                furnaceTemperature = CalcTemperatureChange(furnaceTemperature, _burnProps?.BurnTemperature ?? 0, dt);
 
             // Ore follows furnace temperature
             OnBurnHeatInput(dt);
@@ -624,7 +624,7 @@ namespace OddWire.GameContent
         {
             dialogTree.SetFloat("furnaceTemperature", furnaceTemperature);
 
-            dialogTree.SetInt("maxTemperature", _burnProps?.MaxTemperature ?? 0);
+            dialogTree.SetInt("maxTemperature", _burnProps?.BurnTemperature ?? 0);
             dialogTree.SetFloat("oreCookingTime", inputStackCookingTime);
             dialogTree.SetFloat("maxFuelBurnTime", _burnProps?.BurnDuration ?? 0);
             dialogTree.SetFloat("fuelBurnTime", burnRemaining);
