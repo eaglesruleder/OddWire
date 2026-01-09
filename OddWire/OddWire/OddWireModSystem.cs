@@ -15,8 +15,6 @@ namespace OddWire
             api.RegisterBlockClass($"{Mod.Info.ModID}.BlockFabricate", typeof(BlockFabricate));
             api.RegisterBlockEntityClass($"{Mod.Info.ModID}.BlockEntityBrazier", typeof(BlockEntityBrazier));
             api.RegisterBlockEntityClass($"{Mod.Info.ModID}.BlockEntityFabricate", typeof(BlockEntityFabricate));
-            api.RegisterBlockEntityBehaviorClass($"{Mod.Info.ModID}.BEBehaviorBrazierAmbient", typeof(BEBehaviorBrazierAmbient));
-            api.RegisterBlockEntityBehaviorClass($"{Mod.Info.ModID}.BEBehaviorBrazierMusic", typeof(BEBehaviorBrazierMusic));
             
             base.Start(api);
         }

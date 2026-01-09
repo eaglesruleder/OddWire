@@ -14,7 +14,7 @@ using OddWire.VintageStory.API.Common;
 
 namespace OddWire.GameContent
 {
-    public class BlockEntityBrazier : BlockEntityOpenableContainer, IBrazier, IHeatSource, ITemperatureSensitive
+    public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
         #region BlockEntityContainer
         internal InventorySmelting inventory;
@@ -45,7 +45,7 @@ namespace OddWire.GameContent
 
         #region IBrazier
         public bool IsBurning => burnRemaining > 0;
-        public bool IsWide => CurrentModel == EnumBrazierModel.Wide;
+        public bool IsWide => CurrentModel == EnumFirepitModel.Wide;
         #endregion
         
         
@@ -131,7 +131,7 @@ namespace OddWire.GameContent
         }
         
         
-        public EnumBrazierModel CurrentModel { get; private set; }
+        public EnumFirepitModel CurrentModel { get; private set; }
         
         // Current temperature of the furnace
         public float furnaceTemperature = 20;
@@ -157,7 +157,7 @@ namespace OddWire.GameContent
         public double extinguishedTotalHours;
         
         
-        BrazierContentsRenderer renderer;
+        FirepitContentsRenderer renderer;
         
         GuiDialogBlockEntityBrazier clientDialog;
         public virtual string DialogTitle => Lang.Get("Brazier");
@@ -181,8 +181,7 @@ namespace OddWire.GameContent
 
             if (api is ICoreClientAPI clientApi)
             {
-                ModelTransform contentTransform = CreateBrazierContentTransform();
-                renderer = new BrazierContentsRenderer(clientApi, Pos, contentTransform, Vec3f.Zero);
+                renderer = new FirepitContentsRenderer(clientApi, Pos);
                 clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier-contents");
 
                 UpdateRenderer();
@@ -465,17 +464,6 @@ namespace OddWire.GameContent
             prevFurnaceTemperature = furnaceTemperature;
         }
         
-        
-        private static ModelTransform CreateBrazierContentTransform()
-        {
-            ModelTransform transform = new ModelTransform().EnsureDefaultValues();
-            transform.Origin.Set(0.5f, 1 / 16f, 0.5f);
-            transform.Rotation.Set(90, 90, 0);
-            transform.Translation.Set(0, 0.25f, 0);
-            transform.ScaleXYZ.Set(0.25f, 0.25f, 0.25f);
-            return transform;
-        }
-        
         public void SetBlockState(string state)
         {
             AssetLocation loc = Block.CodeWithVariant("burnstate", state);
@@ -487,11 +475,11 @@ namespace OddWire.GameContent
             Block = block;
         }
         
-        InBrazierProps GetRenderProps(ItemStack contentStack)
+        InFirePitProps GetRenderProps(ItemStack contentStack)
         {
-            if (contentStack?.ItemAttributes?.KeyExists("inBrazierProps") == true)
+            if (contentStack?.ItemAttributes?.KeyExists("inFirePitProps") == true)
             {
-                InBrazierProps props = contentStack.ItemAttributes["inBrazierProps"].AsObject<InBrazierProps>();
+                InFirePitProps props = contentStack.ItemAttributes["inFirePitProps"].AsObject<InFirePitProps>();
                 props.Transform.EnsureDefaultValues();
 
                 return props;
@@ -518,9 +506,9 @@ namespace OddWire.GameContent
             renderer.contentStackRenderer?.Dispose();
             renderer.contentStackRenderer = null;
 
-            if (contentStack?.Collectible is IInBrazierRendererSupplier contentRenderSupplier)
+            if (contentStack?.Collectible is IInFirepitRendererSupplier contentRenderSupplier)
             {
-                IInBrazierRenderer childrenderer = contentRenderSupplier.GetRendererWhenInBrazier(contentStack, this, contentStack == OutputStack);
+                IInFirepitRenderer childrenderer = contentRenderSupplier.GetRendererWhenInFirepit(contentStack, this, contentStack == OutputStack);
                 if (childrenderer != null)
                 {
                     renderer.SetChildRenderer(contentStack, childrenderer);
@@ -528,9 +516,9 @@ namespace OddWire.GameContent
                 }
             }
 
-            InBrazierProps props = GetRenderProps(contentStack);
+            InFirePitProps props = GetRenderProps(contentStack);
             if (contentStack?.Collectible != null
-            &&!(contentStack?.Collectible is IInBrazierMeshSupplier)
+            &&!(contentStack?.Collectible is IInFirepitMeshSupplier)
             &&  props != null
                 )
                 renderer.SetContents(contentStack, props.Transform);
@@ -562,37 +550,37 @@ namespace OddWire.GameContent
         
         private MeshData GetContentMesh(ItemStack contentStack, ITesselatorAPI tesselator)
         {
-            CurrentModel = EnumBrazierModel.Normal;
+            CurrentModel = EnumFirepitModel.Normal;
 
             if (contentStack == null)
                 return null;
 
-            if (contentStack.Collectible is IInBrazierMeshSupplier contentMeshSupplier)
+            if (contentStack.Collectible is IInFirepitMeshSupplier contentMeshSupplier)
             {
-                EnumBrazierModel model = EnumBrazierModel.Normal;
-                MeshData mesh = contentMeshSupplier.GetMeshWhenInBrazier(contentStack, Api.World, Pos, ref model);
+                EnumFirepitModel model = EnumFirepitModel.Normal;
+                MeshData mesh = contentMeshSupplier.GetMeshWhenInFirepit(contentStack, Api.World, Pos, ref model);
                 CurrentModel = model;
 
                 if (mesh != null)
                     return mesh;
             }
 
-            if (contentStack.Collectible is IInBrazierRendererSupplier contentRendererSupplier)
+            if (contentStack.Collectible is IInFirepitRendererSupplier contentRendererSupplier)
             {
-                EnumBrazierModel model = contentRendererSupplier.GetDesiredBrazierModel(contentStack, this, contentStack == OutputStack);
+                EnumFirepitModel model = contentRendererSupplier.GetDesiredFirepitModel(contentStack, this, contentStack == OutputStack);
                 CurrentModel = model;
                 return null;
             }
 
-            InBrazierProps renderProps = GetRenderProps(contentStack);
+            InFirePitProps renderProps = GetRenderProps(contentStack);
             if (renderProps == null)
             {
                 if (renderer.RequireSpit)
-                    CurrentModel = EnumBrazierModel.Spit;
-                return null; // Mesh drawing is handled by the BrazierContentsRenderer
+                    CurrentModel = EnumFirepitModel.Spit;
+                return null; // Mesh drawing is handled by the FirepitContentsRenderer
             }
             
-            CurrentModel = renderProps.UseBrazierModel;
+            CurrentModel = renderProps.UseFirepitModel;
             if (contentStack.Class == EnumItemClass.Item)
                 return null;
             
@@ -602,7 +590,7 @@ namespace OddWire.GameContent
 
             // Lower by 1 voxel if extinct
             if(!IsBurning
-            &&  renderProps.UseBrazierModel != EnumBrazierModel.Spit
+            &&  renderProps.UseFirepitModel != EnumFirepitModel.Spit
                 )
                 ingredientMesh.Translate(0, -1 / 16f, 0);
 
@@ -705,7 +693,7 @@ namespace OddWire.GameContent
             
             if (clientSidePrevBurning != IsBurning || shouldRedraw)
             {
-                GetBehavior<BEBehaviorBrazierAmbient>()?.EnableAmbientSounds(IsBurning);
+                GetBehavior<BEBehaviorFirepitAmbient>().ToggleAmbientSounds(IsBurning);
                 clientSidePrevBurning = IsBurning;
                 MarkDirty(true);
                 shouldRedraw = false;
