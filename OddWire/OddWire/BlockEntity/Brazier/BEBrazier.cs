@@ -157,7 +157,7 @@ namespace OddWire.GameContent
         public double extinguishedTotalHours;
         
         
-        FirepitContentsRenderer renderer;
+        BrazierContentsRenderer renderer;
         
         GuiDialogBlockEntityBrazier clientDialog;
         public virtual string DialogTitle => Lang.Get("Brazier");
@@ -181,7 +181,7 @@ namespace OddWire.GameContent
 
             if (api is ICoreClientAPI clientApi)
             {
-                renderer = new FirepitContentsRenderer(clientApi, Pos);
+                renderer = new BrazierContentsRenderer(clientApi, Pos);
                 clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier-contents");
 
                 UpdateRenderer();
@@ -487,6 +487,10 @@ namespace OddWire.GameContent
             return null;
         }
         
+        private BlockEntityFirepit EmulateBEFirepit => new BlockEntityFirepit()
+            {Pos = Pos
+            };
+        
         void UpdateRenderer()
         {
             if (renderer == null)
@@ -508,7 +512,7 @@ namespace OddWire.GameContent
 
             if (contentStack?.Collectible is IInFirepitRendererSupplier contentRenderSupplier)
             {
-                IInFirepitRenderer childrenderer = contentRenderSupplier.GetRendererWhenInFirepit(contentStack, this, contentStack == OutputStack);
+                IInFirepitRenderer childrenderer = contentRenderSupplier.GetRendererWhenInFirepit(contentStack, EmulateBEFirepit, contentStack == OutputStack);
                 if (childrenderer != null)
                 {
                     renderer.SetChildRenderer(contentStack, childrenderer);
@@ -567,7 +571,7 @@ namespace OddWire.GameContent
 
             if (contentStack.Collectible is IInFirepitRendererSupplier contentRendererSupplier)
             {
-                EnumFirepitModel model = contentRendererSupplier.GetDesiredFirepitModel(contentStack, this, contentStack == OutputStack);
+                EnumFirepitModel model = contentRendererSupplier.GetDesiredFirepitModel(contentStack, EmulateBEFirepit, contentStack == OutputStack);
                 CurrentModel = model;
                 return null;
             }
@@ -577,7 +581,7 @@ namespace OddWire.GameContent
             {
                 if (renderer.RequireSpit)
                     CurrentModel = EnumFirepitModel.Spit;
-                return null; // Mesh drawing is handled by the FirepitContentsRenderer
+                return null; // Mesh drawing is handled by the BrazierContentsRenderer
             }
             
             CurrentModel = renderProps.UseFirepitModel;
