@@ -17,17 +17,22 @@
 		{ code:"burnstate", states: ["extinct", "lit", "cold"] },
 		{ "code":"metal", "states": ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"] },
 	],
-	behaviorsByType: {
-		"*-construct*": [ {name: "Unstable"}],
-		"*": [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
-	},
+	behaviors: [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
 	"renderpass": "OpaqueNoCull",
-	"shape": { "base": "block/metal/brazier/parts/brazier" },
+	"shape": { "base": "block/metal/brazier/{burnstate}-normal" },
 	"faceCullMode": "NeverCull",
 	"textures": {
-		"all": {
-			"base": "game:block/metal/sheet-plain/{metal}3"
-		}
+		"metal": { base: "game:block/metal/sheet-plain/{metal}3" },
+		"ceramic": { base: "game:block/clay/ceramic" },
+		"tinder": { base: "game:block/hay/normal-side" },
+		"log": { base: "game:block/wood/firepit/log" },
+		"birch": { base: "game:block/wood/debarked/birch" },
+		"charred": { base: "game:block/wood/charred" },
+		"ashes": { base: "game:block/wood/firepit/ground" },
+		"aged": { base: "game:block/wood/debarked/aged" },
+		"fire": { base: "game:block/wood/firepit/fire" },
+		"walnut-h": { base: "game:block/wood/bark/walnut-h" },
+		"ember": { base: "game:block/coal/ember" }
 	},
 	"blockmaterial": "Metal",
 	"lightAbsorption": 0,
