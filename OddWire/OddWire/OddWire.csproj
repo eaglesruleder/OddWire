@@ -53,7 +53,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="BlockEntity\" />
+      <Folder Include="Block\Metal\" />
     </ItemGroup>
 
 </Project>
