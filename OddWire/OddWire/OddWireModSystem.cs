@@ -5,16 +5,10 @@ namespace OddWire
 {
     public class OddWireModSystem : ModSystem
     {
-        public FabricationRecipeManager FabricationRecipes { get; private set; }
-
         public override void Start(ICoreAPI api)
         {
-            FabricationRecipes = new FabricationRecipeManager(api);
-            
             api.RegisterBlockClass($"{Mod.Info.ModID}.BlockBrazier", typeof(BlockBrazier));
-            api.RegisterBlockClass($"{Mod.Info.ModID}.BlockFabricate", typeof(BlockFabricate));
             api.RegisterBlockEntityClass($"{Mod.Info.ModID}.Brazier", typeof(BlockEntityBrazier));
-            api.RegisterBlockEntityClass($"{Mod.Info.ModID}.Fabricate", typeof(BlockEntityFabricate));
             
             base.Start(api);
         }
