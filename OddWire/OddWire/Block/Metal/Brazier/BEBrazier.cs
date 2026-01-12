@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -16,6 +17,8 @@ namespace OddWire.GameContent
 {
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
+        private const string SHAPE_ROOT = "oddwire:shapes/block/metal/brazier/";
+        
         #region BlockEntityContainer
         internal InventorySmelting inventory;
         public override InventoryBase Inventory => inventory;
@@ -536,7 +539,7 @@ namespace OddWire.GameContent
             MeshData contentmesh = GetContentMesh(contentStack, tesselator);
             if (contentmesh != null)
                 mesher.AddMeshData(contentmesh);
-
+            
             string burnState = Block.Variant["burnstate"];
             if (burnState == null)
                 return true;
@@ -547,7 +550,11 @@ namespace OddWire.GameContent
                 )
                 burnState = "extinct";
             
-            mesher.AddMeshData(GetOrCreateMesh(burnState, contentState));
+            var firewoodMesh = GetOrCreateMesh($"firewood/{burnState}-{contentState}");
+            firewoodMesh.Translate(new Vec3f(0, 3f/16f, 0));
+            mesher.AddMeshData(firewoodMesh);
+            
+            mesher.AddMeshData(GetOrCreateMesh("parts/brazier"));
 
             return true;
         }
@@ -601,11 +608,9 @@ namespace OddWire.GameContent
             return ingredientMesh;
         }
 
-        public MeshData GetOrCreateMesh(string burnstate, string contentstate)
+        public MeshData GetOrCreateMesh(string key, string path = SHAPE_ROOT)
         {
             Dictionary<string, MeshData> Meshes = ObjectCacheUtil.GetOrCreate(Api, "brazier-meshes", () => new Dictionary<string, MeshData>());
-
-            string key = burnstate + "-" + contentstate;
             if (!Meshes.TryGetValue(key, out MeshData meshdata))
             {
                 Block block = Api.World.BlockAccessor.GetBlock(Pos);
@@ -613,9 +618,10 @@ namespace OddWire.GameContent
                     return null;
                 
                 ITesselatorAPI mesher = ((ICoreClientAPI)Api).Tesselator;
-                mesher.TesselateShape(block, Shape.TryGet(Api, "oddwire:shapes/block/metal/brazier/" + key + ".json"), out meshdata);
+                string shapePath = $"{path}{key}.json";
+                Shape shape = Shape.TryGet(Api, shapePath);
+                mesher.TesselateShape(block, shape, out meshdata);
             }
-
             return meshdata;
         }
         
