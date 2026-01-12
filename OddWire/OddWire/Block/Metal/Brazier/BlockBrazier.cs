@@ -159,10 +159,10 @@ namespace OddWire.GameContent
         public void OnTryIgniteBlockOver(EntityAgent byEntity, BlockPos pos, float secondsIgniting, ref EnumHandling handling)
         {
             if (api.World.BlockAccessor.GetBlockEntity(pos) is BlockEntityBrazier beBrazier
-            && !beBrazier.canIgniteFuel
+            && !beBrazier.CanIgniteFuel
                )
             {
-                beBrazier.canIgniteFuel = true;
+                beBrazier.CanIgniteFuel = true;
                 beBrazier.extinguishedTotalHours = api.World.Calendar.TotalHours;
             }
             

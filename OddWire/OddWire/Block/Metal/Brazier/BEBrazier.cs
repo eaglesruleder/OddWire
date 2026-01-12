@@ -54,7 +54,7 @@ namespace OddWire.GameContent
         #region IHeatSource
         public float GetHeatStrength(IWorldAccessor world, BlockPos heatSourcePos, BlockPos heatReceiverPos)
         {
-            return IsBurning ? 10 : (canIgniteFuel ? 0.25f : 0);
+            return IsBurning ? 10 : (CanIgniteFuel ? 0.25f : 0);
         }
         #endregion
 
@@ -72,7 +72,7 @@ namespace OddWire.GameContent
             {
                 SetBlockState("cold");
                 extinguishedTotalHours = -99;
-                canIgniteFuel = false;
+                CanIgniteFuel = false;
                 burnRemaining = 0;
                 _burnProps = null;
             }
@@ -143,7 +143,7 @@ namespace OddWire.GameContent
         
         
         // If true, then the fire pit is currently hot enough to ignite fuel-
-        public bool canIgniteFuel;
+        public bool CanIgniteFuel;
         
         public virtual bool BurnsAllFuel => true;
         
@@ -327,7 +327,7 @@ namespace OddWire.GameContent
             &&  Api.World.Calendar.TotalHours - extinguishedTotalHours > 2
                 )
             {
-                canIgniteFuel = false;
+                CanIgniteFuel = false;
                 SetBlockState("cold");
             }
         }
@@ -407,15 +407,18 @@ namespace OddWire.GameContent
         } }
         
         private bool CanSmelt
-        { get {
-            CombustibleProperties fuelCopts = FuelStack?.Collectible.CombustibleProps;
-            if (fuelCopts == null)
+        { get
+        {
+            CombustibleProperties burnProps =
+                FuelStack?.Collectible.CombustibleProps
+            ??  InputStack?.Collectible.CombustibleProps;
+            if (burnProps == null)
                 return false;
 
             return
                 (BurnsAllFuel || CanHeatInput)
                 // Require fuel
-            &&  fuelCopts.BurnTemperature > 0;
+            &&  burnProps.BurnTemperature > 0;
         } }
         
         public void OnBurnSmeltItems()
@@ -438,20 +441,32 @@ namespace OddWire.GameContent
         
         public void OnBurnIgniteFuel()
         {
-            if (!canIgniteFuel || !CanSmelt)
+            if (!CanIgniteFuel || !CanSmelt)
                 return;
+
+            var consumeInput =
+                (InputStack?.Collectible.CombustibleProps?.CanBurn() ?? false)
+            &&  (FuelSlot.Empty
+            ||   Api.World.Rand.NextDouble() > 0.5
+                );
+            var consumeStack = consumeInput ? InputStack : FuelStack;
             
-            _burnProps = FuelStack.Collectible.CombustibleProps.Clone();
+            _burnProps = consumeStack.Collectible.CombustibleProps.Clone();
             _burnProps.BurnDuration *= BurnDurationModifier;
             _burnProps.BurnTemperature = (int)(_burnProps.BurnTemperature * BurnTempModifier);
             
-            burnRemaining = _burnProps?.BurnDuration ?? 0;
+            burnRemaining = _burnProps.BurnDuration;
             SetBlockState("lit");
             MarkDirty(true);
 
-            FuelStack.StackSize -= 1;
-            if (FuelStack.StackSize <= 0)
-                FuelStack = null;
+            consumeStack.StackSize -= 1;
+            if (consumeStack.StackSize <= 0)
+            {
+                if (consumeInput)
+                    InputStack = null;
+                else
+                    FuelStack = null;
+            }
         }
         
         // Temperature before the half second tick
@@ -670,7 +685,7 @@ namespace OddWire.GameContent
             tree.SetFloat("fuelBurnTime", burnRemaining);
             tree.SetCombustibleProps("burnProps", _burnProps);
             tree.SetDouble("extinguishedTotalHours", extinguishedTotalHours);
-            tree.SetBool("canIgniteFuel", canIgniteFuel);
+            tree.SetBool("canIgniteFuel", CanIgniteFuel);
         }
         
         bool clientSidePrevBurning;
@@ -686,7 +701,7 @@ namespace OddWire.GameContent
             burnRemaining = tree.GetFloat("fuelBurnTime");
             _burnProps = tree.GetCombustibleProps("burnProps");
             extinguishedTotalHours = tree.GetDouble("extinguishedTotalHours");
-            canIgniteFuel = tree.GetBool("canIgniteFuel", true);
+            CanIgniteFuel = tree.GetBool("canIgniteFuel", true);
 
             if (Api?.Side != EnumAppSide.Client)
                 return;
