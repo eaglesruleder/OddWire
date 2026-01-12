@@ -534,6 +534,7 @@ namespace OddWire.GameContent
         
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
+            ItemSlot contentSlot = InputSlot ?? OutputSlot;
             ItemStack contentStack = InputStack ?? OutputStack;
             MeshData contentmesh = GetContentMesh(contentStack, tesselator);
             if (contentmesh != null)
@@ -542,16 +543,28 @@ namespace OddWire.GameContent
             string burnState = Block.Variant["burnstate"];
             if (burnState == null)
                 return true;
-            
-            string contentState = CurrentModel.ToString().ToLowerInvariant();
-            if (burnState == "cold"
-            &&  FuelSlot.Empty
-                )
+
+            bool fuelHasCombustible = FuelStack?.Collectible?.CombustibleProps.CanBurn() ?? false;
+            bool contentHasCombustible = contentStack?.Collectible?.CombustibleProps.CanBurn() ?? false;
+            bool contentHasItem = !contentSlot.Empty && !contentHasCombustible;
+
+            // If we're cold and have no combustible at all, treat as extinct for visuals
+            if (burnState == "cold" && !(fuelHasCombustible || contentHasCombustible))
                 burnState = "extinct";
             
-            var firewoodMesh = this.CacheMesh($"{ShapePath}firewood/{burnState}-{contentState}", CacheKey);
-            firewoodMesh.Translate(new Vec3f(0, 3f/16f, 0));
-            mesher.AddMeshData(firewoodMesh);
+            if (fuelHasCombustible && !contentHasItem)
+            {
+                var firewoodMesh = this.CacheMesh($"{ShapePath}firewood/{burnState}-normal", CacheKey);
+                firewoodMesh.Translate(new Vec3f(0, 3f / 16f, 0));
+                mesher.AddMeshData(firewoodMesh);
+            }
+
+            if (contentHasCombustible || contentHasItem)
+            {
+                var firewoodMesh = this.CacheMesh($"{ShapePath}firewood/{burnState}-wide", CacheKey);
+                firewoodMesh.Translate(new Vec3f(0, 3f / 16f, 0));
+                mesher.AddMeshData(firewoodMesh);
+            }
             
             mesher.AddMeshData(this.CacheMesh($"{ShapePath}parts/brazier", CacheKey));
 
