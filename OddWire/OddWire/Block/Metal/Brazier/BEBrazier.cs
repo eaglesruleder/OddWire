@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
-using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 using OddWire.VintageStory.API.Common;
 
@@ -17,7 +15,8 @@ namespace OddWire.GameContent
 {
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
-        private const string SHAPE_ROOT = "oddwire:shapes/block/metal/brazier/";
+        public virtual string ShapePath => "oddwire:shapes/block/metal/brazier/";
+        public virtual string CacheKey => "brazier-meshes";
         
         #region BlockEntityContainer
         internal InventorySmelting inventory;
@@ -550,11 +549,11 @@ namespace OddWire.GameContent
                 )
                 burnState = "extinct";
             
-            var firewoodMesh = GetOrCreateMesh($"firewood/{burnState}-{contentState}");
+            var firewoodMesh = this.CacheMesh($"{ShapePath}firewood/{burnState}-{contentState}", CacheKey);
             firewoodMesh.Translate(new Vec3f(0, 3f/16f, 0));
             mesher.AddMeshData(firewoodMesh);
             
-            mesher.AddMeshData(GetOrCreateMesh("parts/brazier"));
+            mesher.AddMeshData(this.CacheMesh($"{ShapePath}parts/brazier", CacheKey));
 
             return true;
         }
@@ -606,23 +605,6 @@ namespace OddWire.GameContent
                 ingredientMesh.Translate(0, -1 / 16f, 0);
 
             return ingredientMesh;
-        }
-
-        public MeshData GetOrCreateMesh(string key, string path = SHAPE_ROOT)
-        {
-            Dictionary<string, MeshData> Meshes = ObjectCacheUtil.GetOrCreate(Api, "brazier-meshes", () => new Dictionary<string, MeshData>());
-            if (!Meshes.TryGetValue(key, out MeshData meshdata))
-            {
-                Block block = Api.World.BlockAccessor.GetBlock(Pos);
-                if (block.BlockId == 0)
-                    return null;
-                
-                ITesselatorAPI mesher = ((ICoreClientAPI)Api).Tesselator;
-                string shapePath = $"{path}{key}.json";
-                Shape shape = Shape.TryGet(Api, shapePath);
-                mesher.TesselateShape(block, shape, out meshdata);
-            }
-            return meshdata;
         }
         
         
