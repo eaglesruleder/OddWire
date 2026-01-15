@@ -568,22 +568,37 @@ namespace OddWire.GameContent
                 burnState = "extinct";
             
             if (fuelHasCombustible && !contentHasItem)
-            {
-                var firewoodMesh = this.CacheMesh($"{ShapePath}firewood/{burnState}-normal", CacheKey);
-                firewoodMesh.Translate(new Vec3f(0, 3f / 16f, 0));
-                mesher.AddMeshData(firewoodMesh);
-            }
+                AddFirewoodMesh(mesher, FuelSlot, $"{burnState}-normal");
 
             if (contentHasCombustible || contentHasItem)
-            {
-                var firewoodMesh = this.CacheMesh($"{ShapePath}firewood/{burnState}-wide", CacheKey);
-                firewoodMesh.Translate(new Vec3f(0, 3f / 16f, 0));
-                mesher.AddMeshData(firewoodMesh);
-            }
+                AddFirewoodMesh(mesher, contentHasItem ? FuelSlot : contentSlot, $"{burnState}-wide");
             
             mesher.AddMeshData(this.CacheMesh($"{ShapePath}parts/brazier", CacheKey));
 
             return true;
+        }
+
+        private void AddFirewoodMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey)
+        {
+            var embersMesh = this.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey);
+            embersMesh.Translate(new Vec3f(0, 3f / 16f, 0));
+            mesher.AddMeshData(embersMesh);
+
+            if (slot?.Empty ?? true)
+                return;
+
+            var slotGSProps = slot?.Itemstack?.Collectible?.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
+            
+            int modelQty =
+                slotGSProps?.ModelItemsToStackSizeRatio > 0
+            ?   (int)Math.Ceiling(slotGSProps.ModelItemsToStackSizeRatio * slot.StackSize)
+            :   1;
+            if (IsBurning)
+                modelQty++;
+            
+            var firewoodMesh = this.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, modelQty);
+            firewoodMesh.Translate(new Vec3f(0, 3f / 16f, 0));
+            mesher.AddMeshData(firewoodMesh);
         }
         
         private MeshData GetContentMesh(ItemStack contentStack, ITesselatorAPI tesselator)
