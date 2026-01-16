@@ -8,6 +8,7 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 using OddWire.VintageStory.API.Common;
+using OddWire.VintageStory.GameContent;
 
 #nullable disable
 
@@ -81,7 +82,10 @@ namespace OddWire.GameContent
         }
         #endregion
 
+        private bool _burnFromInput;
+        private string _burnFuelKey = null;
         private CombustibleProperties _burnProps;
+        private GroundStorageProperties _burnGSProps;
         public virtual float BurnTempModifier => 1;
         public virtual float BurnDurationModifier => 1;
         
@@ -441,19 +445,26 @@ namespace OddWire.GameContent
         
         public void OnBurnIgniteFuel()
         {
-            if (!CanIgniteFuel || !CanSmelt)
+            if (IsBurning
+            || !CanIgniteFuel
+            || !CanSmelt
+                )
                 return;
 
-            var consumeInput =
+            _burnFromInput =
                 (InputStack?.Collectible.CombustibleProps?.CanBurn() ?? false)
             &&  (FuelSlot.Empty
             ||   Api.World.Rand.NextDouble() > 0.5
                 );
-            var consumeStack = consumeInput ? InputStack : FuelStack;
-            
+            var consumeStack = _burnFromInput ? InputStack : FuelStack;
+            if (consumeStack?.StackSize < 1)
+                return;
+
+            _burnFuelKey = consumeStack.Collectible.Code.Path;
             _burnProps = consumeStack.Collectible.CombustibleProps.Clone();
             _burnProps.BurnDuration *= BurnDurationModifier;
             _burnProps.BurnTemperature = (int)(_burnProps.BurnTemperature * BurnTempModifier);
+            _burnGSProps = consumeStack.Collectible.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps?.Clone();
             
             burnRemaining = _burnProps.BurnDuration;
             SetBlockState("lit");
@@ -462,7 +473,7 @@ namespace OddWire.GameContent
             consumeStack.StackSize -= 1;
             if (consumeStack.StackSize <= 0)
             {
-                if (consumeInput)
+                if (_burnFromInput)
                     InputStack = null;
                 else
                     FuelStack = null;
@@ -504,9 +515,7 @@ namespace OddWire.GameContent
             return null;
         }
         
-        private BlockEntityFirepit EmulateBEFirepit => new BlockEntityFirepit()
-            {Pos = Pos
-            };
+        private BlockEntityFirepit EmulateBEFirepit => new() {Pos = Pos};
         
         void UpdateRenderer()
         {
@@ -553,7 +562,10 @@ namespace OddWire.GameContent
             ItemStack contentStack = InputStack ?? OutputStack;
             MeshData contentmesh = GetContentMesh(contentStack, tesselator);
             if (contentmesh != null)
+            {
+                contentmesh.Translate(new Vec3f(0, 4f / 16f, 0));
                 mesher.AddMeshData(contentmesh);
+            }
             
             string burnState = Block.Variant["burnstate"];
             if (burnState == null)
@@ -561,15 +573,35 @@ namespace OddWire.GameContent
 
             bool fuelHasCombustible = FuelStack?.Collectible?.CombustibleProps.CanBurn() ?? false;
             bool contentHasCombustible = contentStack?.Collectible?.CombustibleProps.CanBurn() ?? false;
-            bool contentHasItem = !contentSlot.Empty && !contentHasCombustible;
-
+            if (IsBurning)
+            {
+                fuelHasCombustible    |= !_burnFromInput;
+                contentHasCombustible |=  _burnFromInput;
+            }
+            
             // If we're cold and have no combustible at all, treat as extinct for visuals
             if (burnState == "cold" && !(fuelHasCombustible || contentHasCombustible))
                 burnState = "extinct";
             
-            if (fuelHasCombustible && !contentHasItem)
-                AddFirewoodMesh(mesher, FuelSlot, $"{burnState}-normal");
+            bool contentHasItem = !contentSlot.Empty && !contentHasCombustible;
 
+            if (!contentHasItem)
+            {
+                AddEmberMesh(mesher
+                    ,(IsBurning && !_burnFromInput) || fuelHasCombustible
+                ?    $"{burnState}-normal"
+                :    IsBurning ? "extinct-normal" : "cold-normal"
+                    );
+                if (fuelHasCombustible)
+                    AddFirewoodMesh(mesher, FuelSlot, $"{burnState}-normal");
+            }
+            
+            AddEmberMesh(mesher
+                ,(IsBurning && _burnFromInput) || contentHasCombustible 
+            ||   (contentHasItem && !(FuelSlot?.Empty ?? true))
+            ?    $"{burnState}-wide"
+            :    IsBurning ? "extinct-wide" : "cold-wide"
+                );
             if (contentHasCombustible || contentHasItem)
                 AddFirewoodMesh(mesher, contentHasItem ? FuelSlot : contentSlot, $"{burnState}-wide");
             
@@ -578,12 +610,15 @@ namespace OddWire.GameContent
             return true;
         }
 
-        private void AddFirewoodMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey)
+        private void AddEmberMesh(ITerrainMeshPool mesher, string meshKey)
         {
             var embersMesh = this.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey);
             embersMesh.Translate(new Vec3f(0, 3f / 16f, 0));
             mesher.AddMeshData(embersMesh);
-
+        }
+        
+        private void AddFirewoodMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey)
+        {
             if (slot?.Empty ?? true)
                 return;
 
@@ -698,7 +733,10 @@ namespace OddWire.GameContent
             tree.SetFloat("furnaceTemperature", furnaceTemperature);
             tree.SetFloat("oreCookingTime", inputStackCookingTime);
             tree.SetFloat("fuelBurnTime", burnRemaining);
-            tree.SetCombustibleProps("burnProps", _burnProps);
+            tree.SetBool("_burnFromInput", _burnFromInput);
+            tree.SetString("_burnFuelKey", _burnFuelKey);
+            tree.SetCombustibleProps("_burnProps", _burnProps);
+            tree.SetGroundStorageProps("_burnGSProps",_burnGSProps);
             tree.SetDouble("extinguishedTotalHours", extinguishedTotalHours);
             tree.SetBool("canIgniteFuel", CanIgniteFuel);
         }
@@ -714,7 +752,10 @@ namespace OddWire.GameContent
             furnaceTemperature = tree.GetFloat("furnaceTemperature");
             inputStackCookingTime = tree.GetFloat("oreCookingTime");
             burnRemaining = tree.GetFloat("fuelBurnTime");
-            _burnProps = tree.GetCombustibleProps("burnProps");
+            _burnFromInput = tree.GetBool("_burnFromInput");
+            _burnFuelKey = tree.GetString("_burnFuelKey");
+            _burnProps = tree.GetCombustibleProps("_burnProps");
+            _burnGSProps =  tree.GetGroundStorageProps("_burnGSProps");
             extinguishedTotalHours = tree.GetDouble("extinguishedTotalHours");
             CanIgniteFuel = tree.GetBool("canIgniteFuel", true);
 

@@ -28,23 +28,6 @@
 			}
 		},
 		{
-			"name": "Log-W",
-			"from": [ -1.5, -0.3, 8.0 ],
-			"to": [ 8.5, 2.2, 10.5 ],
-			"rotationOrigin": [ 3.5, -0.3, 9.0 ],
-			"rotationX": 180.0,
-			"rotationY": 67.5,
-			"rotationZ": 180.0,
-			"faces": {
-				"north": { "texture": "#birch", "uv": [ 3.5, 6.5, 13.5, 9.0 ] },
-				"east": { "texture": "#birch", "uv": [ 1.5, 7.0, 4.0, 9.5 ] },
-				"south": { "texture": "#walnut-h", "uv": [ 0.5, 8.0, 10.5, 10.5 ] },
-				"west": { "texture": "#birch", "uv": [ 13.0, 3.0, 15.5, 5.5 ] },
-				"up": { "texture": "#walnut-h", "uv": [ 2.5, 0.0, 12.5, 2.5 ] },
-				"down": { "texture": "#birch", "uv": [ 3.5, 7.5, 13.5, 10.0 ], "enabled": false }
-			}
-		},
-		{
 			"name": "Log-N15",
 			"from": [ 5.8, 0.8, 3.0 ],
 			"to": [ 15.8, 2.8, 5.5 ],
@@ -59,6 +42,23 @@
 				"west": { "texture": "#birch", "uv": [ 13.0, 3.0, 15.5, 5.0 ], "enabled": false },
 				"up": { "texture": "#birch", "uv": [ 3.5, 9.0, 13.5, 11.5 ] },
 				"down": { "texture": "#walnut-h", "uv": [ 3.5, 13.5, 13.5, 16.0 ] }
+			}
+		},
+		{
+			"name": "Log-W",
+			"from": [ -1.5, -0.3, 8.0 ],
+			"to": [ 8.5, 2.2, 10.5 ],
+			"rotationOrigin": [ 3.5, -0.3, 9.0 ],
+			"rotationX": -180.0,
+			"rotationY": 67.5,
+			"rotationZ": -180.0,
+			"faces": {
+				"north": { "texture": "#birch", "uv": [ 3.5, 6.5, 13.5, 9.0 ] },
+				"east": { "texture": "#birch", "uv": [ 1.5, 7.0, 4.0, 9.5 ] },
+				"south": { "texture": "#walnut-h", "uv": [ 0.5, 8.0, 10.5, 10.5 ] },
+				"west": { "texture": "#birch", "uv": [ 13.0, 3.0, 15.5, 5.5 ] },
+				"up": { "texture": "#walnut-h", "uv": [ 2.5, 0.0, 12.5, 2.5 ] },
+				"down": { "texture": "#birch", "uv": [ 3.5, 7.5, 13.5, 10.0 ], "enabled": false }
 			}
 		},
 		{
