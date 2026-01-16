@@ -7,20 +7,23 @@ namespace OddWire.VintageStory.API.Common
 {
     public static class BlockEntityExtensions
     {
-        public static MeshData CacheMesh(this BlockEntity blockEntity, string path, string cacheKey, int? quantityElements = null)
+        public static bool CacheMesh(this BlockEntity blockEntity, string path, string cacheKey, out MeshData meshdata, int? quantityElements = null)
         {
-            Dictionary<string, MeshData> Meshes = ObjectCacheUtil.GetOrCreate(blockEntity.Api, cacheKey, () => new Dictionary<string, MeshData>());
-            if (!Meshes.TryGetValue(path, out MeshData meshdata))
-            {
-                Block block = blockEntity.Api.World.BlockAccessor.GetBlock(blockEntity.Pos);
-                if (block.BlockId == 0)
-                    return null;
+            Dictionary<string, MeshData> meshes = ObjectCacheUtil.GetOrCreate(blockEntity.Api, cacheKey, () => new Dictionary<string, MeshData>());
+            if (meshes.TryGetValue(path, out meshdata))
+                return true;
+            
+            Block block = blockEntity.Api.World.BlockAccessor.GetBlock(blockEntity.Pos);
+            if (block.BlockId == 0)
+                return false;
 
-                ITesselatorAPI mesher = ((ICoreClientAPI)blockEntity.Api).Tesselator;
-                mesher.TesselateShape(block, Shape.TryGet(blockEntity.Api, $"{path}.json"), out meshdata, quantityElements: quantityElements);
-            }
-
-            return meshdata;
+            Shape shape = Shape.TryGet(blockEntity.Api, $"{path}.json");
+            if (shape == null)
+                return false;
+            
+            ITesselatorAPI mesher = ((ICoreClientAPI)blockEntity.Api).Tesselator;
+            mesher.TesselateShape(block, shape, out meshdata, quantityElements: quantityElements);
+            return true;
         }
     }
 }

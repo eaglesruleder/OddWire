@@ -464,7 +464,11 @@ namespace OddWire.GameContent
             _burnProps = consumeStack.Collectible.CombustibleProps.Clone();
             _burnProps.BurnDuration *= BurnDurationModifier;
             _burnProps.BurnTemperature = (int)(_burnProps.BurnTemperature * BurnTempModifier);
-            _burnGSProps = consumeStack.Collectible.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps?.Clone();
+            var stackGSProps = consumeStack.Collectible.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
+            _burnGSProps = stackGSProps?.Clone();
+            // Fix for Close()
+            if (stackGSProps != null)
+                _burnGSProps.ModelItemsToStackSizeRatio = stackGSProps.ModelItemsToStackSizeRatio;
             
             burnRemaining = _burnProps.BurnDuration;
             SetBlockState("lit");
@@ -593,7 +597,7 @@ namespace OddWire.GameContent
                 :    IsBurning ? "extinct-normal" : "cold-normal"
                     );
                 if (fuelHasCombustible)
-                    AddFirewoodMesh(mesher, FuelSlot, $"{burnState}-normal");
+                    AddFuelMesh(mesher, FuelSlot, $"{burnState}-normal", !_burnFromInput);
             }
             
             AddEmberMesh(mesher
@@ -603,37 +607,55 @@ namespace OddWire.GameContent
             :    IsBurning ? "extinct-wide" : "cold-wide"
                 );
             if (contentHasCombustible || contentHasItem)
-                AddFirewoodMesh(mesher, contentHasItem ? FuelSlot : contentSlot, $"{burnState}-wide");
-            
-            mesher.AddMeshData(this.CacheMesh($"{ShapePath}parts/brazier", CacheKey));
+                AddFuelMesh(mesher, contentHasItem ? FuelSlot : contentSlot, $"{burnState}-wide", _burnFromInput);
+
+            this.CacheMesh($"{ShapePath}parts/brazier", CacheKey, out var brazierMesh);
+            mesher.AddMeshData(brazierMesh);
 
             return true;
         }
 
         private void AddEmberMesh(ITerrainMeshPool mesher, string meshKey)
         {
-            var embersMesh = this.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey);
+            this.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out var embersMesh);
             embersMesh.Translate(new Vec3f(0, 3f / 16f, 0));
             mesher.AddMeshData(embersMesh);
         }
         
-        private void AddFirewoodMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey)
+        private void AddFuelMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey, bool isBurnInput)
         {
-            if (slot?.Empty ?? true)
+            if( (slot?.Empty ?? true)
+            && !(isBurnInput && IsBurning)
+                )
                 return;
 
-            var slotGSProps = slot?.Itemstack?.Collectible?.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
+            string key;
+            GroundStorageProperties gsProps;
+            if (isBurnInput)
+            {
+                key = _burnFuelKey;
+                gsProps = _burnGSProps;
+            }
+            else
+            {
+                key = slot?.Itemstack?.Item?.Code.Path ?? "firewood";
+                gsProps = slot?.Itemstack?.Collectible?.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
+            }
             
-            int modelQty =
-                slotGSProps?.ModelItemsToStackSizeRatio > 0
-            ?   (int)Math.Ceiling(slotGSProps.ModelItemsToStackSizeRatio * slot.StackSize)
-            :   1;
-            if (IsBurning)
-                modelQty++;
-            
-            var firewoodMesh = this.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, modelQty);
-            firewoodMesh.Translate(new Vec3f(0, 3f / 16f, 0));
-            mesher.AddMeshData(firewoodMesh);
+            int stackQty = slot?.StackSize ?? 0;
+            if (isBurnInput && IsBurning)
+                stackQty++;
+
+            int modelQty = stackQty;
+            if (gsProps?.ModelItemsToStackSizeRatio > 0)
+                modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
+
+            MeshData fuelMesh;
+            var hasMesh = this.CacheMesh($"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty);
+            if(!hasMesh)
+                this.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty));
+            fuelMesh.Translate(new Vec3f(0, 3f / 16f, 0));
+            mesher.AddMeshData(fuelMesh);
         }
         
         private MeshData GetContentMesh(ItemStack contentStack, ITesselatorAPI tesselator)
