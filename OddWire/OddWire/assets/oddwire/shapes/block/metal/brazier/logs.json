@@ -10,8 +10,6 @@
 	},
 	"textures": {
 		"metal": "game:block/metal/sheet-plain/iron3",
-		"walnut-h": "game:block/wood/bark/walnut-h",
-		"birch": "game:block/wood/debarked/birch"
 	},
 	"elements": [
 		{

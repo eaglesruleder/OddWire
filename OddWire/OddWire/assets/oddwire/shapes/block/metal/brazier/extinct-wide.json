@@ -9,9 +9,7 @@
 	"textureSizes": {
 	},
 	"textures": {
-		"ember": "game:block/coal/ember",
 		"metal": "game:block/metal/sheet-plain/iron3",
-		"ashes": "game:block/wood/firepit/ground"
 	},
 	"elements": [
 		{

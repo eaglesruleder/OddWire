@@ -9,12 +9,7 @@
 	"textureSizes": {
 	},
 	"textures": {
-		"ember": "game:block/coal/ember",
 		"metal": "game:block/metal/sheet-plain/iron3",
-		"charred": "game:block/wood/charred",
-		"aged": "game:block/wood/debarked/aged",
-		"ashes": "game:block/wood/firepit/ground",
-		"log": "game:block/wood/firepit/log"
 	},
 	"elements": [
 		{

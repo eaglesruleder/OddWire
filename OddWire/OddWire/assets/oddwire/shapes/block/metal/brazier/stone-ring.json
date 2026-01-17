@@ -14,13 +14,6 @@
 		"suevite3": "game:block/stone/cobblestone/suevite3",
 		"granite1": "game:block/stone/rock-cracked/granite1",
 		"granite2": "game:block/stone/rock-cracked/granite2",
-		"walnut-h": "game:block/wood/bark/walnut-h",
-		"charred": "game:block/wood/charred",
-		"aged": "game:block/wood/debarked/aged",
-		"birch": "game:block/wood/debarked/birch",
-		"fire": "game:block/wood/firepit/fire",
-		"ashes": "game:block/wood/firepit/ground",
-		"log": "game:block/wood/firepit/log"
 	},
 	"elements": [
 		{

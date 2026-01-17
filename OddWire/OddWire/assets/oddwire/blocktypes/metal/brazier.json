@@ -22,18 +22,7 @@
 	"shape": { "base": "block/metal/brazier/{burnstate}-normal" },
 	"faceCullMode": "NeverCull",
 	"textures": {
-		"0": { base: "game:block/soil/peat" },
 		"metal": { base: "game:block/metal/sheet-plain/{metal}3" },
-		"ceramic": { base: "game:block/clay/ceramic" },
-		"tinder": { base: "game:block/hay/normal-side" },
-		"log": { base: "game:block/wood/firepit/log" },
-		"birch": { base: "game:block/wood/debarked/birch" },
-		"charred": { base: "game:block/wood/charred" },
-		"ashes": { base: "game:block/wood/firepit/ground" },
-		"aged": { base: "game:block/wood/debarked/aged" },
-		"fire": { base: "game:block/wood/firepit/fire" },
-		"walnut-h": { base: "game:block/wood/bark/walnut-h" },
-		"ember": { base: "game:block/coal/ember" }
 	},
 	"blockmaterial": "Metal",
 	"lightAbsorption": 0,
