@@ -22,6 +22,7 @@
 	"shape": { "base": "block/metal/brazier/{burnstate}-normal" },
 	"faceCullMode": "NeverCull",
 	"textures": {
+		"0": { base: "game:block/soil/peat" },
 		"metal": { base: "game:block/metal/sheet-plain/{metal}3" },
 		"ceramic": { base: "game:block/clay/ceramic" },
 		"tinder": { base: "game:block/hay/normal-side" },

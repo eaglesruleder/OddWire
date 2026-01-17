@@ -1,0 +1,94 @@
+{
+	"editor": {
+		"collapsedPaths": "Root/Brazier",
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textureSizes": {
+	},
+	"textures": {
+		"0": "block/soil/peat"
+	},
+	"elements": [
+		{
+			"name": "Peat",
+			"from": [ 0.5, 0.0, 6.5 ],
+			"to": [ 5.5, 2.0, 13.5 ],
+			"rotationOrigin": [ 0.5, 0.0, 6.5 ],
+			"rotationY": 22.5,
+			"faces": {
+				"north": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"east": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"south": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"west": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"up": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] },
+				"down": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] }
+			}
+		},
+		{
+			"name": "Peat2",
+			"from": [ 11.5, 0.0, 4.5 ],
+			"to": [ 16.5, 2.0, 11.5 ],
+			"rotationOrigin": [ 11.5, 0.0, 4.5 ],
+			"rotationY": -22.5,
+			"faces": {
+				"north": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"east": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"south": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"west": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"up": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] },
+				"down": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] }
+			}
+		},
+		{
+			"name": "Peat3",
+			"from": [ 11.0, 0.5, 9.5 ],
+			"to": [ 16.0, 2.5, 16.5 ],
+			"rotationOrigin": [ 11.0, 1.0, 9.5 ],
+			"rotationX": -22.5,
+			"rotationY": -90.0,
+			"faces": {
+				"north": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"east": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"south": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"west": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"up": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] },
+				"down": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] }
+			}
+		},
+		{
+			"name": "Peat4",
+			"from": [ 6.5, 1.5, 4.5 ],
+			"to": [ 11.5, 3.5, 11.5 ],
+			"rotationOrigin": [ 6.5, 1.0, 4.5 ],
+			"rotationX": -22.5,
+			"rotationY": 45.0,
+			"faces": {
+				"north": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"east": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"south": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"west": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"up": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] },
+				"down": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] }
+			}
+		},
+		{
+			"name": "Peat5",
+			"from": [ 3.5, 5.0, 1.5 ],
+			"to": [ 8.5, 7.0, 8.5 ],
+			"rotationOrigin": [ 3.5, 5.0, 1.5 ],
+			"rotationX": 22.5,
+			"rotationY": -22.5,
+			"rotationZ": -22.5,
+			"faces": {
+				"north": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"east": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"south": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 2.0 ] },
+				"west": { "texture": "#0", "uv": [ 0.0, 0.0, 7.0, 2.0 ] },
+				"up": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] },
+				"down": { "texture": "#0", "uv": [ 0.0, 0.0, 5.0, 7.0 ] }
+			}
+		}
+	]}

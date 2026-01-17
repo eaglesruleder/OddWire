@@ -17,6 +17,7 @@ namespace OddWire.GameContent
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
         public virtual string ShapePath => "oddwire:shapes/block/metal/brazier/";
+        public virtual string FuelShapePath => "oddwire:shapes/block/fuel/";
         public virtual string CacheKey => "brazier-meshes";
         
         #region BlockEntityContainer
@@ -638,7 +639,7 @@ namespace OddWire.GameContent
             }
             else
             {
-                key = slot?.Itemstack?.Item?.Code.Path ?? "firewood";
+                key = slot?.Itemstack?.Item?.Code.Path ?? slot?.Itemstack?.Block?.Code.Path ?? "firewood";
                 gsProps = slot?.Itemstack?.Collectible?.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
             }
             
@@ -651,9 +652,9 @@ namespace OddWire.GameContent
                 modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
 
             MeshData fuelMesh;
-            var hasMesh = this.CacheMesh($"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty);
+            var hasMesh = this.CacheMesh($"{FuelShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty);
             if(!hasMesh)
-                this.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty));
+                this.CacheMesh($"{FuelShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty));
             fuelMesh.Translate(new Vec3f(0, 3f / 16f, 0));
             mesher.AddMeshData(fuelMesh);
         }
