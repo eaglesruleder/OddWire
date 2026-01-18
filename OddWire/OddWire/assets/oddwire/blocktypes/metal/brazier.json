@@ -19,7 +19,7 @@
 	],
 	behaviors: [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
 	"renderpass": "OpaqueNoCull",
-	"shape": { "base": "block/metal/brazier/{burnstate}-normal" },
+	"shape": { "base": "block/metal/brazier/parts/brazier" },
 	"faceCullMode": "NeverCull",
 	"textures": {
 		"metal": { base: "game:block/metal/sheet-plain/{metal}3" },
