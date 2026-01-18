@@ -560,10 +560,36 @@ namespace OddWire.GameContent
             else
                 renderer.SetContents(null, null);
         }
+
+        ItemSlot FuelNormalSlot
+        { get {
+            ItemSlot contentSlot = InputSlot.Empty ? OutputSlot : InputSlot;
+            return
+              !(contentSlot?.Itemstack?.Collectible?.CombustibleProps.CanBurn() ?? false)
+            &&  contentSlot?.StackSize > 0
+            ?   null
+            :   FuelSlot;
+        } }
+        
+        ItemSlot FuelWideSlot
+        { get {
+            ItemSlot contentSlot = InputSlot.Empty ? OutputSlot : InputSlot;
+            if(contentSlot.StackSize < 1)
+                return null;
+            
+            return contentSlot.Itemstack?.Collectible?.CombustibleProps?.CanBurn() ?? false
+            ?   contentSlot
+            :   contentSlot.StackSize > 0
+                ?   FuelSlot
+                :   null;
+        } }
+        
         
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
-            ItemSlot contentSlot = InputSlot ?? OutputSlot;
+            this.CacheMesh($"{ShapePath}parts/brazier", CacheKey, out var brazierMesh);
+            mesher.AddMeshData(brazierMesh);
+            
             ItemStack contentStack = InputStack ?? OutputStack;
             MeshData contentmesh = GetContentMesh(contentStack, tesselator);
             if (contentmesh != null)
@@ -576,44 +602,32 @@ namespace OddWire.GameContent
             if (burnState == null)
                 return true;
 
-            bool fuelHasCombustible = FuelStack?.Collectible?.CombustibleProps.CanBurn() ?? false;
-            bool contentHasCombustible = contentStack?.Collectible?.CombustibleProps.CanBurn() ?? false;
-            if (IsBurning)
-            {
-                fuelHasCombustible    |= !_burnFromInput;
-                contentHasCombustible |=  _burnFromInput;
-            }
+            ItemSlot fuelNormalSlot = FuelNormalSlot;
+            ItemSlot fuelWideSlot = FuelWideSlot;
             
             // If we're cold and have no combustible at all, treat as extinct for visuals
-            if (burnState == "cold" && !(fuelHasCombustible || contentHasCombustible))
+            if (burnState == "cold"
+            &&!(IsBurning || fuelNormalSlot.StackSize > 0 || fuelWideSlot.StackSize > 0)
+                )
                 burnState = "extinct";
             
-            bool contentHasItem = !contentSlot.Empty && !contentHasCombustible;
-
-            if (!contentHasItem)
-            {
-                AddEmberMesh(mesher
-                    ,(IsBurning && !_burnFromInput) || fuelHasCombustible
-                ?    $"{burnState}-normal"
-                :    IsBurning ? "extinct-normal" : "cold-normal"
-                    );
-                if (fuelHasCombustible)
-                    AddFuelMesh(mesher, FuelSlot, $"{burnState}-normal", !_burnFromInput);
-            }
-            
-            AddEmberMesh(mesher
-                ,(IsBurning && _burnFromInput) || contentHasCombustible 
-            ||   (contentHasItem && !(FuelSlot?.Empty ?? true))
-            ?    $"{burnState}-wide"
-            :    IsBurning ? "extinct-wide" : "cold-wide"
-                );
-            if (contentHasCombustible || contentHasItem)
-                AddFuelMesh(mesher, contentHasItem ? FuelSlot : contentSlot, $"{burnState}-wide", _burnFromInput);
-
-            this.CacheMesh($"{ShapePath}parts/brazier", CacheKey, out var brazierMesh);
-            mesher.AddMeshData(brazierMesh);
+            if (contentmesh is null)
+                TesselateFuel(mesher, fuelNormalSlot, burnState, "normal", IsBurning && !_burnFromInput);
+            TesselateFuel(mesher, fuelWideSlot, burnState, "wide", IsBurning && _burnFromInput);
 
             return true;
+        }
+
+        private void TesselateFuel(ITerrainMeshPool mesher, ItemSlot slot, string burnState, string slotKey, bool slotBurning)
+        {
+            bool renderFuel = slotBurning || slot?.StackSize > 0;
+            AddEmberMesh(mesher
+                ,renderFuel
+            ?    $"{burnState}-{slotKey}"
+            :    IsBurning ? $"extinct-{slotKey}" : $"cold-{slotKey}"
+                );
+            if (renderFuel)
+                AddFuelMesh(mesher, slot, $"{burnState}-{slotKey}", slotBurning);
         }
 
         private void AddEmberMesh(ITerrainMeshPool mesher, string meshKey)
@@ -623,16 +637,16 @@ namespace OddWire.GameContent
             mesher.AddMeshData(embersMesh);
         }
         
-        private void AddFuelMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey, bool isBurnInput)
+        private void AddFuelMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey, bool slotBurning)
         {
             if( (slot?.Empty ?? true)
-            && !(isBurnInput && IsBurning)
+            && !slotBurning
                 )
                 return;
 
             string key;
             GroundStorageProperties gsProps;
-            if (isBurnInput)
+            if (slotBurning)
             {
                 key = _burnFuelKey;
                 gsProps = _burnGSProps;
@@ -644,7 +658,7 @@ namespace OddWire.GameContent
             }
             
             int stackQty = slot?.StackSize ?? 0;
-            if (isBurnInput && IsBurning)
+            if (slotBurning)
                 stackQty++;
 
             int modelQty = stackQty;
