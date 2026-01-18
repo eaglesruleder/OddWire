@@ -623,22 +623,22 @@ namespace OddWire.GameContent
                 burnState = "extinct";
             
             if (contentmesh is null)
-                TesselateFuel(mesher, fuelNormalSlot, burnState, "normal", IsBurning && !_burnFromInput);
-            TesselateFuel(mesher, fuelWideSlot, burnState, "wide", IsBurning && _burnFromInput);
+                TesselateFuel(mesher, fuelNormalSlot, burnState, "normal", IsBurning && !_burnFromInput ? _burnStack : null);
+            TesselateFuel(mesher, fuelWideSlot, burnState, "wide", IsBurning && _burnFromInput ? _burnStack : null);
 
             return true;
         }
 
-        private void TesselateFuel(ITerrainMeshPool mesher, ItemSlot slot, string burnState, string slotKey, bool slotBurning)
+        private void TesselateFuel(ITerrainMeshPool mesher, ItemSlot slot, string burnState, string slotKey, FuelBurnStack burnStack)
         {
-            bool renderFuel = slotBurning || slot?.StackSize > 0;
+            bool renderFuel = burnStack != null || slot?.StackSize > 0;
             AddEmberMesh(mesher
                 ,renderFuel
             ?    $"{burnState}-{slotKey}"
             :    IsBurning ? $"extinct-{slotKey}" : $"cold-{slotKey}"
                 );
             if (renderFuel)
-                AddFuelMesh(mesher, slot, $"{burnState}-{slotKey}", slotBurning);
+                AddFuelMesh(mesher, slot, $"{burnState}-{slotKey}", burnStack);
         }
 
         private void AddEmberMesh(ITerrainMeshPool mesher, string meshKey)
@@ -648,19 +648,19 @@ namespace OddWire.GameContent
             mesher.AddMeshData(embersMesh);
         }
         
-        private void AddFuelMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey, bool slotBurning)
+        private void AddFuelMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey, FuelBurnStack burnStack)
         {
-            if( (slot?.Empty ?? true)
-            && !slotBurning
+            if((slot?.Empty ?? true)
+            &&  burnStack == null
                 )
                 return;
 
             string key;
             GroundStorageProperties gsProps;
-            if (slotBurning)
+            if (burnStack != null)
             {
-                key = _burnStack.Key;
-                gsProps = _burnStack.GSProps;
+                key = burnStack.Key;
+                gsProps = burnStack.GSProps;
             }
             else
             {
@@ -669,7 +669,7 @@ namespace OddWire.GameContent
             }
             
             int stackQty = slot?.StackSize ?? 0;
-            if (slotBurning)
+            if (burnStack != null)
                 stackQty++;
 
             int modelQty = stackQty;
