@@ -618,7 +618,7 @@ namespace OddWire.GameContent
 
         private void AddEmberMesh(ITerrainMeshPool mesher, string meshKey)
         {
-            this.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out var embersMesh);
+            this.CacheMesh($"{FuelShapePath}embers/{meshKey}", CacheKey, out var embersMesh);
             embersMesh.Translate(new Vec3f(0, 3f / 16f, 0));
             mesher.AddMeshData(embersMesh);
         }
