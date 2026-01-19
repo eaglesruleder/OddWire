@@ -24,7 +24,6 @@ namespace OddWire.GameContent
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
         public virtual string ShapePath => "oddwire:shapes/block/metal/brazier/";
-        public virtual string FuelShapePath => "oddwire:shapes/block/fuel/";
         public virtual string CacheKey => "brazier-meshes";
         
         #region BlockEntityContainer
@@ -170,6 +169,11 @@ namespace OddWire.GameContent
         
         
         BrazierContentsRenderer renderer;
+
+        // Fuel tesselation helpers (normal + wide). Intentionally decoupled from BEBrazier.
+        FuelRenderer _fuelNormalRenderer;
+        FuelRenderer _fuelWideRenderer;
+        Vec3f _fuelRendererOffset = new Vec3f(0, 3f / 16f, 0);
         
         GuiDialogBlockEntityBrazier clientDialog;
         public virtual string DialogTitle => Lang.Get("Brazier");
@@ -195,6 +199,9 @@ namespace OddWire.GameContent
             {
                 renderer = new BrazierContentsRenderer(clientApi, Pos);
                 clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier-contents");
+
+                _fuelNormalRenderer = new FuelRenderer("normal", _fuelRendererOffset);
+                _fuelWideRenderer = new FuelRenderer("wide", _fuelRendererOffset);
 
                 UpdateRenderer();
             }
@@ -621,67 +628,15 @@ namespace OddWire.GameContent
             &&!(IsBurning || fuelNormalSlot?.StackSize > 0 || fuelWideSlot?.StackSize > 0)
                 )
                 burnState = "extinct";
-            
+
+            _fuelNormalRenderer ??= new FuelRenderer("normal", _fuelRendererOffset);
+            _fuelWideRenderer ??= new FuelRenderer("wide", _fuelRendererOffset);
+
             if (contentmesh is null)
-                TesselateFuel(mesher, fuelNormalSlot, burnState, "normal", IsBurning && !_burnFromInput ? _burnStack : null);
-            TesselateFuel(mesher, fuelWideSlot, burnState, "wide", IsBurning && _burnFromInput ? _burnStack : null);
+                _fuelNormalRenderer.Tesselate(mesher, this, fuelNormalSlot, burnState, IsBurning && !_burnFromInput ? _burnStack : null);
+            _fuelWideRenderer.Tesselate(mesher, this, fuelWideSlot, burnState, IsBurning && _burnFromInput ? _burnStack : null);
 
             return true;
-        }
-
-        private void TesselateFuel(ITerrainMeshPool mesher, ItemSlot slot, string burnState, string slotKey, FuelBurnStack burnStack)
-        {
-            bool renderFuel = burnStack != null || slot?.StackSize > 0;
-            AddEmberMesh(mesher
-                ,renderFuel
-            ?    $"{burnState}-{slotKey}"
-            :    IsBurning ? $"extinct-{slotKey}" : $"cold-{slotKey}"
-                );
-            if (renderFuel)
-                AddFuelMesh(mesher, slot, $"{burnState}-{slotKey}", burnStack);
-        }
-
-        private void AddEmberMesh(ITerrainMeshPool mesher, string meshKey)
-        {
-            this.CacheMesh($"{FuelShapePath}embers/{meshKey}", CacheKey, out var embersMesh);
-            embersMesh.Translate(new Vec3f(0, 3f / 16f, 0));
-            mesher.AddMeshData(embersMesh);
-        }
-        
-        private void AddFuelMesh(ITerrainMeshPool mesher, ItemSlot slot, string meshKey, FuelBurnStack burnStack)
-        {
-            if((slot?.Empty ?? true)
-            &&  burnStack == null
-                )
-                return;
-
-            string key;
-            GroundStorageProperties gsProps;
-            if (burnStack != null)
-            {
-                key = burnStack.Key;
-                gsProps = burnStack.GSProps;
-            }
-            else
-            {
-                key = slot?.Itemstack?.Item?.Code.Path ?? slot?.Itemstack?.Block?.Code.Path ?? "firewood";
-                gsProps = slot?.Itemstack?.Collectible?.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
-            }
-            
-            int stackQty = slot?.StackSize ?? 0;
-            if (burnStack != null)
-                stackQty++;
-
-            int modelQty = stackQty;
-            if (gsProps?.ModelItemsToStackSizeRatio > 0)
-                modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
-
-            MeshData fuelMesh;
-            var hasMesh = this.CacheMesh($"{FuelShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty);
-            if(!hasMesh)
-                this.CacheMesh($"{FuelShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty));
-            fuelMesh.Translate(new Vec3f(0, 3f / 16f, 0));
-            mesher.AddMeshData(fuelMesh);
         }
         
         private MeshData GetContentMesh(ItemStack contentStack, ITesselatorAPI tesselator)
