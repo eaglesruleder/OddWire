@@ -22,7 +22,7 @@ namespace OddWire.GameContent
         {
             base.OnLoaded(api);
             
-            IsExtinct = !WildCardMatch("*-lit-*");
+            IsExtinct = !WildCardMatch("*-lit");
             
             if (api.Side == EnumAppSide.Client)
                 OnLoaded_Particles(api);
@@ -34,12 +34,12 @@ namespace OddWire.GameContent
                 return new []
                     {new WorldInteraction
                         {
-                            ActionLangCode = "blockhelp-brazier-open",
+                            ActionLangCode = "oddwire:blockhelp-brazier-open",
                             MouseButton = EnumMouseButton.Right,
                         }
                     ,new WorldInteraction
                     {
-                        ActionLangCode = "blockhelp-brazier-ignite",
+                        ActionLangCode = "oddwire:blockhelp-brazier-ignite",
                         MouseButton = EnumMouseButton.Right,
                         Itemstacks = canIgniteStacks.ToArray(),
                         GetMatchingStacks = (wi, bs, es) => {
@@ -51,7 +51,7 @@ namespace OddWire.GameContent
                     }
                     ,new WorldInteraction
                     {
-                        ActionLangCode = "blockhelp-brazier-refuel",
+                        ActionLangCode = "oddwire:blockhelp-brazier-refuel",
                         MouseButton = EnumMouseButton.Right,
                         HotKeyCode = "shift"
                     }

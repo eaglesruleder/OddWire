@@ -5,7 +5,7 @@
 	entityBehaviors: [
 		{ name: "FirepitAmbient" }
 	],
-	creativeinventory: { general: ["brazier-*-extinct-*"], decorative: ["brazier-*-extinct-*"] },
+	creativeinventory: { general: ["brazier-*-*-extinct"], decorative: ["brazier-*-*-extinct"] },
 	"attributes": {
 		"reinforcable": true,
 		"humanoidTraversalCost": 100
@@ -15,15 +15,15 @@
 	"heldTpIdleAnimation": "holdbothhands",
 	"variantgroups": [
 		{ code:"height", states: ["short", "tall"] },
+		{ "code":"material", "states": ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"] },
 		{ code:"burnstate", states: ["extinct", "lit", "cold"] },
-		{ "code":"metal", "states": ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"] },
 	],
 	behaviors: [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
 	"renderpass": "OpaqueNoCull",
 	"shape": { "base": "block/metal/brazier/brazier-{height}" },
 	"faceCullMode": "NeverCull",
 	"textures": {
-		"metal": { base: "game:block/metal/sheet-plain/{metal}3" },
+		"metal": { base: "game:block/metal/sheet-plain/{material}3" },
 		
 		"birch": { base: "game:block/wood/debarked/birch" },
 		"walnut-h": { base: "game:block/wood/bark/walnut-h" },
@@ -36,11 +36,11 @@
 	"blockmaterial": "Metal",
 	"lightAbsorption": 0,
 	"lightHsvByType": {
-		"*-extinct-*": [7, 7, 3],
-		"*-lit-*": [7, 7, 16],
+		"*-extinct": [7, 7, 3],
+		"*-lit": [7, 7, 16],
 	},
 	"particlePropertiesByType": {
-		"*-extinct-*": [
+		"*-extinct": [
 			{
 				hsvaColor: [{ avg: 0, var: 0 }, { avg: 0, var: 0 }, { avg: 70, var: 30 },  { avg: 220, var: 50 }],
 				opacityEvolve: { transform: "quadratic", factor: -16 },
@@ -54,7 +54,7 @@
 				windAffectednes: 0.7
 			}
 		],
-		"*-lit-*": [
+		"*-lit": [
 			{
 				// Ember cubicles
 				hsvaColor: [{ avg: 30, var: 20 }, { avg: 255, var: 50 }, { avg: 255, var: 50 },  { avg: 255, var: 0 }],

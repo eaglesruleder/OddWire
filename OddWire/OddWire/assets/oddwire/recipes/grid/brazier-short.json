@@ -4,7 +4,7 @@
 		"R": {
 			"type": "item",
 			"code": "game:rod-*",
-			"name": "metal",
+			"name": "material",
 			allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
 			"quantity": 4
 		},
@@ -17,13 +17,13 @@
 			"type": "item",
 			"code": "game:metalplate-*",
 			allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
-			"name": "metal"
+			"name": "material"
 		},
 	},
 	"width": 3,
 	"height": 2,
 	"output": {
 		"type": "block",
-		"code": "brazier-short-extinct-{metal}",
+		"code": "brazier-short-{material}-extinct",
 	}
 }
