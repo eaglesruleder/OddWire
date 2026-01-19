@@ -9,8 +9,9 @@ namespace OddWire.VintageStory.API.Common
     {
         public static bool CacheMesh(this BlockEntity blockEntity, string path, string cacheKey, out MeshData meshdata, int? quantityElements = null)
         {
+            string meshKey = $"{path}#{quantityElements}";
             Dictionary<string, MeshData> meshes = ObjectCacheUtil.GetOrCreate(blockEntity.Api, cacheKey, () => new Dictionary<string, MeshData>());
-            if (meshes.TryGetValue(path, out meshdata))
+            if (meshes.TryGetValue(meshKey, out meshdata))
                 return true;
             
             Block block = blockEntity.Api.World.BlockAccessor.GetBlock(blockEntity.Pos);
@@ -23,6 +24,7 @@ namespace OddWire.VintageStory.API.Common
             
             ITesselatorAPI mesher = ((ICoreClientAPI)blockEntity.Api).Tesselator;
             mesher.TesselateShape(block, shape, out meshdata, quantityElements: quantityElements);
+            meshes.Add(meshKey, meshdata);
             return true;
         }
     }
