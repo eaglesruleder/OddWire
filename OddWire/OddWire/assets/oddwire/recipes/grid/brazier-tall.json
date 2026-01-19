@@ -57,5 +57,15 @@
 			"type": "block",
 			"code": "brazier-tall-{material}-extinct",
 		}
+	},
+	{
+		ingredientPattern: "C,B",
+		ingredients: {
+			"C": { type: "item", code: "game:chisel-*", isTool: true, toolDurabilityCost: 360 },
+			"B": { type: "block", code: "brazier-tall-*-extinct", name: "material" }
+		},
+		width: 1,
+		height: 2,
+		output: { type: "item", code: "game:metalbit-{material}", quantity: 360 }
 	}
 ]
