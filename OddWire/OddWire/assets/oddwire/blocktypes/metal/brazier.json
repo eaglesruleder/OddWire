@@ -19,10 +19,18 @@
 	],
 	behaviors: [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
 	"renderpass": "OpaqueNoCull",
-	"shape": { "base": "block/metal/brazier/parts/brazier" },
+	"shape": { "base": "block/metal/brazier/brazier" },
 	"faceCullMode": "NeverCull",
 	"textures": {
 		"metal": { base: "game:block/metal/sheet-plain/{metal}3" },
+		
+		"birch": { base: "game:block/wood/debarked/birch" },
+		"walnut-h": { base: "game:block/wood/bark/walnut-h" },
+		"ember": { base: "game:block/coal/ember" },
+		"ashes": { base: "game:block/wood/firepit/ground" },
+		"fire": { base: "game:block/wood/firepit/fire" },
+		
+		"peat": { base: "game:block/soil/peat" }
 	},
 	"blockmaterial": "Metal",
 	"lightAbsorption": 0,

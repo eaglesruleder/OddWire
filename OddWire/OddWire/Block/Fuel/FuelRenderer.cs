@@ -13,13 +13,13 @@ public class FuelRenderer
     public virtual string ShapePath => "oddwire:shapes/block/fuel/";
     public virtual string CacheKey => "fuel-meshes";
     
-    private readonly string slotKey;
-    private readonly Vec3f translate;
+    private readonly string _slotKey;
+    private readonly Vec3f _translate;
     
     public FuelRenderer(string slotKey, Vec3f translate = null)
     {
-        this.slotKey = slotKey;
-        this.translate = translate ?? Vec3f.Zero;
+        _slotKey = slotKey;
+        _translate = translate ?? Vec3f.Zero;
     }
 
     public void Tesselate(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack)
@@ -36,8 +36,8 @@ public class FuelRenderer
         bool isBurning = be is IFirePit firepit && firepit.IsBurning;
         
         string emberKey = renderFuel
-            ? $"{burnState}-{slotKey}"
-            : isBurning ? $"extinct-{slotKey}" : $"cold-{slotKey}";
+            ? $"{burnState}-{_slotKey}"
+            : isBurning ? $"extinct-{_slotKey}" : $"cold-{_slotKey}";
 
         AddEmbers(mesher, be, emberKey);
         if (renderFuel)
@@ -46,9 +46,8 @@ public class FuelRenderer
 
     private void AddEmbers(ITerrainMeshPool mesher, BlockEntity be, string meshKey)
     {
-        be.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh);
-        embersMesh.Translate(translate);
-        mesher.AddMeshData(embersMesh);
+        if (be.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh, onCreate: mesh => mesh.Translate(_translate)))
+            mesher.AddMeshData(embersMesh);
     }
 
     private void AddFuel(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack)
@@ -82,14 +81,12 @@ public class FuelRenderer
         if (gsProps?.ModelItemsToStackSizeRatio > 0)
             modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
 
-        string meshKey = $"{burnState}-{slotKey}";
+        string meshKey = $"{burnState}-{_slotKey}";
 
         MeshData fuelMesh;
-        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty);
+        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty, mesh => mesh.Translate(_translate));
         if (!hasMesh)
-            be.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty));
-        
-        fuelMesh.Translate(translate);
+            be.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), mesh => mesh.Translate(_translate));
         mesher.AddMeshData(fuelMesh);
     }
 }

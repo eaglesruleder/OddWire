@@ -16,7 +16,7 @@ namespace OddWire.GameContent
 {
     public class FuelBurnStack
     {
-        public string Key = null;
+        public string Key;
         public CombustibleProperties CombustibleProps;
         public GroundStorageProperties GSProps;
     }
@@ -170,7 +170,6 @@ namespace OddWire.GameContent
         
         BrazierContentsRenderer renderer;
 
-        // Fuel tesselation helpers (normal + wide). Intentionally decoupled from BEBrazier.
         FuelRenderer _fuelNormalRenderer;
         FuelRenderer _fuelWideRenderer;
         Vec3f _fuelRendererOffset = new Vec3f(0, 3f / 16f, 0);
@@ -578,39 +577,41 @@ namespace OddWire.GameContent
             else
                 renderer.SetContents(null, null);
         }
-
-        ItemSlot FuelNormalSlot
+        
+        bool InputSlotImposes
         { get {
             ItemSlot contentSlot = InputSlot.Empty ? OutputSlot : InputSlot;
             return
-              !(contentSlot?.Itemstack?.Collectible?.CombustibleProps.CanBurn() ?? false)
-            &&  contentSlot?.StackSize > 0
-            ?   null
-            :   FuelSlot;
+                contentSlot?.StackSize > 0
+            &&!(contentSlot?.Itemstack?.Collectible?.CombustibleProps.CanBurn() ?? false);
         } }
+        
+        ItemSlot FuelNormalSlot => InputSlotImposes ? null : FuelSlot;
         
         ItemSlot FuelWideSlot
         { get {
-            ItemSlot contentSlot = InputSlot.Empty ? OutputSlot : InputSlot;
-            if(contentSlot.StackSize < 1)
-                return null;
+            if (InputSlotImposes
+            &&  FuelSlot?.StackSize > 0
+                )
+                return FuelSlot;
             
-            return contentSlot.Itemstack?.Collectible?.CombustibleProps?.CanBurn() ?? false
+            ItemSlot contentSlot = InputSlot.Empty ? OutputSlot : InputSlot;
+            return
+               (contentSlot.Itemstack?.Collectible?.CombustibleProps?.CanBurn() ?? false)
+            &&  contentSlot.StackSize > 0
             ?   contentSlot
-            :   contentSlot.StackSize > 0
-                ?   FuelSlot
-                :   null;
+            :   null;
         } }
         
         
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
-            this.CacheMesh($"{ShapePath}parts/brazier", CacheKey, out var brazierMesh);
+            this.CacheMesh($"{ShapePath}brazier", CacheKey, out var brazierMesh);
             mesher.AddMeshData(brazierMesh);
             
             ItemStack contentStack = InputStack ?? OutputStack;
             MeshData contentmesh = GetContentMesh(contentStack, tesselator);
-            if (contentmesh != null)
+            if (contentmesh is not null)
             {
                 contentmesh.Translate(new Vec3f(0, 4f / 16f, 0));
                 mesher.AddMeshData(contentmesh);
@@ -620,21 +621,13 @@ namespace OddWire.GameContent
             if (burnState == null)
                 return true;
 
-            ItemSlot fuelNormalSlot = FuelNormalSlot;
-            ItemSlot fuelWideSlot = FuelWideSlot;
-            
-            // If we're cold and have no combustible at all, treat as extinct for visuals
-            if (burnState == "cold"
-            &&!(IsBurning || fuelNormalSlot?.StackSize > 0 || fuelWideSlot?.StackSize > 0)
-                )
-                burnState = "extinct";
-
             _fuelNormalRenderer ??= new FuelRenderer("normal", _fuelRendererOffset);
             _fuelWideRenderer ??= new FuelRenderer("wide", _fuelRendererOffset);
-
-            if (contentmesh is null)
-                _fuelNormalRenderer.Tesselate(mesher, this, fuelNormalSlot, burnState, IsBurning && !_burnFromInput ? _burnStack : null);
-            _fuelWideRenderer.Tesselate(mesher, this, fuelWideSlot, burnState, IsBurning && _burnFromInput ? _burnStack : null);
+            
+            bool burnIsWide = _burnFromInput || InputSlotImposes;
+            if (!InputSlotImposes)
+                _fuelNormalRenderer.Tesselate(mesher, this, FuelNormalSlot, burnState, IsBurning && !burnIsWide ? _burnStack : null);
+            _fuelWideRenderer.Tesselate(mesher, this, FuelWideSlot, burnState, IsBurning && burnIsWide ? _burnStack : null);
 
             return true;
         }
@@ -741,7 +734,7 @@ namespace OddWire.GameContent
             {
                 tree.SetString("_burnStack.Key", _burnStack.Key);
                 tree.SetCombustibleProps("_burnStack.CombustibleProps", _burnStack.CombustibleProps);
-                tree.SetGroundStorageProps("burnStack.GSProps",_burnStack.GSProps);
+                tree.SetGroundStorageProps("_burnStack.GSProps",_burnStack.GSProps);
             }
             tree.SetDouble("extinguishedTotalHours", extinguishedTotalHours);
             tree.SetBool("canIgniteFuel", CanIgniteFuel);

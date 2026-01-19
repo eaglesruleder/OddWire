@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -7,7 +8,7 @@ namespace OddWire.VintageStory.API.Common
 {
     public static class BlockEntityExtensions
     {
-        public static bool CacheMesh(this BlockEntity blockEntity, string path, string cacheKey, out MeshData meshdata, int? quantityElements = null)
+        public static bool CacheMesh(this BlockEntity blockEntity, string path, string cacheKey, out MeshData meshdata, int? quantityElements = null, Action<MeshData> onCreate = null)
         {
             string meshKey = $"{path}#{quantityElements}";
             Dictionary<string, MeshData> meshes = ObjectCacheUtil.GetOrCreate(blockEntity.Api, cacheKey, () => new Dictionary<string, MeshData>());
@@ -24,7 +25,8 @@ namespace OddWire.VintageStory.API.Common
             
             ITesselatorAPI mesher = ((ICoreClientAPI)blockEntity.Api).Tesselator;
             mesher.TesselateShape(block, shape, out meshdata, quantityElements: quantityElements);
-            meshes.Add(meshKey, meshdata);
+            onCreate?.Invoke(meshdata);
+            meshes.TryAdd(meshKey, meshdata);
             return true;
         }
     }
