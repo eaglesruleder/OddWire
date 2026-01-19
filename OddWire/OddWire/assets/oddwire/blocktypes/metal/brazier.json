@@ -5,7 +5,7 @@
 	entityBehaviors: [
 		{ name: "FirepitAmbient" }
 	],
-	creativeinventory: { general: ["brazier-extinct-iron"], decorative: ["brazier-extinct-iron"] },
+	creativeinventory: { general: ["brazier-*-extinct-*"], decorative: ["brazier-*-extinct-*"] },
 	"attributes": {
 		"reinforcable": true,
 		"humanoidTraversalCost": 100
@@ -14,12 +14,13 @@
 	"enabled": true,
 	"heldTpIdleAnimation": "holdbothhands",
 	"variantgroups": [
+		{ code:"height", states: ["short", "tall"] },
 		{ code:"burnstate", states: ["extinct", "lit", "cold"] },
 		{ "code":"metal", "states": ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"] },
 	],
 	behaviors: [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
 	"renderpass": "OpaqueNoCull",
-	"shape": { "base": "block/metal/brazier/brazier" },
+	"shape": { "base": "block/metal/brazier/brazier-{height}" },
 	"faceCullMode": "NeverCull",
 	"textures": {
 		"metal": { base: "game:block/metal/sheet-plain/{metal}3" },

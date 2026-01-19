@@ -24,6 +24,6 @@
 	"height": 2,
 	"output": {
 		"type": "block",
-		"code": "brazier-extinct-{metal}",
+		"code": "brazier-short-extinct-{metal}",
 	}
 }

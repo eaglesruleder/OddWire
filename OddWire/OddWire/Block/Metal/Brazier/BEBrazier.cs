@@ -606,7 +606,7 @@ namespace OddWire.GameContent
         
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
-            this.CacheMesh($"{ShapePath}brazier", CacheKey, out var brazierMesh);
+            this.CacheMesh(Block.Shape.Path(), CacheKey, out var brazierMesh);
             mesher.AddMeshData(brazierMesh);
             
             ItemStack contentStack = InputStack ?? OutputStack;

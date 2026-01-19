@@ -1,0 +1,61 @@
+[
+	{
+		"ingredientPattern": "RBR,RBR,_P_",
+		"ingredients": {
+			"R": {
+				"type": "item",
+				"code": "game:rod-*",
+				"name": "metal",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+				"quantity": 4
+			},
+			"B": {
+				"type": "item",
+				"code": "game:powder-borax",
+				"quantity": 8
+			},
+			"P": {
+				"type": "item",
+				"code": "game:metalplate-*",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+				"name": "metal"
+			},
+		},
+		"width": 3,
+		"height": 3,
+		"output": {
+			"type": "block",
+			"code": "brazier-tall-extinct-{metal}",
+		}
+	},
+	{
+		"ingredientPattern": "RBR,_S_",
+		"ingredients": {
+			"R": {
+				"type": "item",
+				"code": "game:rod-*",
+				"name": "metal",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+				"quantity": 4
+			},
+			"B": {
+				"type": "item",
+				"code": "game:powder-borax",
+				"quantity": 8
+			},
+			"S": {
+				"type": "block",
+				"code": "oddwire:brazier-short-extinct-*",
+				"name": "metal",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+				"quantity": 1
+			}
+		},
+		"width": 3,
+		"height": 2,
+		"output": {
+			"type": "block",
+			"code": "brazier-tall-extinct-{metal}",
+		}
+	}
+]
