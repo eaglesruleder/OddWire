@@ -75,53 +75,6 @@ namespace OddWire.GameContent
         public virtual float BurnDurationModifier => 1;
         
         
-        public float InputStackTemp
-        {   get => GetTemp(inventory.InputStack);
-            set => SetTemp(inventory.InputStack, value);
-        }
-
-        public float OutputStackTemp
-        {   get => GetTemp(inventory.OutputStack);
-            set => SetTemp(inventory.OutputStack, value);
-        }
-
-        private float GetTemp(ItemStack stack)
-        {
-            if (stack == null)
-                return enviromentTemperature;
-
-            if (inventory.CookingSlots.Length <= 0)
-                return stack.Collectible.GetTemperature(Api.World, stack);
-            
-            bool haveStack = false;
-            float lowestTemp = 0;
-            for (int i = 0; i < inventory.CookingSlots.Length; i++)
-            {
-                ItemStack cookingStack = inventory.CookingSlots[i].Itemstack;
-                if (cookingStack == null)
-                    continue;
-                
-                float stackTemp = cookingStack.Collectible.GetTemperature(Api.World, cookingStack);
-                lowestTemp = haveStack ? Math.Min(lowestTemp, stackTemp) : stackTemp;
-                haveStack = true;
-            }
-
-            return lowestTemp;
-        }
-
-        void SetTemp(ItemStack stack, float value)
-        {
-            if (stack == null)
-                return;
-            
-            if (inventory.CookingSlots.Length > 0)
-                for (int i = 0; i < inventory.CookingSlots.Length; i++)
-                    inventory.CookingSlots[i].Itemstack?.Collectible.SetTemperature(Api.World, inventory.CookingSlots[i].Itemstack, value);
-            else
-                stack.Collectible.SetTemperature(Api.World, stack, value);
-        }
-        
-        
         public EnumFirepitModel CurrentModel { get; private set; }
         
         // Current temperature of the furnace
@@ -255,7 +208,7 @@ namespace OddWire.GameContent
             // Only tick on the server and merely sync to client
             if (Api is ICoreClientAPI)
             {
-                renderer?.contentStackRenderer?.OnUpdate(InputStackTemp);
+                renderer?.contentStackRenderer?.OnUpdate(inventory.InputStackTemp);
                 return;
             }
 
@@ -348,7 +301,9 @@ namespace OddWire.GameContent
                 return;
             }
             
-            float currTemp = InputStackTemp;
+            float currTemp = inventory.InputStackTemp;
+            if (currTemp == 0)
+                currTemp = enviromentTemperature;
             float meltingPoint = inventory.InputStack.Collectible.GetMeltingPoint(Api.World, inventory, inventory.InputSlot);
 
             // Only Heat ore. Cooling happens already in the itemstack
@@ -364,7 +319,7 @@ namespace OddWire.GameContent
                     newTemp = Math.Min(maxTemp, newTemp);
                 
                 currTemp = newTemp;
-                InputStackTemp = newTemp;
+                inventory.InputStackTemp = newTemp;
             }
 
             // Begin smelting when hot enough
@@ -383,7 +338,9 @@ namespace OddWire.GameContent
             if (!CanHeatOutput)
                 return;
             
-            float currTemp = OutputStackTemp;
+            float currTemp = inventory.OutputStackTemp;
+            if(currTemp == 0)
+                currTemp = enviromentTemperature;
 
             // Only Heat ore. Cooling happens already in the itemstack
             if (currTemp >= furnaceTemperature)
@@ -394,7 +351,7 @@ namespace OddWire.GameContent
             if (maxTemp > 0)
                 newTemp = Math.Min(maxTemp, newTemp);
             
-            OutputStackTemp = newTemp;
+            inventory.OutputStackTemp = newTemp;
         }
         
         public bool CanSmeltInput
@@ -437,7 +394,7 @@ namespace OddWire.GameContent
                 return;
             
             inventory.InputStack.Collectible.DoSmelt(Api.World, inventory, inventory.InputSlot, inventory.OutputSlot);
-            InputStackTemp = enviromentTemperature;
+            inventory.InputStackTemp = enviromentTemperature;
             inputStackCookingTime = 0;
             MarkDirty(true);
             inventory.InputSlot.MarkDirty();
@@ -724,7 +681,7 @@ namespace OddWire.GameContent
             {
                 float meltingDuration = inventory.InputStack.Collectible.GetMeltingDuration(Api.World, inventory, inventory.InputSlot);
 
-                dialogTree.SetFloat("oreTemperature", InputStackTemp);
+                dialogTree.SetFloat("oreTemperature", inventory.InputStackTemp);
                 dialogTree.SetFloat("maxOreCookingTime", meltingDuration);
             }
             

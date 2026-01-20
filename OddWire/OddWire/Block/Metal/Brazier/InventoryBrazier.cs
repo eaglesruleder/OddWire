@@ -41,12 +41,58 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         get { return this[1].Itemstack; }
         set { this[1].Itemstack = value; this[1].MarkDirty(); }
     }
+    public float InputStackTemp
+    {   get => GetTemp(InputStack);
+        set => SetTemp(InputStack, value);
+    }
+
+    
 
     public ItemSlot OutputSlot => this[2];
     public ItemStack OutputStack
     {
         get { return this[2].Itemstack; }
         set { this[2].Itemstack = value; this[2].MarkDirty(); }
+    }
+    public float OutputStackTemp
+    {   get => GetTemp(OutputStack);
+        set => SetTemp(OutputStack, value);
+    }
+
+    private float GetTemp(ItemStack stack)
+    {
+        if (stack == null)
+            return 0;
+
+        if (CookingSlots.Length <= 0)
+            return stack.Collectible.GetTemperature(Api.World, stack);
+            
+        bool haveStack = false;
+        float lowestTemp = 0;
+        for (int i = 0; i < CookingSlots.Length; i++)
+        {
+            ItemStack cookingStack = CookingSlots[i].Itemstack;
+            if (cookingStack == null)
+                continue;
+                
+            float stackTemp = cookingStack.Collectible.GetTemperature(Api.World, cookingStack);
+            lowestTemp = haveStack ? Math.Min(lowestTemp, stackTemp) : stackTemp;
+            haveStack = true;
+        }
+
+        return lowestTemp;
+    }
+
+    void SetTemp(ItemStack stack, float value)
+    {
+        if (stack == null)
+            return;
+            
+        if (CookingSlots.Length > 0)
+            for (int i = 0; i < CookingSlots.Length; i++)
+                CookingSlots[i].Itemstack?.Collectible.SetTemperature(Api.World, CookingSlots[i].Itemstack, value);
+        else
+            stack.Collectible.SetTemperature(Api.World, stack, value);
     }
     
     
