@@ -5,8 +5,6 @@ namespace OddWire.VintageStory.API.Common
 {
     public static class CombustiblePropertiesExtensions
     {
-        public static bool CanBurn(this CombustibleProperties props) => (props?.BurnTemperature ?? -1) > 0;
-        
         public static void SetCombustibleProps(this ITreeAttribute tree, string key, CombustibleProperties props)
         {
             if (props is null) return;
