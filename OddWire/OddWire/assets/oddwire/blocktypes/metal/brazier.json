@@ -31,7 +31,9 @@
 		"ashes": { base: "game:block/wood/firepit/ground" },
 		"fire": { base: "game:block/wood/firepit/fire" },
 		
-		"peat": { base: "game:block/soil/peat" }
+		"peat": { base: "game:block/soil/peat" },
+		"bundle": { base: "game:block/hay/bundle" },
+		"string": { base: "game:item/tool/material/string" }
 	},
 	"blockmaterial": "Metal",
 	"lightAbsorption": 0,

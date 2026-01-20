@@ -9,7 +9,17 @@
 	"textureSizes": {
 	},
 	"textures": {
-		"metal": "block/metal/sheet-plain/iron3"
+		"metal": "block/metal/sheet-plain/iron3",
+
+		"birch": "block/wood/debarked/birch",
+		"walnut-h": "block/wood/bark/walnut-h",
+		"ember": "block/coal/ember",
+		"ashes": "block/wood/firepit/ground",
+		"fire": "block/wood/firepit/fire",
+
+		"peat": "block/soil/peat",
+		"bundle": "block/hay/bundle",
+		"string": "item/tool/material/string"
 	},
 	"elements": [
 		{
