@@ -28,7 +28,7 @@ namespace OddWire.GameContent
         public bool IsTall => Block.Variant["height"] == "tall";
         
         #region BlockEntityContainer
-        internal InventorySmelting inventory;
+        internal InventoryBrazier inventory;
         public override InventoryBase Inventory => inventory;
         public override string InventoryClassName => "stove";
         
@@ -184,7 +184,7 @@ namespace OddWire.GameContent
         
         public BlockEntityBrazier()
         {
-            inventory = new InventorySmelting(null, null);
+            inventory = new InventoryBrazier(null, null);
             inventory.SlotModified += OnSlotModified;
         }
 
