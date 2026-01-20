@@ -27,6 +27,29 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         get { return cookingSlots; }
     }
 
+    
+    public ItemSlot FuelSlot => this[0];
+    public ItemStack FuelStack
+    {
+        get { return this[0].Itemstack; }
+        set { this[0].Itemstack = value; this[0].MarkDirty(); }
+    }
+        
+    public ItemSlot InputSlot => this[1];
+    public ItemStack InputStack
+    {
+        get { return this[1].Itemstack; }
+        set { this[1].Itemstack = value; this[1].MarkDirty(); }
+    }
+
+    public ItemSlot OutputSlot => this[2];
+    public ItemStack OutputStack
+    {
+        get { return this[2].Itemstack; }
+        set { this[2].Itemstack = value; this[2].MarkDirty(); }
+    }
+    
+    
     public override Size3f MaxContentDimensions {
         get {
             return slots[1].Itemstack?.ItemAttributes?["maxContentDimensions"].AsObject<Size3f>(null);

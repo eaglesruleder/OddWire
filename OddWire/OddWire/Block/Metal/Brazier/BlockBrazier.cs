@@ -44,7 +44,7 @@ namespace OddWire.GameContent
                         Itemstacks = canIgniteStacks.ToArray(),
                         GetMatchingStacks = (wi, bs, es) => {
                             BlockEntityBrazier beBrazier = api.World.BlockAccessor.GetBlockEntity(bs.Position) as BlockEntityBrazier;
-                            if (beBrazier == null || beBrazier.IsBurning || (beBrazier.FuelSlot?.Empty ?? true))
+                            if (beBrazier == null || beBrazier.IsBurning || (beBrazier.inventory.FuelSlot?.Empty ?? true))
                                 return null;
                             return wi.Itemstacks;
                         }
@@ -147,7 +147,7 @@ namespace OddWire.GameContent
                 return EnumIgniteState.NotIgnitable;
             
             if (beBrazier.IsBurning
-            ||  beBrazier.FuelSlot.Empty
+            ||  beBrazier.inventory.FuelSlot.Empty
                 )
                 return EnumIgniteState.NotIgnitablePreventDefault;
 
@@ -256,7 +256,7 @@ namespace OddWire.GameContent
             if (stack.Collectible.CombustibleProps.MeltingPoint > 0)
             {
                 ItemStackMoveOperation moveMeltOp = new ItemStackMoveOperation(world, EnumMouseButton.Left, 0, EnumMergePriority.DirectMerge, 1);
-                byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(beBrazier.InputSlot, ref moveMeltOp);
+                byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(beBrazier.inventory.InputSlot, ref moveMeltOp);
                 if (moveMeltOp.MovedQuantity > 0)
                     return true;
             }
@@ -264,7 +264,7 @@ namespace OddWire.GameContent
             if (stack.Collectible.CombustibleProps.BurnTemperature > 0)
             {
                 ItemStackMoveOperation moveBurnOp = new ItemStackMoveOperation(world, EnumMouseButton.Left, 0, EnumMergePriority.DirectMerge, 1);
-                byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(beBrazier.FuelSlot, ref moveBurnOp);
+                byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(beBrazier.inventory.FuelSlot, ref moveBurnOp);
                 if (moveBurnOp.MovedQuantity > 0)
                     return true;
             }
@@ -278,10 +278,10 @@ namespace OddWire.GameContent
                 return false;
             
             ItemSlot potSlot = null;
-            if (beBrazier.InputStack?.Collectible is BlockCookedContainer)
-                potSlot = beBrazier.InputSlot;
-            if (beBrazier.OutputStack?.Collectible is BlockCookedContainer)
-                potSlot = beBrazier.OutputSlot;
+            if (beBrazier.inventory.InputStack?.Collectible is BlockCookedContainer)
+                potSlot = beBrazier.inventory.InputSlot;
+            if (beBrazier.inventory.OutputStack?.Collectible is BlockCookedContainer)
+                potSlot = beBrazier.inventory.OutputSlot;
 
             if (potSlot != null)
             {
@@ -299,8 +299,8 @@ namespace OddWire.GameContent
                     blockPot.ServeIntoStack(targetSlot, potSlot, world);
             }
             else
-            if(!beBrazier.InputSlot.Empty
-            ||  byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(world, beBrazier.InputSlot, 1) == 0
+            if(!beBrazier.inventory.InputSlot.Empty
+            ||  byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(world, beBrazier.inventory.InputSlot, 1) == 0
               )
                 beBrazier.OnPlayerRightClick(byPlayer, blockSel);
 
@@ -309,6 +309,6 @@ namespace OddWire.GameContent
 
         private bool OnBlockInteractStart_trySmeltingContainer(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, BlockEntityBrazier beBrazier, ItemStack stack) =>
             stack?.Collectible is BlockSmeltingContainer or BlockSmeltedContainer
-        &&  byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(world, beBrazier.InputSlot, 1) > 0;
+        &&  byPlayer.InventoryManager.ActiveHotbarSlot.TryPutInto(world, beBrazier.inventory.InputSlot, 1) > 0;
     }
 }
