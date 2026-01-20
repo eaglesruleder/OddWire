@@ -25,6 +25,8 @@ namespace OddWire.GameContent
     {
         public virtual string ShapePath => "oddwire:shapes/block/metal/brazier/";
         public virtual string CacheKey => "brazier-meshes";
+
+        public bool IsTall => Block.Variant["height"] == "tall";
         
         #region BlockEntityContainer
         internal InventorySmelting inventory;
@@ -170,9 +172,12 @@ namespace OddWire.GameContent
         
         BrazierContentsRenderer renderer;
 
-        FuelRenderer _fuelNormalRenderer;
-        FuelRenderer _fuelWideRenderer;
-        Vec3f _fuelRendererOffset = new Vec3f(0, 3f / 16f, 0);
+        FuelRenderer _fuelShortNormalRenderer;
+        FuelRenderer _fuelShortWideRenderer;
+        Vec3f _shortFuelTranslate = new Vec3f(0, 3f / 16f, 0);
+        FuelRenderer _fuelTallNormalRenderer;
+        FuelRenderer _fuelTallWideRenderer;
+        Vec3f _tallFuelTranslate = new Vec3f(0, 8f / 16f, 0);
         
         GuiDialogBlockEntityBrazier clientDialog;
         public virtual string DialogTitle => Lang.Get("Brazier");
@@ -199,8 +204,13 @@ namespace OddWire.GameContent
                 renderer = new BrazierContentsRenderer(clientApi, Pos);
                 clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier-contents");
 
-                _fuelNormalRenderer = new FuelRenderer("normal", _fuelRendererOffset);
-                _fuelWideRenderer = new FuelRenderer("wide", _fuelRendererOffset);
+                _fuelShortNormalRenderer = new FuelRenderer("normal", _shortFuelTranslate);
+                _fuelShortWideRenderer = new FuelRenderer("wide", _shortFuelTranslate);
+                if (IsTall)
+                {
+                    _fuelTallNormalRenderer = new FuelRenderer("normal", _tallFuelTranslate, false);
+                    _fuelTallWideRenderer = new FuelRenderer("wide", _tallFuelTranslate, false);
+                }
 
                 UpdateRenderer();
             }
@@ -620,15 +630,21 @@ namespace OddWire.GameContent
             string burnState = Block.Variant["burnstate"];
             if (burnState == null)
                 return true;
-
-            _fuelNormalRenderer ??= new FuelRenderer("normal", _fuelRendererOffset);
-            _fuelWideRenderer ??= new FuelRenderer("wide", _fuelRendererOffset);
             
             bool burnIsWide = _burnFromInput || InputSlotImposes;
-            if (!InputSlotImposes)
-                _fuelNormalRenderer.Tesselate(mesher, this, FuelNormalSlot, burnState, IsBurning && !burnIsWide ? _burnStack : null);
-            _fuelWideRenderer.Tesselate(mesher, this, FuelWideSlot, burnState, IsBurning && burnIsWide ? _burnStack : null);
-
+            if (IsTall)
+            {
+                if (!InputSlotImposes)
+                    _fuelTallNormalRenderer.Tesselate(mesher, this, FuelNormalSlot, burnState, IsBurning && !burnIsWide ? _burnStack : null);
+                _fuelTallWideRenderer.Tesselate(mesher, this, FuelWideSlot, burnState, IsBurning && burnIsWide ? _burnStack : null);
+            }
+            else
+            {
+                if (!InputSlotImposes)
+                    _fuelShortNormalRenderer.Tesselate(mesher, this, FuelNormalSlot, burnState, IsBurning && !burnIsWide ? _burnStack : null);
+                _fuelShortWideRenderer.Tesselate(mesher, this, FuelWideSlot, burnState, IsBurning && burnIsWide ? _burnStack : null);
+            }
+            
             return true;
         }
         

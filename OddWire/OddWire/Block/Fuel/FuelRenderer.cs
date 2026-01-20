@@ -15,11 +15,13 @@ public class FuelRenderer
     
     private readonly string _slotKey;
     private readonly Vec3f _translate;
+    private readonly bool _showEmbers;
     
-    public FuelRenderer(string slotKey, Vec3f translate = null)
+    public FuelRenderer(string slotKey, Vec3f translate = null, bool showEmbers = true)
     {
         _slotKey = slotKey;
         _translate = translate ?? Vec3f.Zero;
+        _showEmbers = showEmbers;
     }
 
     public void Tesselate(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack)
@@ -32,14 +34,16 @@ public class FuelRenderer
         bool renderFuel =
             burnStack != null
         ||  slot?.StackSize > 0;
-        
-        bool isBurning = be is IFirePit firepit && firepit.IsBurning;
-        
-        string emberKey = renderFuel
-            ? $"{burnState}-{_slotKey}"
-            : isBurning ? $"extinct-{_slotKey}" : $"cold-{_slotKey}";
 
-        AddEmbers(mesher, be, emberKey);
+        if (_showEmbers)
+        {
+            bool isBurning = be is IFirePit firepit && firepit.IsBurning;
+            string emberKey = renderFuel
+                ? $"{burnState}-{_slotKey}"
+                : isBurning ? $"extinct-{_slotKey}" : $"cold-{_slotKey}";
+            AddEmbers(mesher, be, emberKey);
+        }
+        
         if (renderFuel)
             AddFuel(mesher, be, slot, burnState, burnStack);
     }
