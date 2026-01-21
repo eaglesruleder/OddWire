@@ -42,10 +42,11 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         get { return this[1].Itemstack; }
         set { this[1].Itemstack = value; this[1].MarkDirty(); }
     }
-    public float InputStackTemp
+    public float InputTemp
     {   get => GetTemp(InputStack);
         set => SetTemp(InputStack, value);
     }
+    public float InputMeltingPoint => InputStack.Collectible.GetMeltingPoint(Api.World, this, InputSlot);
 
     
 

@@ -18,7 +18,8 @@ namespace OddWire.GameContent
     {
         public string Key;
         public CombustibleProperties CombustibleProps;
-        public GroundStorageProperties GSProps;
+        public int BurnTemp => CombustibleProps?.BurnTemperature ?? 0;
+        public GroundStorageProperties StorageProps;
     }
     
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
@@ -46,7 +47,7 @@ namespace OddWire.GameContent
         #region IHeatSource
         public float GetHeatStrength(IWorldAccessor world, BlockPos heatSourcePos, BlockPos heatReceiverPos)
         {
-            return IsBurning ? 10 : (CanIgniteFuel ? 0.25f : 0);
+            return IsBurning ? 10 : (IgniteByInteraction ? 0.25f : 0);
         }
         #endregion
 
@@ -64,7 +65,7 @@ namespace OddWire.GameContent
             {
                 SetBlockState("cold");
                 extinguishedTotalHours = -99;
-                CanIgniteFuel = false;
+                IgniteByInteraction = false;
                 burnRemaining = 0;
                 _burnStack = null;
             }
@@ -78,6 +79,16 @@ namespace OddWire.GameContent
         public virtual float BurnTempModifier => 1;
         public virtual float BurnDurationModifier => 1;
         
+        public float emptyBrazierBurnTimeMulBonus = 4f;
+        
+        // How much of the current fuel is consumed
+        public float burnRemaining;
+        
+        // For how long the ore has been cooking
+        public float inputStackCookingTime;
+        
+        public double extinguishedTotalHours;
+        
         
         public EnumFirepitModel CurrentModel { get; private set; }
         
@@ -89,30 +100,41 @@ namespace OddWire.GameContent
         
         
         // If true, then the fire pit is currently hot enough to ignite fuel-
-        public bool CanIgniteFuel;
+        public bool IgniteByInteraction;
         
         public virtual bool BurnsAllFuel => true;
+        private bool CanIgniteFuel =>
+                BurnsAllFuel
+            && ((inventory.FuelStack?.CanBurn(true) ?? false)
+            ||  (inventory.InputStack?.CanBurn(true) ?? false)
+            ||  (IsTall
+                 && ((inventory[3].Itemstack?.CanBurn(true) ?? false)
+                 ||  (inventory[4].Itemstack?.CanBurn(true) ?? false)
+                 )
+               ));
         
-        public float emptyBrazierBurnTimeMulBonus = 4f;
-        
-        // How much of the current fuel is consumed
-        public float burnRemaining;
-        
-        
-        // For how long the ore has been cooking
-        public float inputStackCookingTime;
-        
-        public double extinguishedTotalHours;
-        
-        
-        BrazierContentsRenderer renderer;
+        public bool CanSmeltInput
+        { get {
+            if (inventory.InputStack == null)
+                return false;
 
-        FuelRenderer _fuelShortNormalRenderer;
-        FuelRenderer _fuelShortWideRenderer;
-        FuelRenderer _fuelTallNormalRenderer;
-        FuelRenderer _fuelTallWideRenderer;
+            if (inventory.InputStack.Collectible.OnSmeltAttempt(inventory))
+                MarkDirty(true);
+
+            return
+                inventory.InputStack.Collectible.CanSmelt(Api.World, inventory, inventory.InputStack, inventory.OutputStack)
+                &&  inventory.InputStack.Collectible.CombustibleProps?.RequiresContainer != true;
+        } }
         
-        GuiDialogBlockEntityBrazier clientDialog;
+        
+        private BrazierContentsRenderer renderer;
+
+        private FuelRenderer _fuelShortNormalRenderer;
+        private FuelRenderer _fuelShortWideRenderer;
+        private FuelRenderer _fuelTallNormalRenderer;
+        private FuelRenderer _fuelTallWideRenderer;
+        
+        private GuiDialogBlockEntityBrazier _clientDialog;
         public virtual string DialogTitle => Lang.Get("Brazier");
         
         
@@ -152,14 +174,13 @@ namespace OddWire.GameContent
         public override bool OnPlayerRightClick(IPlayer byPlayer, BlockSelection blockSel)
         {
             if (Api.Side == EnumAppSide.Client)
-            {
-                toggleInventoryDialogClient(byPlayer, () => {
+                toggleInventoryDialogClient(byPlayer, () =>
+                {
                     SyncedTreeAttribute dtree = new SyncedTreeAttribute();
                     SetDialogValues(dtree);
-                    clientDialog = new GuiDialogBlockEntityBrazier(DialogTitle, Inventory, Pos, dtree, Api as ICoreClientAPI);
-                    return clientDialog;
+                    _clientDialog = new GuiDialogBlockEntityBrazier(DialogTitle, Inventory, Pos, dtree, Api as ICoreClientAPI);
+                    return _clientDialog;
                 });
-            }
 
             return true;
         }
@@ -171,35 +192,34 @@ namespace OddWire.GameContent
             renderer?.Dispose();
             renderer = null;
 
-            if (clientDialog == null)
-                return;
-            
-            clientDialog.TryClose();
-            clientDialog?.Dispose();
-            clientDialog = null;
+            if (_clientDialog is not null)
+            {
+                _clientDialog.TryClose();
+                _clientDialog?.Dispose();
+                _clientDialog = null;
+            }
         }
         
         public override void OnBlockUnloaded()
         {
             base.OnBlockUnloaded();
-
             renderer?.Dispose();
         }
         
         
-        private bool shouldRedraw;
+        private bool _shouldRedraw;
         private void OnSlotModified(int slotid)
         {
             Block = Api.World.BlockAccessor.GetBlock(Pos);
 
             UpdateRenderer();
             MarkDirty(Api.Side == EnumAppSide.Server); // Save useless triple-remesh by only letting the server decide when to redraw
-            shouldRedraw = true;
+            _shouldRedraw = true;
 
             if (Api is ICoreClientAPI
-            &&  clientDialog != null
+            &&  _clientDialog != null
                 )
-                SetDialogValues(clientDialog.Attributes);
+                SetDialogValues(_clientDialog.Attributes);
 
             Api.World.BlockAccessor.GetChunkAtBlockPos(Pos)?.MarkModified();
         }
@@ -210,7 +230,7 @@ namespace OddWire.GameContent
             // Only tick on the server and merely sync to client
             if (Api is ICoreClientAPI)
             {
-                renderer?.contentStackRenderer?.OnUpdate(inventory.InputStackTemp);
+                renderer?.contentStackRenderer?.OnUpdate(inventory.InputTemp);
                 return;
             }
 
@@ -229,7 +249,7 @@ namespace OddWire.GameContent
             OnBurnHeatOutput(dt);
 
             // Finished smelting? Turn to smelted item
-            OnBurnSmeltItems();
+            OnBurnSmeltItems(dt);
 
             // Furnace is not burning and can burn: Ignite the fuel
             if (!IsBurning)
@@ -263,7 +283,7 @@ namespace OddWire.GameContent
 
             float burnBonus = 1;
             if (inventory.InputSlot.Empty
-                &&  Math.Abs(furnaceTemperature - (_burnStack?.CombustibleProps.BurnTemperature ?? 0)) < 50
+            &&  Math.Abs(furnaceTemperature - _burnStack.BurnTemp) < 50
                 )
                 burnBonus = emptyBrazierBurnTimeMulBonus;
 
@@ -273,7 +293,7 @@ namespace OddWire.GameContent
             
             burnRemaining = 0;
             _burnStack = null;
-            if (!CanSmelt) // This check avoids light flicker when a piece of fuel is consumed and more is available
+            if (!CanIgniteFuel) // This check avoids light flicker when a piece of fuel is consumed and more is available
             {
                 SetBlockState("extinct");
                 extinguishedTotalHours = Api.World.Calendar.TotalHours;
@@ -286,58 +306,41 @@ namespace OddWire.GameContent
             &&  Api.World.Calendar.TotalHours - extinguishedTotalHours > 2
                 )
             {
-                CanIgniteFuel = false;
+                IgniteByInteraction = false;
                 SetBlockState("cold");
             }
         }
         
-        public bool CanHeatInput => 
-            CanSmeltInput
-        ||  inventory.InputStack?.ItemAttributes?["allowHeating"]?.AsBool() == true;
-        
         private void OnBurnHeatInput(float dt)
         {
-            if (!CanHeatInput)
-            {
-                inputStackCookingTime = 0;
+            if (!CanSmeltInput
+            &&  inventory.InputStack?.ItemAttributes?["allowHeating"]?.AsBool() != true
+                )
                 return;
-            }
             
-            float currTemp = inventory.InputStackTemp;
+            float currTemp = inventory.InputTemp;
             if (currTemp == 0)
                 currTemp = enviromentTemperature;
-            float meltingPoint = inventory.InputStack.Collectible.GetMeltingPoint(Api.World, inventory, inventory.InputSlot);
 
             // Only Heat ore. Cooling happens already in the itemstack
-            if (currTemp < furnaceTemperature)
-            {
-                float f = (1 + GameMath.Clamp((furnaceTemperature - currTemp) / 30, 0, 1.6f)) * dt;
-                if (currTemp >= meltingPoint)
-                    f /= 11;
+            if (currTemp >= furnaceTemperature)
+                return;
+            
+            float f = (1 + GameMath.Clamp((furnaceTemperature - currTemp) / 30, 0, 1.6f)) * dt;
+            if (currTemp >= inventory.InputMeltingPoint)
+                f /= 11;
 
-                float newTemp = CalcTemperatureChange(currTemp, furnaceTemperature, f);
-                int maxTemp = Math.Max(inventory.InputStack.Collectible.CombustibleProps?.MaxTemperature ?? 0, inventory.InputStack.ItemAttributes?["maxTemperature"]?.AsInt(0) ?? 0);
-                if (maxTemp > 0)
-                    newTemp = Math.Min(maxTemp, newTemp);
-                
-                currTemp = newTemp;
-                inventory.InputStackTemp = newTemp;
-            }
-
-            // Begin smelting when hot enough
-            if (currTemp >= meltingPoint)
-                inputStackCookingTime += GameMath.Clamp((int)(currTemp / meltingPoint), 1, 30) * dt;
-            else
-            if (inputStackCookingTime > 0)
-                inputStackCookingTime--;
+            float newTemp = CalcTemperatureChange(currTemp, furnaceTemperature, f);
+            int maxTemp = Math.Max(inventory.InputStack.Collectible.CombustibleProps?.MaxTemperature ?? 0, inventory.InputStack.ItemAttributes?["maxTemperature"]?.AsInt(0) ?? 0);
+            if (maxTemp > 0)
+                newTemp = Math.Min(maxTemp, newTemp);
+            
+            inventory.InputTemp = newTemp;
         }
-        
-        public bool CanHeatOutput =>
-            inventory.OutputStack?.ItemAttributes?["allowHeating"]?.AsBool() == true;
         
         public void OnBurnHeatOutput(float dt)
         {
-            if (!CanHeatOutput)
+            if (inventory.OutputStack?.ItemAttributes?["allowHeating"]?.AsBool() != true)
                 return;
             
             float currTemp = inventory.OutputStackTemp;
@@ -356,47 +359,30 @@ namespace OddWire.GameContent
             inventory.OutputStackTemp = newTemp;
         }
         
-        public bool CanSmeltInput
-        { get {
-            if (inventory.InputStack == null)
-                return false;
-
-            if (inventory.InputStack.Collectible.OnSmeltAttempt(inventory))
-                MarkDirty(true);
-
-            return
-                inventory.InputStack.Collectible.CanSmelt(Api.World, inventory, inventory.InputStack, inventory.OutputStack)
-            &&  inventory.InputStack.Collectible.CombustibleProps?.RequiresContainer != true;
-        } }
-        
-        private bool CanSmelt
-        { get {
-            if(!BurnsAllFuel && !CanHeatInput)
-                return false;
-
-            return
-                (inventory.FuelStack?.CanBurn() ?? false)
-            ||  (inventory.InputStack?.CanBurn() ?? false)
-            ||  (IsTall
-                && ((inventory[3].Itemstack?.CanBurn() ?? false)
-                ||  (inventory[4].Itemstack?.CanBurn() ?? false)
-                    )
-                );
-        } }
-        
-        public void OnBurnSmeltItems()
+        public void OnBurnSmeltItems(float dt)
         {
+            if (!CanSmeltInput)
+            {
+                inputStackCookingTime = 0;
+                return;
+            }
+            
+            // Begin smelting when hot enough
+            if (inventory.InputTemp >= inventory.InputMeltingPoint)
+                inputStackCookingTime += GameMath.Clamp((int)(inventory.InputTemp / inventory.InputMeltingPoint), 1, 30) * dt;
+            else
+            if (inputStackCookingTime > 0)
+                inputStackCookingTime--;
+            
             float maxCookingTime =
                 inventory.InputSlot?.Itemstack?.Collectible?.GetMeltingDuration(Api.World, inventory, inventory.InputSlot)
             ??  30;
             
-            if (inputStackCookingTime <= maxCookingTime
-            || !CanSmeltInput
-               )
+            if (inputStackCookingTime <= maxCookingTime)
                 return;
             
             inventory.InputStack.Collectible.DoSmelt(Api.World, inventory, inventory.InputSlot, inventory.OutputSlot);
-            inventory.InputStackTemp = enviromentTemperature;
+            inventory.InputTemp = enviromentTemperature;
             inputStackCookingTime = 0;
             MarkDirty(true);
             inventory.InputSlot.MarkDirty();
@@ -405,11 +391,17 @@ namespace OddWire.GameContent
         public void OnBurnIgniteFuel()
         {
             if (IsBurning
-            || !CanIgniteFuel
-            || !CanSmelt
+            ||!(IgniteByInteraction || CanIgniteFuel)
                 )
                 return;
 
+            var consumeSlot = GetSlotToIgnite(out _burnFromSlot);
+            if (consumeSlot is not null)
+                IgniteSlot(consumeSlot);
+        }
+
+        public virtual ItemSlot GetSlotToIgnite(out int index)
+        {
             ItemSlot[] candidates = new ItemSlot[inventory.Count];
             int candidateCount = 0;
             for (int i = 0; i < candidates.Length; i++)
@@ -417,9 +409,7 @@ namespace OddWire.GameContent
                 if (i == 2)
                     continue;
                 
-                if (inventory[i].StackSize > 0
-                && (inventory[i].Itemstack?.CanBurn() ?? false)
-                    )
+                if (inventory[i].Itemstack?.CanBurn(true) ?? false)
                 {
                     candidates[i] = inventory[i];
                     candidateCount++;
@@ -427,9 +417,11 @@ namespace OddWire.GameContent
             }
 
             if (candidateCount == 0)
-                return;
-
-            ItemSlot consumeSlot = inventory[_burnFromSlot];
+            {
+                index = 0;
+                return null;
+            }
+            
             int candidateIndex = Api.World.Rand.Next(candidateCount);
             for (int i = 0; i < candidates.Length; i++)
             {
@@ -438,56 +430,48 @@ namespace OddWire.GameContent
                 
                 if (candidateIndex == 0)
                 {
-                    _burnFromSlot = i;
-                    consumeSlot = candidates[i];
-                    break;
+                    index = i;
+                    return candidates[i];
                 }
                 candidateIndex--;    
             }
-            if (consumeSlot is null)
-                return;
 
-            ItemStack consumeStack = consumeSlot.Itemstack;
+            index = 0;
+            return null;
+        }
+
+        private void IgniteSlot(ItemSlot slot)
+        {
+            ItemStack stack = slot.Itemstack;
             
-            var combustibleProps = consumeStack.Collectible.CombustibleProps.Clone();
+            var combustibleProps = stack.Collectible.CombustibleProps.Clone();
             combustibleProps.BurnDuration *= BurnDurationModifier;
             combustibleProps.BurnTemperature = (int)(combustibleProps.BurnTemperature * BurnTempModifier);
 
-            var gsPropsTemp = consumeStack.Collectible.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
-            var groundStorageProps = gsPropsTemp?.Clone();
+            var storagePropsSrc = stack.Collectible.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
+            var storageProps = storagePropsSrc?.Clone();
             // Fix for Clone()
-            if (groundStorageProps != null)
-                groundStorageProps.ModelItemsToStackSizeRatio = gsPropsTemp.ModelItemsToStackSizeRatio;
+            if (storageProps != null)
+                storageProps.ModelItemsToStackSizeRatio = storagePropsSrc.ModelItemsToStackSizeRatio;
             
             _burnStack = new()
-                {Key = consumeStack.Collectible.Code.Path
+                {Key = stack.Collectible.Code.Path
                 ,CombustibleProps = combustibleProps
-                ,GSProps = groundStorageProps
+                ,StorageProps = storageProps
                 };
             
             burnRemaining = combustibleProps.BurnDuration;
             SetBlockState("lit");
             MarkDirty(true);
 
-            consumeStack.StackSize -= 1;
-            if (consumeStack.StackSize <= 0)
+            stack.StackSize -= 1;
+            if (stack.StackSize <= 0)
             {
-                consumeSlot.Itemstack = null;
-                consumeSlot.MarkDirty();
+                slot.Itemstack = null;
+                slot.MarkDirty();
             }
         }
         
-        // Temperature before the half second tick
-        public float prevFurnaceTemperature = 20;
-        private void OnClientSync(float dt)
-        {
-            if (Api is ICoreServerAPI
-            && (IsBurning || (int)prevFurnaceTemperature != (int)furnaceTemperature)
-               )
-                MarkDirty();
-
-            prevFurnaceTemperature = furnaceTemperature;
-        }
         
         public void SetBlockState(string state)
         {
@@ -500,47 +484,55 @@ namespace OddWire.GameContent
             Block = block;
         }
         
-        InFirePitProps GetRenderProps(ItemStack contentStack)
+        
+        public int prevClientSyncTemp = 20;
+        private void OnClientSync(float dt)
         {
-            if (contentStack?.ItemAttributes?.KeyExists("inFirePitProps") == true)
-            {
-                InFirePitProps props = contentStack.ItemAttributes["inFirePitProps"].AsObject<InFirePitProps>();
-                props.Transform.EnsureDefaultValues();
+            if (Api is ICoreServerAPI
+            && (IsBurning || prevClientSyncTemp != (int)furnaceTemperature)
+               )
+                MarkDirty();
 
-                return props;
-            }
-            return null;
+            prevClientSyncTemp = (int)furnaceTemperature;
+        }
+        
+        
+        private InFirePitProps GetRenderProps(ItemStack contentStack)
+        {
+            if (contentStack?.ItemAttributes?.KeyExists("inFirePitProps") != true)
+                return null;
+            
+            InFirePitProps props = contentStack.ItemAttributes["inFirePitProps"].AsObject<InFirePitProps>();
+            props.Transform.EnsureDefaultValues();
+
+            return props;
         }
         
         private BlockEntityFirepit EmulateBEFirepit => new() {Pos = Pos};
         
-        void UpdateRenderer()
+        private void UpdateRenderer()
         {
             if (renderer == null)
                 return;
 
             ItemStack contentStack = inventory.InputStack ?? inventory.OutputStack;
 
-            bool useOldRenderer =
-                renderer.ContentStack != null
-            &&  renderer.contentStackRenderer != null
-            &&  contentStack?.Collectible is IInFirepitRendererSupplier
-            &&  renderer.ContentStack.Equals(Api.World, contentStack, GlobalConstants.IgnoredStackAttributes);
-
-            if (useOldRenderer)
+            var contentRenderSupplier = contentStack?.Collectible as IInFirepitRendererSupplier;
+            if (renderer.ContentStack is not null
+            &&  renderer.contentStackRenderer is not null
+            &&  contentRenderSupplier is not null
+            &&  renderer.ContentStack.Equals(Api.World, contentStack, GlobalConstants.IgnoredStackAttributes)
+               )
                 return; // Otherwise the cooking sounds restarts all the time
 
             renderer.contentStackRenderer?.Dispose();
             renderer.contentStackRenderer = null;
 
-            if (contentStack?.Collectible is IInFirepitRendererSupplier contentRenderSupplier)
+            IInFirepitRenderer childRenderer = contentRenderSupplier?.GetRendererWhenInFirepit(contentStack, EmulateBEFirepit, contentStack == inventory.OutputStack);
+            if (childRenderer is not null)
             {
-                IInFirepitRenderer childrenderer = contentRenderSupplier.GetRendererWhenInFirepit(contentStack, EmulateBEFirepit, contentStack == inventory.OutputStack);
-                if (childrenderer != null)
-                {
-                    renderer.SetChildRenderer(contentStack, childrenderer);
-                    return;
-                }
+                renderer.SetChildRenderer(contentStack, childRenderer);
+                return;
             }
 
             InFirePitProps props = GetRenderProps(contentStack);
@@ -553,31 +545,20 @@ namespace OddWire.GameContent
                 renderer.SetContents(null, null);
         }
         
-        bool InputSlotImposes
+        private ItemSlot ShortNormalFuelSlot => IsWide ? null : inventory.FuelSlot;
+        private ItemSlot ShortWideFuelSlot
         { get {
-            ItemSlot contentSlot = inventory.InputSlot.Empty ? inventory.OutputSlot : inventory.InputSlot;
-            return
-                contentSlot?.StackSize > 0
-            &&!(contentSlot?.Itemstack?.CanBurn() ?? false);
-        } }
-        
-        ItemSlot FuelNormalSlot => InputSlotImposes ? null : inventory.FuelSlot;
-        
-        ItemSlot FuelWideSlot
-        { get {
-            if (InputSlotImposes
+            if (IsWide
             &&  inventory.FuelSlot?.StackSize > 0
                 )
                 return inventory.FuelSlot;
             
             ItemSlot contentSlot = inventory.InputSlot.Empty ? inventory.OutputSlot : inventory.InputSlot;
             return
-               (contentSlot.Itemstack?.CanBurn() ?? false)
-            &&  contentSlot.StackSize > 0
+                contentSlot.Itemstack?.CanBurn(true) ?? false
             ?   contentSlot
             :   null;
         } }
-        
         
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
@@ -596,21 +577,21 @@ namespace OddWire.GameContent
             if (burnState == null)
                 return true;
             
-            if (!InputSlotImposes)
-                _fuelShortNormalRenderer.Tesselate(mesher, this, FuelNormalSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null);
-            _fuelShortWideRenderer.Tesselate(mesher, this, FuelWideSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null);
+            if (!IsWide)
+                _fuelShortNormalRenderer.Tesselate(mesher, this, ShortNormalFuelSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null);
+            _fuelShortWideRenderer.Tesselate(mesher, this, ShortWideFuelSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null);
 
             if (!IsTall)
                 return true;
             
             ItemSlot tallNormalSlot = inventory[3];
             bool tallNormalBurning = IsBurning && _burnFromSlot == 3;
-            if ((tallNormalSlot.Itemstack.CanBurn() && tallNormalSlot.StackSize > 0) || tallNormalBurning)
+            if (tallNormalBurning || tallNormalSlot.Itemstack.CanBurn(true))
                 _fuelTallNormalRenderer.Tesselate(mesher, this, tallNormalSlot, burnState, tallNormalBurning ? _burnStack : null);
 
             ItemSlot tallWideSlot = inventory[4];
             bool tallWideBurning = IsBurning && _burnFromSlot == 4;
-            if ((tallWideSlot.Itemstack.CanBurn() && tallWideSlot.StackSize > 0) || tallWideBurning)
+            if (tallWideBurning || tallWideSlot.Itemstack.CanBurn(true))
                 _fuelTallWideRenderer.Tesselate(mesher, this, tallWideSlot, burnState, tallWideBurning ? _burnStack : null);
             
             return true;
@@ -679,10 +660,8 @@ namespace OddWire.GameContent
                 dialogTree.RemoveAttribute("oreTemperature");
             else
             {
-                float meltingDuration = inventory.InputStack.Collectible.GetMeltingDuration(Api.World, inventory, inventory.InputSlot);
-
-                dialogTree.SetFloat("oreTemperature", inventory.InputStackTemp);
-                dialogTree.SetFloat("maxOreCookingTime", meltingDuration);
+                dialogTree.SetFloat("oreTemperature", inventory.InputTemp);
+                dialogTree.SetFloat("maxOreCookingTime", inventory.InputStack.Collectible.GetMeltingDuration(Api.World, inventory, inventory.InputSlot));
             }
             
             dialogTree.SetString("outputText", inventory.GetOutputText());
@@ -731,13 +710,13 @@ namespace OddWire.GameContent
             {
                 tree.SetString("_burnStack.Key", _burnStack.Key);
                 tree.SetCombustibleProps("_burnStack.CombustibleProps", _burnStack.CombustibleProps);
-                tree.SetGroundStorageProps("_burnStack.GSProps",_burnStack.GSProps);
+                tree.SetGroundStorageProps("_burnStack.GSProps",_burnStack.StorageProps);
             }
             tree.SetDouble("extinguishedTotalHours", extinguishedTotalHours);
-            tree.SetBool("canIgniteFuel", CanIgniteFuel);
+            tree.SetBool("canIgniteFuel", IgniteByInteraction);
         }
         
-        bool clientSidePrevBurning;
+        private bool clientSidePrevBurning;
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
         {
             base.FromTreeAttributes(tree, worldForResolving);
@@ -754,25 +733,25 @@ namespace OddWire.GameContent
                 _burnStack = new()
                 {Key = _burnKey
                 ,CombustibleProps = tree.GetCombustibleProps("_burnStack.CombustibleProps")
-                ,GSProps = tree.GetGroundStorageProps("_burnStack.GSProps")
+                ,StorageProps = tree.GetGroundStorageProps("_burnStack.GSProps")
                 };
             extinguishedTotalHours = tree.GetDouble("extinguishedTotalHours");
-            CanIgniteFuel = tree.GetBool("canIgniteFuel", true);
+            IgniteByInteraction = tree.GetBool("canIgniteFuel", true);
 
             if (Api?.Side != EnumAppSide.Client)
                 return;
             
             UpdateRenderer();
 
-            if (clientDialog != null)
-                SetDialogValues(clientDialog.Attributes);
+            if (_clientDialog != null)
+                SetDialogValues(_clientDialog.Attributes);
             
-            if (clientSidePrevBurning != IsBurning || shouldRedraw)
+            if (clientSidePrevBurning != IsBurning || _shouldRedraw)
             {
                 GetBehavior<BEBehaviorFirepitAmbient>().ToggleAmbientSounds(IsBurning);
                 clientSidePrevBurning = IsBurning;
                 MarkDirty(true);
-                shouldRedraw = false;
+                _shouldRedraw = false;
             }
         }
         

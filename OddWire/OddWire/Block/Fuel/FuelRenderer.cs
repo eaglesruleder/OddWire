@@ -64,7 +64,7 @@ public class FuelRenderer
         if (burnStack != null)
         {
             key = burnStack.Key;
-            gsProps = burnStack.GSProps;
+            gsProps = burnStack.StorageProps;
         }
         else
         {
