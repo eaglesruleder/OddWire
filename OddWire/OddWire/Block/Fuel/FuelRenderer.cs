@@ -15,12 +15,14 @@ public class FuelRenderer
     
     private readonly string _slotKey;
     private readonly Vec3f _translate;
+    private readonly Vec3f _rotation;
     private readonly bool _showEmbers;
     
-    public FuelRenderer(string slotKey, Vec3f translate = null, bool showEmbers = true)
+    public FuelRenderer(string slotKey, Vec3f translate = null, Vec3f rotation = null, bool showEmbers = true)
     {
         _slotKey = slotKey;
         _translate = translate ?? Vec3f.Zero;
+        _rotation = rotation ?? Vec3f.Zero;
         _showEmbers = showEmbers;
     }
 
@@ -50,7 +52,7 @@ public class FuelRenderer
 
     private void AddEmbers(ITerrainMeshPool mesher, BlockEntity be, string meshKey)
     {
-        if (be.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh, onCreate: mesh => mesh.Translate(_translate)))
+        if (be.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh, translate: _translate))
             mesher.AddMeshData(embersMesh);
     }
 
@@ -89,9 +91,9 @@ public class FuelRenderer
         string meshKey = $"{burnState}-{_slotKey}";
 
         MeshData fuelMesh;
-        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", cacheKey, out fuelMesh, modelQty, mesh => mesh.Translate(_translate));
+        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", cacheKey, out fuelMesh, modelQty, _translate, _rotation);
         if (!hasMesh)
-            be.CacheMesh($"{ShapePath}firewood/{meshKey}", cacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), mesh => mesh.Translate(_translate));
+            be.CacheMesh($"{ShapePath}firewood/{meshKey}", cacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), _translate, _rotation);
         mesher.AddMeshData(fuelMesh);
     }
 }

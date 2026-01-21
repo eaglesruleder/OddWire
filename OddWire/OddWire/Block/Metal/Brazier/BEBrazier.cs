@@ -23,6 +23,10 @@ namespace OddWire.GameContent
     
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
+        private static Vec3f rotate90deg = new(0, 90, 0); 
+        public virtual Vec3f ShortFuelTranslate => new(0, 3f / 16f, 0);
+        public virtual Vec3f TallFuelTranslate => new(0, 8f / 16f, 0);
+            
         public virtual string CacheKey => "brazier-meshes";
 
         public bool IsTall => Block.Variant["height"] == "tall";
@@ -105,10 +109,8 @@ namespace OddWire.GameContent
 
         FuelRenderer _fuelShortNormalRenderer;
         FuelRenderer _fuelShortWideRenderer;
-        Vec3f _shortFuelTranslate = new Vec3f(0, 3f / 16f, 0);
         FuelRenderer _fuelTallNormalRenderer;
         FuelRenderer _fuelTallWideRenderer;
-        Vec3f _tallFuelTranslate = new Vec3f(0, 8f / 16f, 0);
         
         GuiDialogBlockEntityBrazier clientDialog;
         public virtual string DialogTitle => Lang.Get("Brazier");
@@ -135,12 +137,12 @@ namespace OddWire.GameContent
                 renderer = new BrazierContentsRenderer(clientApi, Pos);
                 clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier-contents");
 
-                _fuelShortNormalRenderer = new FuelRenderer("normal", _shortFuelTranslate);
-                _fuelShortWideRenderer = new FuelRenderer("wide", _shortFuelTranslate);
+                _fuelShortNormalRenderer = new FuelRenderer("normal", ShortFuelTranslate);
+                _fuelShortWideRenderer = new FuelRenderer("wide", ShortFuelTranslate);
                 if (IsTall)
                 {
-                    _fuelTallNormalRenderer = new FuelRenderer("normal", _tallFuelTranslate, false);
-                    _fuelTallWideRenderer = new FuelRenderer("wide", _tallFuelTranslate, false);
+                    _fuelTallNormalRenderer = new FuelRenderer("normal", TallFuelTranslate, rotate90deg, false);
+                    _fuelTallWideRenderer = new FuelRenderer("wide", TallFuelTranslate, rotate90deg, false);
                 }
 
                 UpdateRenderer();
