@@ -85,12 +85,13 @@ public class FuelRenderer
         if (gsProps?.ModelItemsToStackSizeRatio > 0)
             modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
 
+        string cacheKey = $"{CacheKey}({_translate.X},{_translate.Y},{_translate.Z}))";
         string meshKey = $"{burnState}-{_slotKey}";
 
         MeshData fuelMesh;
-        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty, mesh => mesh.Translate(_translate));
+        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", cacheKey, out fuelMesh, modelQty, mesh => mesh.Translate(_translate));
         if (!hasMesh)
-            be.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), mesh => mesh.Translate(_translate));
+            be.CacheMesh($"{ShapePath}firewood/{meshKey}", cacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), mesh => mesh.Translate(_translate));
         mesher.AddMeshData(fuelMesh);
     }
 }

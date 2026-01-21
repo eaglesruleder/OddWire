@@ -593,8 +593,6 @@ namespace OddWire.GameContent
             string burnState = Block.Variant["burnstate"];
             if (burnState == null)
                 return true;
-
-            ItemSlot burnSlot = inventory[_burnFromSlot];
             
             if (!InputSlotImposes)
                 _fuelShortNormalRenderer.Tesselate(mesher, this, FuelNormalSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null);
@@ -611,7 +609,7 @@ namespace OddWire.GameContent
             ItemSlot tallWideSlot = inventory[4];
             bool tallWideBurning = IsBurning && _burnFromSlot == 4;
             if ((tallWideSlot.Itemstack.CanBurn() && tallWideSlot.StackSize > 0) || tallWideBurning)
-                _fuelTallNormalRenderer.Tesselate(mesher, this, tallWideSlot, burnState, tallWideBurning ? _burnStack : null);
+                _fuelTallWideRenderer.Tesselate(mesher, this, tallWideSlot, burnState, tallWideBurning ? _burnStack : null);
             
             return true;
         }

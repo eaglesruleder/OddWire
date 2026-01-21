@@ -35,7 +35,8 @@ namespace OddWire.VintageStory.API.Common
             ITesselatorAPI mesher = ((ICoreClientAPI)blockEntity.Api).Tesselator;
             mesher.TesselateShape(block, shape, out meshdata, quantityElements: renderElements);
             onCreate?.Invoke(meshdata);
-            meshes.TryAdd(meshKey, meshdata);
+            if(cacheKey != null)
+                meshes.TryAdd(meshKey, meshdata);
             return true;
         }
 

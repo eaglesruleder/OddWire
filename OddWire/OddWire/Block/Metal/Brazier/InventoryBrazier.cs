@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OddWire.VintageStory.API.Common;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
@@ -116,8 +117,11 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     public int CookingContainerMaxSlotStackSize
     {
         get {
-            if (!HaveCookingContainer) return 0;
-            return slots[1].Itemstack.ItemAttributes["maxContainerSlotStackSize"].AsInt(999);
+            if (HaveCookingContainer)
+                return slots[1].Itemstack.ItemAttributes["maxContainerSlotStackSize"].AsInt(999);
+            if (InputSlot.Itemstack?.CanBurn() == true)
+                return 999;
+            return 0;
         }
     }
 
@@ -155,7 +159,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
             cookingSlots[i].MaxSlotStackSize = CookingContainerMaxSlotStackSize;
         }
 
-        updateStorageTypeFromContainer(slots[1].Itemstack);
+        updateCookingSlotsByInputStack(slots[1].Itemstack);
     }
 
     public override int Count
@@ -185,32 +189,47 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
 
         if (slots[1] == slot)
         {
-            if (slot?.Itemstack?.ItemAttributes?["storageType"].Exists != true)
+            if (slot?.Itemstack?.ItemAttributes?["storageType"].Exists == true)
+                updateCookingSlotsByInputStack(slot.Itemstack);
+            else
+            if (slot?.Itemstack?.CanBurn() == true)
             {
-                discardCookingSlots();
-            } else
-            {
-                updateStorageTypeFromContainer(slot.Itemstack);
+                updateCookingSlotsByInputStack(slot.Itemstack);
+                discardNotFuel();
             }
+            else
+                discardCookingSlots();
         }
     }
 
-    void updateStorageTypeFromContainer(ItemStack stack)
+    void updateCookingSlotsByInputStack(ItemStack stack)
     {
         int storageType = defaultStorageType;
-        if (stack?.ItemAttributes?["storageType"] != null)
-        {
+        if (stack?.ItemAttributes?.KeyExists("storageType") == true)
             storageType = stack.ItemAttributes["storageType"].AsInt(defaultStorageType);
-        }
 
         for (int i = 0; i < cookingSlots.Length; i++)
         {
             cookingSlots[i].StorageType = (EnumItemStorageFlags)storageType;
             cookingSlots[i].MaxSlotStackSize = CookingContainerMaxSlotStackSize;
-            (cookingSlots[i] as ItemSlotWatertight).capacityLitres = CookingSlotCapacityLitres;
+           (cookingSlots[i] as ItemSlotWatertight).capacityLitres = CookingSlotCapacityLitres;
         }
     }
 
+
+    public void discardNotFuel()
+    {
+        Vec3d droppos = pos.ToVec3d().Add(0.5, 0.5, 0.5);
+
+        for (int i = 0; i < cookingSlots.Length; i++)
+        {
+            if (cookingSlots[i] == null
+            ||  cookingSlots[i].Itemstack?.CanBurn() == true
+               ) continue;
+            Api.World.SpawnItemEntity(cookingSlots[i].Itemstack, droppos);
+            cookingSlots[i].Itemstack = null;
+        }
+    }
 
     public void discardCookingSlots()
     {
