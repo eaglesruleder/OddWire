@@ -515,7 +515,7 @@ namespace OddWire.GameContent
             if (renderer == null)
                 return;
 
-            ItemStack contentStack = inventory.InputStack ?? inventory.OutputStack;
+            ItemStack contentStack = inventory.ContentStack;
 
             var contentRenderSupplier = contentStack?.Collectible as IInFirepitRendererSupplier;
             if (renderer.ContentStack is not null
@@ -553,7 +553,7 @@ namespace OddWire.GameContent
                 )
                 return inventory.FuelSlot;
             
-            ItemSlot contentSlot = inventory.InputSlot.Empty ? inventory.OutputSlot : inventory.InputSlot;
+            ItemSlot contentSlot = inventory.ContentSlot;
             return
                 contentSlot.Itemstack?.CanBurn(true) ?? false
             ?   contentSlot
@@ -565,7 +565,7 @@ namespace OddWire.GameContent
             this.CacheMesh(Block.Shape.Path(), CacheKey, out var brazierMesh);
             mesher.AddMeshData(brazierMesh);
             
-            ItemStack contentStack = inventory.InputStack ?? inventory.OutputStack;
+            ItemStack contentStack = inventory.ContentStack;
             MeshData contentmesh = GetContentMesh(contentStack, tesselator);
             if (contentmesh is not null)
             {

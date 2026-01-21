@@ -48,8 +48,6 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     }
     public float InputMeltingPoint => InputStack.Collectible.GetMeltingPoint(Api.World, this, InputSlot);
 
-    
-
     public ItemSlot OutputSlot => this[2];
     public ItemStack OutputStack
     {
@@ -60,6 +58,11 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     {   get => GetTemp(OutputStack);
         set => SetTemp(OutputStack, value);
     }
+
+    public ItemSlot ContentSlot => InputSlot.Empty ? OutputSlot : InputSlot;
+    public ItemStack ContentStack => ContentSlot?.Itemstack;
+    
+    
 
     private float GetTemp(ItemStack stack)
     {
