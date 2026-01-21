@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -699,6 +699,8 @@ namespace OddWire.GameContent
                 : (showTallFuelSlots ? 2 : 0);
             dialogTree.SetInt("showTallFuelSlots", showTallFuelSlots ? 1 : 0);
             dialogTree.SetInt("quantityCookingSlots", quantitySlots);
+            
+            dialogTree.SetInt("inputCanBurn", inventory.InputStack.CanBurn() ? 1 : 0);
         }
         
         

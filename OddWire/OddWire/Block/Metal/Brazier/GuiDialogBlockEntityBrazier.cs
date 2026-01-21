@@ -1,4 +1,4 @@
-﻿using Cairo;
+using Cairo;
 using Vintagestory.API.Client;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
@@ -13,6 +13,7 @@ namespace OddWire.GameContent
     {
         bool haveCookingContainer;
         bool showTallFuelSlots;
+        bool inputCanBurn;
         string currentOutputText;
 
         ElementBounds cookingSlotsSlotBounds;
@@ -50,9 +51,11 @@ namespace OddWire.GameContent
             bool newHaveCookingContainer = Attributes.GetInt("haveCookingContainer") > 0;
             bool newShowTallFuelSlots = Attributes.GetInt("showTallFuelSlots") > 0;
 
-            GuiElementDynamicText outputTextElem;
+            
+            bool newInputCanBurn = Attributes.GetInt("inputCanBurn") > 0;
+GuiElementDynamicText outputTextElem;
 
-            if (haveCookingContainer == newHaveCookingContainer && showTallFuelSlots == newShowTallFuelSlots && SingleComposer != null)
+            if (haveCookingContainer == newHaveCookingContainer && showTallFuelSlots == newShowTallFuelSlots && inputCanBurn == newInputCanBurn && SingleComposer != null)
             {
                 outputTextElem = SingleComposer.GetDynamicText("outputText");
                 outputTextElem.Font.WithFontSize(14);
@@ -61,6 +64,7 @@ namespace OddWire.GameContent
 
                 haveCookingContainer = newHaveCookingContainer;
                 showTallFuelSlots = newShowTallFuelSlots;
+                inputCanBurn = newInputCanBurn;
                 currentOutputText = newOutputText;
 
                 outputTextElem.Bounds.fixedOffsetY = 0;
@@ -80,6 +84,7 @@ namespace OddWire.GameContent
 
             haveCookingContainer = newHaveCookingContainer;
             showTallFuelSlots = newShowTallFuelSlots;
+                inputCanBurn = newInputCanBurn;
             currentOutputText = newOutputText;
 
             int qCookingSlots = Attributes.GetInt("quantityCookingSlots");
@@ -137,7 +142,9 @@ namespace OddWire.GameContent
                     .AddItemSlotGrid(Inventory, SendInvPacket, 1, new int[] { 1 }, inputSlotBounds, "oreslot")
                     .AddDynamicText("", CairoFont.WhiteDetailText(), inputSlotBounds.RightCopy(23, 16).WithFixedSize(60, 30), "oretemp")
 
-                    .AddItemSlotGrid(Inventory, SendInvPacket, 1, new int[] { 2 }, outputSlotBounds, "outputslot")
+                    .AddIf(!inputCanBurn)
+                        .AddItemSlotGrid(Inventory, SendInvPacket, 1, new int[] { 2 }, outputSlotBounds, "outputslot")
+                    .EndIf()
                 .EndChildElements()
                 .Compose();
 
@@ -214,6 +221,9 @@ namespace OddWire.GameContent
             capi.Gui.Icons.DrawFlame(ctx, 0, false, false);
             gradient.Dispose();
             ctx.Restore();
+            if (!inputCanBurn)
+            {
+
 
 
             // 2. Arrow Right
@@ -234,6 +244,7 @@ namespace OddWire.GameContent
             capi.Gui.Icons.DrawArrowRight(ctx, 0, false, false);
             gradient.Dispose();
             ctx.Restore();
+            }
         }
 
 
@@ -266,7 +277,7 @@ namespace OddWire.GameContent
 
             SingleComposer.GetSlotGrid("fuelslot").OnGuiClosed(capi);
             SingleComposer.GetSlotGrid("oreslot").OnGuiClosed(capi);
-            SingleComposer.GetSlotGrid("outputslot").OnGuiClosed(capi);
+            SingleComposer.GetSlotGrid("outputslot")?.OnGuiClosed(capi);
             SingleComposer.GetSlotGrid("ingredientSlots")?.OnGuiClosed(capi);
 
             base.OnGuiClosed();
