@@ -666,13 +666,13 @@ namespace OddWire.GameContent
             
             dialogTree.SetString("outputText", inventory.GetOutputText());
 
-            bool haveCookingContainer = inventory.HaveCookingContainer;
+            bool haveCookingContainer = inventory.HasCookingContainer;
             dialogTree.SetInt("haveCookingContainer", haveCookingContainer ? 1 : 0);
             
             bool showTallFuelSlots =
                 IsTall
             &&  inventory.InputStack.CanBurn()
-            && !inventory.HaveCookingContainer;
+            && !inventory.HasCookingContainer;
             int quantitySlots = haveCookingContainer
                 ? inventory.CookingSlots.Length
                 : (showTallFuelSlots ? 2 : 0);
