@@ -1,12 +1,87 @@
 [
 	{
-		"ingredientPattern": "RBR,RBR,_P_",
+		"ingredientPattern": "RBR,RBR,HP_",
 		"ingredients": {
 			"R": {
 				"type": "item",
 				"code": "game:rod-*",
 				"name": "material",
-				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+				"quantity": 4
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-*",
+				"name": "material",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+				"quantity": 8
+			},
+			"P": {
+				"type": "item",
+				"code": "game:metalplate-*",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+				"name": "material"
+			},
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true,
+				"toolDurabilityCost": 32
+			}
+		},
+		"width": 3,
+		"height": 3,
+		"output": {
+			"type": "block",
+			"code": "brazier-tall-{material}-extinct",
+		}
+	},
+	{
+		"ingredientPattern": "RBR,HS_",
+		"ingredients": {
+			"R": {
+				"type": "item",
+				"code": "game:rod-*",
+				"name": "material",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+				"quantity": 4
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-*",
+				"name": "material",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+				"quantity": 8
+			},
+			"S": {
+				"type": "block",
+				"code": "oddwire:brazier-short-*-extinct",
+				"name": "material",
+				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze"],
+				"quantity": 1
+			},
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true,
+				"toolDurabilityCost": 16
+			}
+		},
+		"width": 3,
+		"height": 2,
+		"output": {
+			"type": "block",
+			"code": "brazier-tall-{material}-extinct",
+		}
+	},
+	{
+		"ingredientPattern": "RBR,RBR,HP_",
+		"ingredients": {
+			"R": {
+				"type": "item",
+				"code": "game:rod-*",
+				"name": "material",
+				allowedVariants: ["iron", "meteoriciron", "steel"],
 				"quantity": 4
 			},
 			"B": {
@@ -17,9 +92,15 @@
 			"P": {
 				"type": "item",
 				"code": "game:metalplate-*",
-				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+				allowedVariants: ["iron", "meteoriciron", "steel"],
 				"name": "material"
 			},
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true,
+				"toolDurabilityCost": 32
+			}
 		},
 		"width": 3,
 		"height": 3,
@@ -29,13 +110,13 @@
 		}
 	},
 	{
-		"ingredientPattern": "RBR,_S_",
+		"ingredientPattern": "RBR,HS_",
 		"ingredients": {
 			"R": {
 				"type": "item",
 				"code": "game:rod-*",
 				"name": "material",
-				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+				allowedVariants: ["iron", "meteoriciron", "steel"],
 				"quantity": 4
 			},
 			"B": {
@@ -47,8 +128,14 @@
 				"type": "block",
 				"code": "oddwire:brazier-short-*-extinct",
 				"name": "material",
-				allowedVariants: ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"],
+				allowedVariants: ["iron", "meteoriciron", "steel"],
 				"quantity": 1
+			},
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true,
+				"toolDurabilityCost": 16
 			}
 		},
 		"width": 3,
