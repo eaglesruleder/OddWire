@@ -15,16 +15,14 @@ public class FuelRenderer
     
     private readonly string _slotKey;
     private readonly ModelTransform _transform;
-    private readonly bool _showEmbers;
     
-    public FuelRenderer(string slotKey, ModelTransform transform, bool showEmbers = true)
+    public FuelRenderer(string slotKey, ModelTransform transform)
     {
         _slotKey = slotKey;
         _transform = transform ?? new ModelTransform().EnsureDefaultValues();
-        _showEmbers = showEmbers;
     }
 
-    public void Tesselate(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack)
+    public void Tesselate(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack, bool showEmbers = true)
     {
         if (mesher == null
         ||  be == null
@@ -35,7 +33,7 @@ public class FuelRenderer
             burnStack != null
         ||  slot?.StackSize > 0;
 
-        if (_showEmbers)
+        if (showEmbers)
         {
             bool isBurning = be is IFirePit firepit && firepit.IsBurning;
             string emberKey = renderFuel

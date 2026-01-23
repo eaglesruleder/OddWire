@@ -163,8 +163,8 @@ namespace OddWire.GameContent
                 if (IsTall)
                 {
                     ModelTransform tallTransform = stackPositions.Length > 1 ? stackPositions[1] : new ModelTransform().EnsureDefaultValues();
-                    _fuelTallNormalRenderer = new FuelRenderer("normal", tallTransform, false);
-                    _fuelTallWideRenderer = new FuelRenderer("wide", tallTransform, false);
+                    _fuelTallNormalRenderer = new FuelRenderer("normal", tallTransform);
+                    _fuelTallWideRenderer = new FuelRenderer("wide", tallTransform);
                 }
 
                 UpdateRenderer();
@@ -578,8 +578,8 @@ namespace OddWire.GameContent
                 return true;
             
             if (!IsWide)
-                _fuelShortNormalRenderer.Tesselate(mesher, this, ShortNormalFuelSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null);
-            _fuelShortWideRenderer.Tesselate(mesher, this, ShortWideFuelSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null);
+                _fuelShortNormalRenderer.Tesselate(mesher, this, ShortNormalFuelSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null, burnState != "clean");
+            _fuelShortWideRenderer.Tesselate(mesher, this, ShortWideFuelSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null, burnState != "clean");
 
             if (!IsTall)
                 return true;
@@ -587,12 +587,12 @@ namespace OddWire.GameContent
             ItemSlot tallNormalSlot = inventory[3];
             bool tallNormalBurning = IsBurning && _burnFromSlot == 3;
             if (tallNormalBurning || tallNormalSlot.Itemstack.CanBurn(true))
-                _fuelTallNormalRenderer.Tesselate(mesher, this, tallNormalSlot, burnState, tallNormalBurning ? _burnStack : null);
+                _fuelTallNormalRenderer.Tesselate(mesher, this, tallNormalSlot, burnState, tallNormalBurning ? _burnStack : null, false);
 
             ItemSlot tallWideSlot = inventory[4];
             bool tallWideBurning = IsBurning && _burnFromSlot == 4;
             if (tallWideBurning || tallWideSlot.Itemstack.CanBurn(true))
-                _fuelTallWideRenderer.Tesselate(mesher, this, tallWideSlot, burnState, tallWideBurning ? _burnStack : null);
+                _fuelTallWideRenderer.Tesselate(mesher, this, tallWideSlot, burnState, tallWideBurning ? _burnStack : null, false);
             
             return true;
         }

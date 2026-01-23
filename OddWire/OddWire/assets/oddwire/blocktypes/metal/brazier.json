@@ -5,7 +5,7 @@
 	entityBehaviors: [
 		{ name: "FirepitAmbient" }
 	],
-	creativeinventory: { general: ["brazier-*-*-extinct"], decorative: ["brazier-*-*-extinct"] },
+	creativeinventory: { general: ["brazier-*-*-clean"], decorative: ["brazier-*-*-clean"] },
 	"attributes": {
 		"reinforcable": true,
 		"humanoidTraversalCost": 100,
@@ -25,7 +25,7 @@
 	"variantgroups": [
 		{ code:"height", states: ["short", "tall"] },
 		{ "code":"material", "states": ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"] },
-		{ code:"burnstate", states: ["extinct", "lit", "cold"] },
+		{ code:"burnstate", states: ["clean", "lit", "extinct", "cold"] },
 	],
 	behaviors: [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
 	"renderpass": "OpaqueNoCull",
