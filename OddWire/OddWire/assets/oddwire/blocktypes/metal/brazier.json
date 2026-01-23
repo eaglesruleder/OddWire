@@ -8,8 +8,18 @@
 	creativeinventory: { general: ["brazier-*-*-extinct"], decorative: ["brazier-*-*-extinct"] },
 	"attributes": {
 		"reinforcable": true,
-		"humanoidTraversalCost": 100
-	},
+		"humanoidTraversalCost": 100,
+		stackPositionsByType: {
+			"*-short-*":
+				[{translation: { x: 0, y: 0.1875, z: 0 }}
+				],
+			"*-tall-*":
+				[{translation: { x: 0, y: 0.1875, z: 0 }}
+				,{translation: { x: 0, y: 0.5, z: 0 },
+				  rotation: { x: 0, y: 90, z: 0 }}
+				]
+			}
+		},
 	"maxStackSize": 1,
 	"enabled": true,
 	"variantgroups": [

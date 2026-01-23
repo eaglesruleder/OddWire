@@ -24,10 +24,6 @@ namespace OddWire.GameContent
     
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
-        private static Vec3f rotate90deg = new(0, 90, 0); 
-        public virtual Vec3f ShortFuelTranslate => new(0, 3f / 16f, 0);
-        public virtual Vec3f TallFuelTranslate => new(0, 8f / 16f, 0);
-            
         public virtual string CacheKey => "brazier-meshes";
 
         public bool IsTall => Block.Variant["height"] == "tall";
@@ -143,7 +139,7 @@ namespace OddWire.GameContent
             inventory = new InventoryBrazier(null, null);
             inventory.SlotModified += OnSlotModified;
         }
-
+        
         public override void Initialize(ICoreAPI api)
         {
             base.Initialize(api);
@@ -159,12 +155,16 @@ namespace OddWire.GameContent
                 renderer = new BrazierContentsRenderer(clientApi, Pos);
                 clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier-contents");
 
-                _fuelShortNormalRenderer = new FuelRenderer("normal", ShortFuelTranslate);
-                _fuelShortWideRenderer = new FuelRenderer("wide", ShortFuelTranslate);
+                ModelTransform[] stackPositions = Block.Attributes?["stackPositions"]?.AsObject<ModelTransform[]>() ?? Array.Empty<ModelTransform>();
+                
+                ModelTransform shortTransform = stackPositions.Length > 0 ? stackPositions[0] : new ModelTransform().EnsureDefaultValues();
+                _fuelShortNormalRenderer = new FuelRenderer("normal", shortTransform);
+                _fuelShortWideRenderer = new FuelRenderer("wide", shortTransform);
                 if (IsTall)
                 {
-                    _fuelTallNormalRenderer = new FuelRenderer("normal", TallFuelTranslate, rotate90deg, false);
-                    _fuelTallWideRenderer = new FuelRenderer("wide", TallFuelTranslate, rotate90deg, false);
+                    ModelTransform tallTransform = stackPositions.Length > 1 ? stackPositions[1] : new ModelTransform().EnsureDefaultValues();
+                    _fuelTallNormalRenderer = new FuelRenderer("normal", tallTransform, false);
+                    _fuelTallWideRenderer = new FuelRenderer("wide", tallTransform, false);
                 }
 
                 UpdateRenderer();

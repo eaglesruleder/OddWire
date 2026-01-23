@@ -1,23 +1,22 @@
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 
 namespace OddWire.VintageStory.API.Common
 {
     public static class BlockEntityExtensions
     {
-        private static Vec3f Half = new(0.5f, 0.5f, 0.5f);
         public static bool CacheMesh
             (this BlockEntity blockEntity
             ,string path, string cacheKey
             ,out MeshData meshdata
             ,int? qtyRootElements = null
-            ,Vec3f translate = null, Vec3f rotate = null
+            ,ModelTransform? transform = null
             )
         {
-            string meshKey = $"{path}({translate?.X:F2},{translate?.Y:F2},{translate?.Z:F2})({rotate?.X:F2},{rotate?.Y:F2},{rotate?.Z:F2})#{qtyRootElements}";
+            string meshKey = $"{path}{transform?.ToKey()}#{qtyRootElements}";
+            
             Dictionary<string, MeshData> meshes = ObjectCacheUtil.GetOrCreate(blockEntity.Api, cacheKey, () => new Dictionary<string, MeshData>());
             if (meshes.TryGetValue(meshKey, out meshdata))
                 return true;
@@ -41,12 +40,10 @@ namespace OddWire.VintageStory.API.Common
             
             ITesselatorAPI mesher = ((ICoreClientAPI)blockEntity.Api).Tesselator;
             mesher.TesselateShape(block, shape, out meshdata, quantityElements: renderElements);
-            if(translate is not null)
-                meshdata.Translate(translate);
-            if(rotate is not null)
-                meshdata.Rotate(Half, rotate.X, rotate.Y, rotate.Z);
+            if(transform is not null)
+                meshdata.ModelTransform(transform);
             
-            if(cacheKey != null)
+            if(cacheKey is not null)
                 meshes.TryAdd(meshKey, meshdata);
             return true;
         }

@@ -14,15 +14,13 @@ public class FuelRenderer
     public virtual string CacheKey => "fuel-meshes";
     
     private readonly string _slotKey;
-    private readonly Vec3f _translate;
-    private readonly Vec3f _rotation;
+    private readonly ModelTransform _transform;
     private readonly bool _showEmbers;
     
-    public FuelRenderer(string slotKey, Vec3f translate = null, Vec3f rotation = null, bool showEmbers = true)
+    public FuelRenderer(string slotKey, ModelTransform transform, bool showEmbers = true)
     {
         _slotKey = slotKey;
-        _translate = translate ?? Vec3f.Zero;
-        _rotation = rotation ?? Vec3f.Zero;
+        _transform = transform ?? new ModelTransform().EnsureDefaultValues();
         _showEmbers = showEmbers;
     }
 
@@ -52,7 +50,7 @@ public class FuelRenderer
 
     private void AddEmbers(ITerrainMeshPool mesher, BlockEntity be, string meshKey)
     {
-        if (be.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh, translate: _translate))
+        if (be.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh, transform: _transform))
             mesher.AddMeshData(embersMesh);
     }
 
@@ -86,14 +84,13 @@ public class FuelRenderer
         int modelQty = stackQty;
         if (gsProps?.ModelItemsToStackSizeRatio > 0)
             modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
-
-        string cacheKey = $"{CacheKey}({_translate.X},{_translate.Y},{_translate.Z}))";
+        
         string meshKey = $"{burnState}-{_slotKey}";
 
         MeshData fuelMesh;
-        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", cacheKey, out fuelMesh, modelQty, _translate, _rotation);
+        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty, _transform);
         if (!hasMesh)
-            be.CacheMesh($"{ShapePath}firewood/{meshKey}", cacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), _translate, _rotation);
+            be.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), _transform);
         mesher.AddMeshData(fuelMesh);
     }
 }
