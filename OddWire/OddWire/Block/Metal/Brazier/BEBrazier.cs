@@ -24,6 +24,7 @@ namespace OddWire.GameContent
     
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
+        public virtual string FuelShapePath => "oddwire:shapes/block/fuel/";
         public virtual string CacheKey => "brazier-meshes";
         
         #region BlockEntityContainer
@@ -92,12 +93,13 @@ namespace OddWire.GameContent
         // Resting temperature
         public virtual int enviromentTemperature => 20;
         
-        
         // If true, then the fire pit is currently hot enough to ignite fuel-
         public bool IgniteByInteraction;
         
         public virtual bool BurnsAllFuel => true;
 
+        public int FuelBonusCapacity => Block.Attributes?["fuelBonusCapacity"]?.AsInt() ?? 0;
+        
         private bool CanIgniteFuel
         { get {
             if (!BurnsAllFuel)
@@ -126,9 +128,7 @@ namespace OddWire.GameContent
         
         private BrazierContentsRenderer renderer;
 
-        private FuelRenderer[,] _fuelRenderers; // [stackPosIndex, normal/wide]
-        private const int FuelRendererNormal = 0;
-        private const int FuelRendererWide = 1;
+        private FuelRenderer[] _fuelRenderers;
 
         private GuiDialogBlockEntityBrazier _clientDialog;
         public virtual string DialogTitle => Lang.Get("Brazier");
@@ -150,19 +150,30 @@ namespace OddWire.GameContent
             RegisterGameTickListener(OnBurnTick, 100);
             RegisterGameTickListener(OnClientSync, 500);
 
+            if (FuelBonusCapacity > 4)
+                api.Logger.Error("FuelBonusCapacity limited to 4");
+            
             if (api is ICoreClientAPI clientApi)
             {
                 renderer = new BrazierContentsRenderer(clientApi, Pos);
                 clientApi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "brazier-contents");
-
-                ModelTransform[] stackPositions = Block.Attributes?["stackPositions"]?.AsObject<ModelTransform[]>() ?? Array.Empty<ModelTransform>();
-                _fuelRenderers = new FuelRenderer[stackPositions.Length, 2];
-                for (int i = 0; i < stackPositions.Length; i++)
+                
+                var stackPositions = Block.Attributes?["fuelRendererProps"]?.AsObject<FuelRenderer.Properties[]>() ?? Array.Empty<FuelRenderer.Properties>();
+                if (stackPositions.Length < 2)
                 {
-                    _fuelRenderers[i, FuelRendererNormal] = new FuelRenderer("normal", stackPositions[i]);
-                    _fuelRenderers[i, FuelRendererWide] = new FuelRenderer("wide", stackPositions[i]);
+                    _fuelRenderers = new FuelRenderer[2];
+                    _fuelRenderers[0] = stackPositions.Length == 1
+                    ?   new FuelRenderer(stackPositions[0])
+                    :   new FuelRenderer(FuelShapePath, "normal", true, new ModelTransform().EnsureDefaultValues());
+                    _fuelRenderers[1] = new FuelRenderer(FuelShapePath, "wide", true, new ModelTransform().EnsureDefaultValues());
                 }
-
+                else
+                {
+                    _fuelRenderers = new FuelRenderer[stackPositions.Length];
+                    for (int i = 0; i < stackPositions.Length; i++)
+                        _fuelRenderers[i] = new FuelRenderer(stackPositions[i]);
+                }
+                
                 UpdateRenderer();
             }
         }
@@ -572,34 +583,18 @@ namespace OddWire.GameContent
             string burnState = Block.Variant["burnstate"];
             if (burnState == null)
                 return true;
-            
-            if (_fuelRenderers.GetLength(0) <= 0)
-                return true;
 
             if (!IsWide)
-                _fuelRenderers[0, FuelRendererNormal].Tesselate(mesher, this, ShortNormalFuelSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null, burnState != "clean");
-            _fuelRenderers[0, FuelRendererWide].Tesselate(mesher, this, ShortWideFuelSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null, burnState != "clean");
+                _fuelRenderers[0].Tesselate(mesher, this, ShortNormalFuelSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null, burnState != "clean");
+            _fuelRenderers[1].Tesselate(mesher, this, ShortWideFuelSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null, burnState != "clean");
             
             var fuelSlots = inventory.FuelSlots;
-            for (int i = 1; i < _fuelRenderers.GetLength(0); i++)
+            for (int i = 2; i < _fuelRenderers.Length && i < fuelSlots.Length; i++)
             {
-                int normalIndex = i * 2;
-                if (fuelSlots.Length < normalIndex)
-                    break;
-                
-                ItemSlot normalSlot = fuelSlots[normalIndex];
-                bool normalBurning = IsBurning && _burnFromSlot == normalIndex;
-                if (normalBurning || normalSlot.Itemstack.CanBurn(true))
-                    _fuelRenderers[i, FuelRendererNormal].Tesselate(mesher, this, normalSlot, burnState, normalBurning ? _burnStack : null, false);
-
-                int wideIndex = normalIndex +1;
-                if (fuelSlots.Length < wideIndex)
-                    break;
-                
-                ItemSlot wideSlot = fuelSlots[wideIndex];
-                bool wideBurning = IsBurning && _burnFromSlot == wideIndex;
-                if (wideBurning || wideSlot.Itemstack.CanBurn(true))
-                    _fuelRenderers[i, FuelRendererWide].Tesselate(mesher, this, wideSlot, burnState, wideBurning ? _burnStack : null, false);
+                ItemSlot fuelSlot = fuelSlots[i];
+                bool slotIsBurning = IsBurning && _burnFromSlot == i;
+                if (slotIsBurning || fuelSlot.Itemstack.CanBurn(true))
+                    _fuelRenderers[i].Tesselate(mesher, this, fuelSlot, burnState, slotIsBurning ? _burnStack : null);
             }
             return true;
         }
@@ -675,18 +670,16 @@ namespace OddWire.GameContent
 
             bool haveCookingContainer = inventory.HasCookingContainer;
             dialogTree.SetInt("haveCookingContainer", haveCookingContainer ? 1 : 0);
-            
-            bool showTallFuelSlots =
-                _fuelRenderers.GetLength(0) > 1
-            &&  inventory.InputStack.CanBurn()
-            && !inventory.HasCookingContainer;
+
+            bool inputCanBurn = inventory.InputStack?.CanBurn() ?? false;
             int quantitySlots = haveCookingContainer
-                ? inventory.CookingSlots.Length
-                : (showTallFuelSlots ? 2 : 0);
-            dialogTree.SetInt("showTallFuelSlots", showTallFuelSlots ? 1 : 0);
+            ?   inventory.CookingSlots.Length
+            :   inputCanBurn
+                ?   FuelBonusCapacity
+                :   0;
             dialogTree.SetInt("quantityCookingSlots", quantitySlots);
-            
-            dialogTree.SetInt("inputCanBurn", inventory.InputStack.CanBurn() ? 1 : 0);
+
+            dialogTree.SetInt("inputCanBurn", inputCanBurn ? 1 : 0);
         }
         
         

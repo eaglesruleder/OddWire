@@ -9,16 +9,56 @@
 	"attributes": {
 		"reinforcable": true,
 		"humanoidTraversalCost": 100,
-		stackPositionsByType: {
-			"*-short-*":
-				[{translation: { x: 0, y: 0.1875, z: 0 }}
-				],
-			"*-tall-*":
-				[{translation: { x: 0, y: 0.1875, z: 0 }}
-				,{translation: { x: 0, y: 0.5, z: 0 },
-				  rotation: { x: 0, y: 90, z: 0 }}
-				]
+		"fuelBonusCapacityByType": 
+			{"*-short-*": 1
+			,"*-tall-*": 3
+			},
+		fuelRendererProps:
+			[{
+				"ShapePath": "oddwire:shapes/block/fuel/",
+				"ModelKey": "normal",
+				"ShowEmbers": true,
+				"Transform": {translation: { x: 0, y: 0.1875, z: 0 }}
+			},
+				{
+				"ShapePath": "oddwire:shapes/block/fuel/",
+				"ModelKey": "wide",
+				"ShowEmbers": true,
+				"Transform": {translation: { x: 0, y: 0.1875, z: 0 }}
+			},
+			{
+				"ShapePath": "oddwire:shapes/block/fuel/",
+				"ModelKey": "normal",
+				"Transform":
+				   {translation: { x: 0, y: 0.5, z: 0 },
+					rotation: { x: 0, y: 90, z: 0 }
+				   }
+			},
+			{
+				"ShapePath": "oddwire:shapes/block/fuel/",
+				"ModelKey": "wide",
+				"Transform":
+				   {translation: { x: 0, y: 0.5, z: 0 },
+					rotation: { x: 0, y: 90, z: 0 }
+				   }
+			},
+			{
+				"ShapePath": "oddwire:shapes/block/fuel/",
+				"ModelKey": "normal",
+				"Transform":
+				{translation: { x: 0, y: 0.8125, z: 0 },
+				 rotation: { x: 0, y: 180, z: 0 }
+				}
+			},
+			{
+				"ShapePath": "oddwire:shapes/block/fuel/",
+				"ModelKey": "wide",
+				"Transform":
+				{translation: { x: 0, y: 0.8125, z: 0 },
+				 rotation: { x: 0, y: 180, z: 0 }
+				}
 			}
+			]
 		},
 	"maxStackSize": 1,
 	"enabled": true,

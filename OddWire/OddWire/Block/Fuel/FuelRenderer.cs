@@ -10,19 +10,45 @@ using OddWire.VintageStory.API.Common;
 namespace OddWire.GameContent;
 public class FuelRenderer
 {
-    public virtual string ShapePath => "oddwire:shapes/block/fuel/";
+    public class Properties
+    {
+        public string ShapePath;
+        public string ModelKey;
+        public bool ShowEmbers;
+        public ModelTransform Transform;
+        
+        public Properties Clone() => new()
+            {ShapePath = ShapePath
+            ,ModelKey = ModelKey
+            ,ShowEmbers = ShowEmbers
+            ,Transform = Transform
+            };
+    }
+    
     public virtual string CacheKey => "fuel-meshes";
     
-    private readonly string _slotKey;
+    public readonly string ShapePath;
+    private readonly string _modelKey;
+    private readonly bool _showEmbers;
     private readonly ModelTransform _transform;
-    
-    public FuelRenderer(string slotKey, ModelTransform transform)
+
+    public FuelRenderer(Properties props)
     {
-        _slotKey = slotKey;
+        ShapePath = props.ShapePath;
+        _modelKey = props.ModelKey ?? "normal";
+        _showEmbers = props.ShowEmbers;
+        _transform = props.Transform ?? new ModelTransform().EnsureDefaultValues();
+    }
+    
+    public FuelRenderer(string shapePath, string modelKey, bool showEmbers, ModelTransform transform)
+    {
+        ShapePath = shapePath;
+        _modelKey = modelKey;
+        _showEmbers = showEmbers;
         _transform = transform ?? new ModelTransform().EnsureDefaultValues();
     }
 
-    public void Tesselate(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack, bool showEmbers = true)
+    public void Tesselate(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack, bool? showEmbers = null)
     {
         if (mesher == null
         ||  be == null
@@ -33,12 +59,12 @@ public class FuelRenderer
             burnStack != null
         ||  slot?.StackSize > 0;
 
-        if (showEmbers)
+        if (showEmbers ?? _showEmbers)
         {
             bool isBurning = be is IFirePit firepit && firepit.IsBurning;
             string emberKey = renderFuel
-                ? $"{burnState}-{_slotKey}"
-                : isBurning ? $"extinct-{_slotKey}" : $"cold-{_slotKey}";
+                ? $"{burnState}-{_modelKey}"
+                : isBurning ? $"extinct-{_modelKey}" : $"cold-{_modelKey}";
             AddEmbers(mesher, be, emberKey);
         }
         
@@ -83,7 +109,7 @@ public class FuelRenderer
         if (gsProps?.ModelItemsToStackSizeRatio > 0)
             modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
         
-        string meshKey = $"{burnState}-{_slotKey}";
+        string meshKey = $"{burnState}-{_modelKey}";
 
         MeshData fuelMesh;
         bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty, _transform);

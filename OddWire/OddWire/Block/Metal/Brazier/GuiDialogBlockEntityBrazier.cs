@@ -12,7 +12,6 @@ namespace OddWire.GameContent
     public class GuiDialogBlockEntityBrazier : GuiDialogBlockEntity
     {
         bool haveCookingContainer;
-        bool showTallFuelSlots;
         bool inputCanBurn;
         string currentOutputText;
 
@@ -49,13 +48,10 @@ namespace OddWire.GameContent
 
             string newOutputText = Attributes.GetString("outputText", "");
             bool newHaveCookingContainer = Attributes.GetInt("haveCookingContainer") > 0;
-            bool newShowTallFuelSlots = Attributes.GetInt("showTallFuelSlots") > 0;
-
-            
             bool newInputCanBurn = Attributes.GetInt("inputCanBurn") > 0;
 GuiElementDynamicText outputTextElem;
 
-            if (haveCookingContainer == newHaveCookingContainer && showTallFuelSlots == newShowTallFuelSlots && inputCanBurn == newInputCanBurn && SingleComposer != null)
+            if (haveCookingContainer == newHaveCookingContainer && inputCanBurn == newInputCanBurn && SingleComposer != null)
             {
                 outputTextElem = SingleComposer.GetDynamicText("outputText");
                 outputTextElem.Font.WithFontSize(14);
@@ -63,7 +59,6 @@ GuiElementDynamicText outputTextElem;
                 SingleComposer.GetCustomDraw("symbolDrawer").Redraw();
 
                 haveCookingContainer = newHaveCookingContainer;
-                showTallFuelSlots = newShowTallFuelSlots;
                 inputCanBurn = newInputCanBurn;
                 currentOutputText = newOutputText;
 
@@ -83,7 +78,6 @@ GuiElementDynamicText outputTextElem;
             
 
             haveCookingContainer = newHaveCookingContainer;
-            showTallFuelSlots = newShowTallFuelSlots;
                 inputCanBurn = newInputCanBurn;
             currentOutputText = newOutputText;
 
@@ -117,7 +111,7 @@ GuiElementDynamicText outputTextElem;
 
             if (!capi.Settings.Bool["immersiveMouseMode"])
             {
-                bool showExtraSlots = haveCookingContainer || showTallFuelSlots;
+                bool showExtraSlots = qCookingSlots > 0;
 
                 dialogBounds.fixedOffsetY += (stoveBounds.fixedHeight + 65 + (showExtraSlots ? 25 : 0)) * YOffsetMul(screenPos);
                 dialogBounds.fixedOffsetX += (stoveBounds.fixedWidth + 10) * XOffsetMul(screenPos);
@@ -134,7 +128,7 @@ GuiElementDynamicText outputTextElem;
                 .BeginChildElements(bgBounds)
                     .AddDynamicCustomDraw(stoveBounds, OnBgDraw, "symbolDrawer")
                     .AddDynamicText("", CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, 210, 45), "outputText")
-                    .AddIf((haveCookingContainer || showTallFuelSlots) && qCookingSlots > 0)
+                    .AddIf(qCookingSlots > 0)
                         .AddItemSlotGrid(Inventory, SendInvPacket, 4, cookingSlotIds, cookingSlotsSlotBounds, "ingredientSlots")
                     .EndIf()
                     .AddItemSlotGrid(Inventory, SendInvPacket, 1, new int[] { 0 }, fuelSlotBounds, "fuelslot")

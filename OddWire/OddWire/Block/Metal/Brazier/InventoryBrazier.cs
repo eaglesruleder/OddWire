@@ -108,7 +108,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         // slot 3,4,5,6 = extra input slots with crucible in input
         slots = GenEmptySlots(7);
         processingSlots = new[]{ slots[3], slots[4], slots[5], slots[6] };
-        _fuelSlotRefs = new[]{ slots[0], slots[1], slots[3], slots[4] };
+        _fuelSlotRefs = new[]{ slots[0], slots[1], slots[3], slots[4], slots[5], slots[6] };
         baseWeight = 4f;
     }
 
