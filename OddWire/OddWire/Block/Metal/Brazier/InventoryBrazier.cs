@@ -115,8 +115,8 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     public InventoryBrazier(string className, string instanceID, ICoreAPI api) : base(className, instanceID, api)
     {
         slots = GenEmptySlots(7);
-        _fuelSlotRefs = new[]{ slots[0], slots[1], slots[3], slots[4] };
-        processingSlots = new []{ slots[3], slots[4], slots[5], slots[6] };
+        processingSlots = new[]{ slots[3], slots[4], slots[5], slots[6] };
+        _fuelSlotRefs = new[]{ slots[0], slots[1], slots[3], slots[4], slots[5], slots[6] };
         baseWeight = 4f;
     }
 

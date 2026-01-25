@@ -398,7 +398,7 @@ namespace OddWire.GameContent
         public void OnBurnIgniteFuel()
         {
             if (IsBurning
-            ||!(IgniteByInteraction || CanIgniteFuel)
+            ||!(IgniteByInteraction && CanIgniteFuel)
                 )
                 return;
 
