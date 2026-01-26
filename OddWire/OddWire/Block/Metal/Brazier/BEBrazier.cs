@@ -672,11 +672,19 @@ namespace OddWire.GameContent
             dialogTree.SetInt("haveCookingContainer", haveCookingContainer ? 1 : 0);
 
             bool inputCanBurn = inventory.InputStack?.CanBurn() ?? false;
-            int quantitySlots = haveCookingContainer
-            ?   inventory.CookingSlots.Length
-            :   inputCanBurn
-                ?   FuelBonusCapacity
-                :   0;
+            int quantitySlots = 0;
+            if(haveCookingContainer)
+                quantitySlots = inventory.CookingSlots.Length;
+            else if (inputCanBurn)
+            {
+                ItemSlot[] fuelSlots = inventory.FuelSlots;
+                for (int i = 2; i < fuelSlots.Length && i < 2+FuelBonusCapacity; i++)
+                    if(!fuelSlots[i].Empty)
+                        quantitySlots++;
+
+                if (quantitySlots < FuelBonusCapacity)
+                    quantitySlots++;
+            }
             dialogTree.SetInt("quantityCookingSlots", quantitySlots);
 
             dialogTree.SetInt("inputCanBurn", inputCanBurn ? 1 : 0);

@@ -13,6 +13,7 @@ namespace OddWire.GameContent
     {
         bool haveCookingContainer;
         bool inputCanBurn;
+        int qtyCookingSlots;
         string currentOutputText;
 
         ElementBounds cookingSlotsSlotBounds;
@@ -49,9 +50,15 @@ namespace OddWire.GameContent
             string newOutputText = Attributes.GetString("outputText", "");
             bool newHaveCookingContainer = Attributes.GetInt("haveCookingContainer") > 0;
             bool newInputCanBurn = Attributes.GetInt("inputCanBurn") > 0;
-GuiElementDynamicText outputTextElem;
+            int newQtyCookingSlots = Attributes.GetInt("quantityCookingSlots");
+            
+            GuiElementDynamicText outputTextElem;
 
-            if (haveCookingContainer == newHaveCookingContainer && inputCanBurn == newInputCanBurn && SingleComposer != null)
+            if (haveCookingContainer == newHaveCookingContainer
+            &&  inputCanBurn == newInputCanBurn
+            &&  qtyCookingSlots == newQtyCookingSlots
+            &&  SingleComposer != null
+                )
             {
                 outputTextElem = SingleComposer.GetDynamicText("outputText");
                 outputTextElem.Font.WithFontSize(14);
@@ -60,6 +67,7 @@ GuiElementDynamicText outputTextElem;
 
                 haveCookingContainer = newHaveCookingContainer;
                 inputCanBurn = newInputCanBurn;
+                qtyCookingSlots = newQtyCookingSlots;
                 currentOutputText = newOutputText;
 
                 outputTextElem.Bounds.fixedOffsetY = 0;
@@ -76,17 +84,14 @@ GuiElementDynamicText outputTextElem;
                 return;
             }
             
-
             haveCookingContainer = newHaveCookingContainer;
-                inputCanBurn = newInputCanBurn;
+            inputCanBurn = newInputCanBurn;
+            qtyCookingSlots = newQtyCookingSlots;
             currentOutputText = newOutputText;
 
-            int qCookingSlots = Attributes.GetInt("quantityCookingSlots");
-
             ElementBounds stoveBounds = ElementBounds.Fixed(0, 0, 210, 250);
-
-
-            int qCookingSlotRows = qCookingSlots == 0 ? 0 : (qCookingSlots + 3) / 4;
+            
+            int qCookingSlotRows = newQtyCookingSlots == 0 ? 0 : (newQtyCookingSlots + 3) / 4;
 
             cookingSlotsSlotBounds = ElementStdBounds.SlotGrid(EnumDialogArea.None, 0, 30 + 45, 4, qCookingSlotRows);
             cookingSlotsSlotBounds.fixedHeight += 10;
@@ -111,15 +116,15 @@ GuiElementDynamicText outputTextElem;
 
             if (!capi.Settings.Bool["immersiveMouseMode"])
             {
-                bool showExtraSlots = qCookingSlots > 0;
+                bool showExtraSlots = newQtyCookingSlots > 0;
 
                 dialogBounds.fixedOffsetY += (stoveBounds.fixedHeight + 65 + (showExtraSlots ? 25 : 0)) * YOffsetMul(screenPos);
                 dialogBounds.fixedOffsetX += (stoveBounds.fixedWidth + 10) * XOffsetMul(screenPos);
             }
 
 
-            int[] cookingSlotIds = new int[qCookingSlots];
-            for (int i = 0; i < qCookingSlots; i++) cookingSlotIds[i] = 3 + i;
+            int[] cookingSlotIds = new int[newQtyCookingSlots];
+            for (int i = 0; i < newQtyCookingSlots; i++) cookingSlotIds[i] = 3 + i;
 
             SingleComposer = capi.Gui
                 .CreateCompo("blockentitystove"+BlockEntityPosition, dialogBounds)
@@ -128,7 +133,7 @@ GuiElementDynamicText outputTextElem;
                 .BeginChildElements(bgBounds)
                     .AddDynamicCustomDraw(stoveBounds, OnBgDraw, "symbolDrawer")
                     .AddDynamicText("", CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, 210, 45), "outputText")
-                    .AddIf(qCookingSlots > 0)
+                    .AddIf(newQtyCookingSlots > 0)
                         .AddItemSlotGrid(Inventory, SendInvPacket, 4, cookingSlotIds, cookingSlotsSlotBounds, "ingredientSlots")
                     .EndIf()
                     .AddItemSlotGrid(Inventory, SendInvPacket, 1, new int[] { 0 }, fuelSlotBounds, "fuelslot")

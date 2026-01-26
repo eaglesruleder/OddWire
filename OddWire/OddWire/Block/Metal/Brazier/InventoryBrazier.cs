@@ -138,6 +138,9 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     {
         base.DidModifyItemSlot(slot, extractedStack);
 
+        if(!HasCookingContainer)
+            CollapseStacks();
+        
         if (slot != InputSlot)
             return;
 
@@ -209,6 +212,33 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
             processingSlots[i].StorageType = (EnumItemStorageFlags)storageType;
             processingSlots[i].MaxSlotStackSize = ProcessingMaxSlotStackSize;
            (processingSlots[i] as ItemSlotWatertight).capacityLitres = CookingSlotCapacityLitres;
+        }
+    }
+    
+    private void CollapseStacks()
+    {
+        ItemSlot[] fuelSlots = FuelSlots;
+
+        // Index first empty slot
+        int i = 0;
+        while (i < fuelSlots.Length && !fuelSlots[i].Empty)
+            i++;
+        if (i >= fuelSlots.Length)
+            return;
+
+        // Index next !empty
+        int j = i + 1;
+        while (j < fuelSlots.Length && fuelSlots[j].Empty)
+            j++;
+        if (j >= fuelSlots.Length)
+            return;
+
+        // Do exactly ONE step per call.
+        // TryFlipWith calls DidModifyItemSlot, furthering collapse
+        if (fuelSlots[j].TryFlipWith(fuelSlots[i]))
+        {
+            fuelSlots[i].MarkDirty();
+            fuelSlots[j].MarkDirty();
         }
     }
     
