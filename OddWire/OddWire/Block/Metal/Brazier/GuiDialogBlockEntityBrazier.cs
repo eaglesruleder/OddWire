@@ -11,10 +11,33 @@ namespace OddWire.GameContent
 {
     public class GuiDialogBlockEntityBrazier : GuiDialogBlockEntity
     {
-        bool haveCookingContainer;
-        bool inputCanBurn;
-        int qtyCookingSlots;
-        string currentOutputText;
+        public class TreeKeys
+        {
+            public const string OUTPUT_TEXT = "outputText";
+            public const string HAVE_COOKING_CONTAINER = "haveCookingContainer";
+            public const string INPUT_CAN_BURN = "inputCanBurn";
+            public const string QUANTITY_COOKING_SLOTS = "quantityCookingSlots";
+            public const string FURNACE_TEMPERATURE = "furnaceTemperature";
+            public const string ORE_TEMPERATURE = "oreTemperature";
+            public const string FUEL_BURN_TIME = "fuelBurnTime";
+            public const string MAX_FUEL_BURN_TIME = "maxFuelBurnTime";
+            public const string ORE_COOKING_TIME = "oreCookingTime";
+            public const string MAX_ORE_COOKING_TIME = "maxOreCookingTime";
+        }
+        
+        private const string SCKEY_SMALL_BLOCK_GUI = "smallblockgui";
+        
+        private const string SCKEY_FUEL_SLOT = "fuelslot";
+        private const string SCKEY_ORE_SLOT = "oreslot";
+        private const string SCKEY_OUTPUT_SLOT = "outputslot";
+        private const string SCKEY_INGREDIENT_SLOTS = "ingredientSlots";
+        
+        private const string SCKEY_SYMBOL_DRAWER = "symbolDrawer";
+        private const string SCKEY_OUTPUT_TEXT = "outputText";
+        private const string SCKEY_FUEL_TEMP = "fueltemp";
+        private const string SCKEY_ORE_TEMP = "oretemp";
+        
+        private string _prevStateKey;
 
         ElementBounds cookingSlotsSlotBounds;
 
@@ -28,72 +51,67 @@ namespace OddWire.GameContent
 
         public GuiDialogBlockEntityBrazier(string dlgTitle, InventoryBase Inventory, BlockPos bePos, SyncedTreeAttribute tree, ICoreClientAPI capi) : base(dlgTitle, Inventory, bePos, capi)
         {
-            if (IsDuplicate) return;
-            tree.OnModified.Add(new TreeModifiedListener() { listener = OnAttributesModified } );
+            if (IsDuplicate)
+                return;
+            tree.OnModified.Add(new TreeModifiedListener{ listener = OnAttributesModified } );
             Attributes = tree;
         }
 
-        private void OnInventorySlotModified(int slotid)
+        private void OnTitleBarClose() => TryClose();
+
+        public override void OnGuiOpened()
         {
+            base.OnGuiOpened();
+            Inventory.SlotModified += OnInventorySlotModified;
+
+            screenPos = GetFreePos(SCKEY_SMALL_BLOCK_GUI);
+            OccupyPos(SCKEY_SMALL_BLOCK_GUI, screenPos);
+            SetupDialog();
+        }
+
+        public override void OnGuiClosed()
+        {
+            Inventory.SlotModified -= OnInventorySlotModified;
+
+            SingleComposer.GetSlotGrid(SCKEY_FUEL_SLOT).OnGuiClosed(capi);
+            SingleComposer.GetSlotGrid(SCKEY_ORE_SLOT).OnGuiClosed(capi);
+            SingleComposer.GetSlotGrid(SCKEY_OUTPUT_SLOT)?.OnGuiClosed(capi);
+            SingleComposer.GetSlotGrid(SCKEY_INGREDIENT_SLOTS)?.OnGuiClosed(capi);
+
+            base.OnGuiClosed();
+
+            FreePos(SCKEY_SMALL_BLOCK_GUI, screenPos);
+        }
+        
+        
+        private void OnInventorySlotModified(int slotid) =>
             // Direct call can cause InvalidOperationException
             capi.Event.EnqueueMainThreadTask(SetupDialog, "setupbrazierdlg");
-        }
 
         void SetupDialog()
         {
-            ItemSlot hoveredSlot = capi.World.Player.InventoryManager.CurrentHoveredSlot;
-            if (hoveredSlot != null && hoveredSlot.Inventory?.InventoryID != Inventory?.InventoryID)
-            {
-                hoveredSlot = null;
-            }
-
-            string newOutputText = Attributes.GetString("outputText", "");
-            bool newHaveCookingContainer = Attributes.GetInt("haveCookingContainer") > 0;
-            bool newInputCanBurn = Attributes.GetInt("inputCanBurn") > 0;
-            int newQtyCookingSlots = Attributes.GetInt("quantityCookingSlots");
+            string outputText = Attributes.GetString(TreeKeys.OUTPUT_TEXT, "");
+            bool haveCookingContainer = Attributes.GetInt(TreeKeys.HAVE_COOKING_CONTAINER) > 0;
+            bool inputCanBurn = Attributes.GetInt(TreeKeys.INPUT_CAN_BURN) > 0;
+            int qtyCookingSlots = Attributes.GetInt(TreeKeys.QUANTITY_COOKING_SLOTS);
             
-            GuiElementDynamicText outputTextElem;
+            string stateKey = $"{outputText}{haveCookingContainer}{inputCanBurn}{qtyCookingSlots}";
 
-            if (haveCookingContainer == newHaveCookingContainer
-            &&  inputCanBurn == newInputCanBurn
-            &&  qtyCookingSlots == newQtyCookingSlots
+            if (stateKey == _prevStateKey
             &&  SingleComposer != null
                 )
             {
-                outputTextElem = SingleComposer.GetDynamicText("outputText");
-                outputTextElem.Font.WithFontSize(14);
-                outputTextElem.SetNewText(newOutputText, true);
-                SingleComposer.GetCustomDraw("symbolDrawer").Redraw();
-
-                haveCookingContainer = newHaveCookingContainer;
-                inputCanBurn = newInputCanBurn;
-                qtyCookingSlots = newQtyCookingSlots;
-                currentOutputText = newOutputText;
-
-                outputTextElem.Bounds.fixedOffsetY = 0;
-
-                if (outputTextElem.QuantityTextLines > 2)
-                {
-                    outputTextElem.Bounds.fixedOffsetY = -outputTextElem.Font.GetFontExtents().Height / RuntimeEnv.GUIScale * 0.65;
-                    outputTextElem.Font.WithFontSize(12);
-                    outputTextElem.RecomposeText();
-                }
-
-                outputTextElem.Bounds.CalcWorldBounds();
-
+                SetupOutputText(outputText);
+                SingleComposer.GetCustomDraw(SCKEY_SYMBOL_DRAWER).Redraw();
+                _prevStateKey = stateKey;
                 return;
             }
-            
-            haveCookingContainer = newHaveCookingContainer;
-            inputCanBurn = newInputCanBurn;
-            qtyCookingSlots = newQtyCookingSlots;
-            currentOutputText = newOutputText;
+            _prevStateKey = stateKey;
 
             ElementBounds stoveBounds = ElementBounds.Fixed(0, 0, 210, 250);
             
-            int qCookingSlotRows = newQtyCookingSlots == 0 ? 0 : (newQtyCookingSlots + 3) / 4;
-
-            cookingSlotsSlotBounds = ElementStdBounds.SlotGrid(EnumDialogArea.None, 0, 30 + 45, 4, qCookingSlotRows);
+            int qtyCookingSlotRows = qtyCookingSlots == 0 ? 0 : (qtyCookingSlots + 3) / 4;
+            cookingSlotsSlotBounds = ElementStdBounds.SlotGrid(EnumDialogArea.None, 0, 30 + 45, 4, qtyCookingSlotRows);
             cookingSlotsSlotBounds.fixedHeight += 10;
 
             double top = cookingSlotsSlotBounds.fixedHeight + cookingSlotsSlotBounds.fixedY;
@@ -110,99 +128,105 @@ namespace OddWire.GameContent
             // 3. Finally Dialog
             ElementBounds dialogBounds = ElementStdBounds.AutosizedMainDialog
                 .WithFixedAlignmentOffset(IsRight(screenPos) ? -GuiStyle.DialogToScreenPadding : GuiStyle.DialogToScreenPadding, 0)
-                .WithAlignment(IsRight(screenPos) ? EnumDialogArea.RightMiddle : EnumDialogArea.LeftMiddle)
-            ;
-
+                .WithAlignment(IsRight(screenPos) ? EnumDialogArea.RightMiddle : EnumDialogArea.LeftMiddle);
+            
 
             if (!capi.Settings.Bool["immersiveMouseMode"])
             {
-                bool showExtraSlots = newQtyCookingSlots > 0;
-
-                dialogBounds.fixedOffsetY += (stoveBounds.fixedHeight + 65 + (showExtraSlots ? 25 : 0)) * YOffsetMul(screenPos);
+                dialogBounds.fixedOffsetY += (stoveBounds.fixedHeight + 65 + (qtyCookingSlots > 0 ? 25 : 0)) * YOffsetMul(screenPos);
                 dialogBounds.fixedOffsetX += (stoveBounds.fixedWidth + 10) * XOffsetMul(screenPos);
             }
 
 
-            int[] cookingSlotIds = new int[newQtyCookingSlots];
-            for (int i = 0; i < newQtyCookingSlots; i++) cookingSlotIds[i] = 3 + i;
+            int[] cookingSlotIds = new int[qtyCookingSlots];
+            for (int i = 0; i < qtyCookingSlots; i++)
+                cookingSlotIds[i] = 3 + i;
 
             SingleComposer = capi.Gui
                 .CreateCompo("blockentitystove"+BlockEntityPosition, dialogBounds)
                 .AddShadedDialogBG(bgBounds)
                 .AddDialogTitleBar(DialogTitle, OnTitleBarClose)
                 .BeginChildElements(bgBounds)
-                    .AddDynamicCustomDraw(stoveBounds, OnBgDraw, "symbolDrawer")
-                    .AddDynamicText("", CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, 210, 45), "outputText")
-                    .AddIf(newQtyCookingSlots > 0)
-                        .AddItemSlotGrid(Inventory, SendInvPacket, 4, cookingSlotIds, cookingSlotsSlotBounds, "ingredientSlots")
+                    .AddDynamicCustomDraw(stoveBounds, OnBgDraw, SCKEY_SYMBOL_DRAWER)
+                    .AddDynamicText("", CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, 210, 45), SCKEY_OUTPUT_TEXT)
+                    .AddIf(qtyCookingSlots > 0)
+                        .AddItemSlotGrid(Inventory, SendInvPacket, 4, cookingSlotIds, cookingSlotsSlotBounds, SCKEY_INGREDIENT_SLOTS)
                     .EndIf()
-                    .AddItemSlotGrid(Inventory, SendInvPacket, 1, new int[] { 0 }, fuelSlotBounds, "fuelslot")
-                    .AddDynamicText("", CairoFont.WhiteDetailText(), fuelSlotBounds.RightCopy(17, 16).WithFixedSize(60, 30), "fueltemp")
-                    .AddItemSlotGrid(Inventory, SendInvPacket, 1, new int[] { 1 }, inputSlotBounds, "oreslot")
-                    .AddDynamicText("", CairoFont.WhiteDetailText(), inputSlotBounds.RightCopy(23, 16).WithFixedSize(60, 30), "oretemp")
-
-                    .AddIf(!inputCanBurn)
-                        .AddItemSlotGrid(Inventory, SendInvPacket, 1, new int[] { 2 }, outputSlotBounds, "outputslot")
-                    .EndIf()
+                    .AddItemSlotGrid(Inventory, SendInvPacket, 1, new[]{ 0 }, fuelSlotBounds, SCKEY_FUEL_SLOT)
+                    .AddDynamicText("", CairoFont.WhiteDetailText(), fuelSlotBounds.RightCopy(17, 16).WithFixedSize(60, 30), SCKEY_FUEL_TEMP)
+                    .AddItemSlotGrid(Inventory, SendInvPacket, 1, new[]{ 1 }, inputSlotBounds, SCKEY_ORE_SLOT)
+                    .AddDynamicText("", CairoFont.WhiteDetailText(), inputSlotBounds.RightCopy(23, 16).WithFixedSize(60, 30), SCKEY_ORE_TEMP)
+                
+                    .AddItemSlotGrid(Inventory, SendInvPacket, 1, new[]{ 2 }, outputSlotBounds, SCKEY_OUTPUT_SLOT)
                 .EndChildElements()
                 .Compose();
 
             lastRedrawMs = capi.ElapsedMilliseconds;
 
-            if (hoveredSlot != null)
-            {
+            ItemSlot hoveredSlot = capi.World.Player.InventoryManager.CurrentHoveredSlot;
+            if (hoveredSlot != null
+            &&  hoveredSlot.Inventory?.InventoryID == Inventory?.InventoryID
+                )
                 SingleComposer.OnMouseMove(new MouseEvent(capi.Input.MouseX, capi.Input.MouseY));
-            }
 
-            outputTextElem = SingleComposer.GetDynamicText("outputText");
-            outputTextElem.SetNewText(currentOutputText, true);
+            SetupOutputText(outputText);
+        }
+        
+        private void SetupOutputText(string text)
+        {
+            GuiElementDynamicText outputTextElem = SingleComposer.GetDynamicText(SCKEY_OUTPUT_TEXT);
+            outputTextElem.Font.WithFontSize(14);
+            outputTextElem.SetNewText(text, true);
+
             outputTextElem.Bounds.fixedOffsetY = 0;
-            
+
             if (outputTextElem.QuantityTextLines > 2)
             {
                 outputTextElem.Bounds.fixedOffsetY = -outputTextElem.Font.GetFontExtents().Height / RuntimeEnv.GUIScale * 0.65;
                 outputTextElem.Font.WithFontSize(12);
                 outputTextElem.RecomposeText();
             }
+
             outputTextElem.Bounds.CalcWorldBounds();
-
-
         }
 
 
         private void OnAttributesModified()
         {
-            if (!IsOpened()) return;
+            if (!IsOpened())
+                return;
+            
+            OnTempAttributeChanged(Attributes.GetFloat(TreeKeys.FURNACE_TEMPERATURE), SCKEY_FUEL_TEMP);
+            OnTempAttributeChanged(Attributes.GetFloat(TreeKeys.ORE_TEMPERATURE), SCKEY_ORE_TEMP);
 
-            float ftemp = Attributes.GetFloat("furnaceTemperature");
-            float otemp = Attributes.GetFloat("oreTemperature");
-
-            string fuelTemp = ftemp.ToString("#");
-            string oreTemp = otemp.ToString("#");
-
-            fuelTemp += fuelTemp.Length > 0 ? "°C" : "";
-            oreTemp += oreTemp.Length > 0 ? "°C" : "";
-
-            if (ftemp > 0 && ftemp <= 20) fuelTemp = Lang.Get("Cold");
-            if (otemp > 0 && otemp <= 20) oreTemp = Lang.Get("Cold");
-
-            SingleComposer.GetDynamicText("fueltemp").SetNewText(fuelTemp);
-            SingleComposer.GetDynamicText("oretemp").SetNewText(oreTemp);
-
-            if (capi.ElapsedMilliseconds - lastRedrawMs > 500)
-            {
-                if (SingleComposer != null) SingleComposer.GetCustomDraw("symbolDrawer").Redraw();
-                lastRedrawMs = capi.ElapsedMilliseconds;
-            }
+            if (capi.ElapsedMilliseconds - lastRedrawMs < 500)
+                return;
+            
+            if (SingleComposer is not null)
+                SingleComposer.GetCustomDraw(SCKEY_SYMBOL_DRAWER).Redraw();
+            lastRedrawMs = capi.ElapsedMilliseconds;
         }
 
-
+        private void OnTempAttributeChanged(float temp, string textKey)
+        {
+            string textTemp = temp.ToString("#");
+            if (temp > 0 && temp <= 20)
+                textTemp = Lang.Get("Cold");
+            else if (textTemp.Length > 0)
+                textTemp += "°C";
+            SingleComposer.GetDynamicText(textKey).SetNewText(textTemp);
+        }
 
         private void OnBgDraw(Context ctx, ImageSurface surface, ElementBounds currentBounds)
         {
-            double top = cookingSlotsSlotBounds.fixedHeight + cookingSlotsSlotBounds.fixedY;
+            DrawFire(Attributes.GetFloat(TreeKeys.FUEL_BURN_TIME) / Attributes.GetFloat(TreeKeys.MAX_FUEL_BURN_TIME, 1), ctx);
+            DrawArrowRight(Attributes.GetFloat(TreeKeys.ORE_COOKING_TIME) / Attributes.GetFloat(TreeKeys.MAX_ORE_COOKING_TIME, 1), ctx);
+        }
 
-            // 1. Fire
+        private void DrawFire(float value, Context ctx)
+        {
+            double top = cookingSlotsSlotBounds.fixedHeight + cookingSlotsSlotBounds.fixedY;
+            
             ctx.Save();
             Matrix m = ctx.Matrix;
             m.Translate(GuiElement.scaled(5), GuiElement.scaled(53 + top));
@@ -210,7 +234,7 @@ namespace OddWire.GameContent
             ctx.Matrix = m;
             capi.Gui.Icons.DrawFlame(ctx);
 
-            double dy = 210 - 210 * (Attributes.GetFloat("fuelBurnTime", 0) / Attributes.GetFloat("maxFuelBurnTime", 1));
+            double dy = 210 - 210 * value;
             ctx.Rectangle(0, dy, 200, 210 - dy);
             ctx.Clip();
             LinearGradient gradient = new LinearGradient(0, GuiElement.scaled(250), 0, 0);
@@ -220,68 +244,31 @@ namespace OddWire.GameContent
             capi.Gui.Icons.DrawFlame(ctx, 0, false, false);
             gradient.Dispose();
             ctx.Restore();
-            if (!inputCanBurn)
-            {
+        }
 
-
-
-            // 2. Arrow Right
+        private void DrawArrowRight(float value, Context ctx)
+        {
+            double top = cookingSlotsSlotBounds.fixedHeight + cookingSlotsSlotBounds.fixedY;
+            
             ctx.Save();
-            m = ctx.Matrix;
+            Matrix m = ctx.Matrix;
             m.Translate(GuiElement.scaled(63), GuiElement.scaled(top + 2));
             m.Scale(GuiElement.scaled(0.6), GuiElement.scaled(0.6));
             ctx.Matrix = m;
             capi.Gui.Icons.DrawArrowRight(ctx, 2);
-
-            double cookingRel = Attributes.GetFloat("oreCookingTime") / Attributes.GetFloat("maxOreCookingTime", 1);
-            ctx.Rectangle(5, 0, 125 * cookingRel, 100);
+            
+            ctx.Rectangle(5, 0, 125 * value, 100);
             ctx.Clip();
-            gradient = new LinearGradient(0, 0, 200, 0);
+            LinearGradient gradient = new LinearGradient(0, 0, 200, 0);
             gradient.AddColorStop(0, new Color(0, 0.4, 0, 1));
             gradient.AddColorStop(1, new Color(0.2, 0.6, 0.2, 1));
             ctx.SetSource(gradient);
             capi.Gui.Icons.DrawArrowRight(ctx, 0, false, false);
             gradient.Dispose();
             ctx.Restore();
-            }
         }
 
-
-
-        private void SendInvPacket(object packet)
-        {
+        private void SendInvPacket(object packet) => 
             capi.Network.SendBlockEntityPacket(BlockEntityPosition.X, BlockEntityPosition.Y, BlockEntityPosition.Z, packet);
-        }
-
-
-        private void OnTitleBarClose()
-        {
-            TryClose();
-        }
-
-
-        public override void OnGuiOpened()
-        {
-            base.OnGuiOpened();
-            Inventory.SlotModified += OnInventorySlotModified;
-
-            screenPos = GetFreePos("smallblockgui");
-            OccupyPos("smallblockgui", screenPos);
-            SetupDialog();
-        }
-
-        public override void OnGuiClosed()
-        {
-            Inventory.SlotModified -= OnInventorySlotModified;
-
-            SingleComposer.GetSlotGrid("fuelslot").OnGuiClosed(capi);
-            SingleComposer.GetSlotGrid("oreslot").OnGuiClosed(capi);
-            SingleComposer.GetSlotGrid("outputslot")?.OnGuiClosed(capi);
-            SingleComposer.GetSlotGrid("ingredientSlots")?.OnGuiClosed(capi);
-
-            base.OnGuiClosed();
-
-            FreePos("smallblockgui", screenPos);
-        }
     }
 }

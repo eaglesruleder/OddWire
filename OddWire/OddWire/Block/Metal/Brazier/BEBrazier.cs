@@ -10,6 +10,8 @@ using Vintagestory.GameContent;
 using OddWire.VintageStory.API.Common;
 using OddWire.VintageStory.GameContent;
 
+using DialogKeys = OddWire.GameContent.GuiDialogBlockEntityBrazier.TreeKeys;
+
 #nullable disable
 
 namespace OddWire.GameContent
@@ -651,25 +653,24 @@ namespace OddWire.GameContent
         
         private void SetDialogValues(ITreeAttribute dialogTree)
         {
-            dialogTree.SetFloat("furnaceTemperature", furnaceTemperature);
-
-            dialogTree.SetInt("maxTemperature", _burnStack?.CombustibleProps?.BurnTemperature ?? 0);
-            dialogTree.SetFloat("oreCookingTime", inputStackCookingTime);
-            dialogTree.SetFloat("maxFuelBurnTime", _burnStack?.CombustibleProps?.BurnDuration ?? 0);
-            dialogTree.SetFloat("fuelBurnTime", burnRemaining);
+            dialogTree.SetFloat(DialogKeys.FURNACE_TEMPERATURE, furnaceTemperature);
+            
+            dialogTree.SetFloat(DialogKeys.MAX_ORE_COOKING_TIME, inputStackCookingTime);
+            dialogTree.SetFloat(DialogKeys.MAX_FUEL_BURN_TIME, _burnStack?.CombustibleProps?.BurnDuration ?? 0);
+            dialogTree.SetFloat(DialogKeys.FUEL_BURN_TIME, burnRemaining);
 
             if (inventory.InputStack == null)
-                dialogTree.RemoveAttribute("oreTemperature");
+                dialogTree.RemoveAttribute(DialogKeys.ORE_TEMPERATURE);
             else
             {
-                dialogTree.SetFloat("oreTemperature", inventory.InputTemp);
-                dialogTree.SetFloat("maxOreCookingTime", inventory.InputStack.Collectible.GetMeltingDuration(Api.World, inventory, inventory.InputSlot));
+                dialogTree.SetFloat(DialogKeys.ORE_TEMPERATURE, inventory.InputTemp);
+                dialogTree.SetFloat(DialogKeys.MAX_ORE_COOKING_TIME, inventory.InputStack.Collectible.GetMeltingDuration(Api.World, inventory, inventory.InputSlot));
             }
             
-            dialogTree.SetString("outputText", inventory.GetOutputText());
+            dialogTree.SetString(DialogKeys.OUTPUT_TEXT, inventory.GetOutputText());
 
             bool haveCookingContainer = inventory.HasCookingContainer;
-            dialogTree.SetInt("haveCookingContainer", haveCookingContainer ? 1 : 0);
+            dialogTree.SetInt(DialogKeys.HAVE_COOKING_CONTAINER, haveCookingContainer ? 1 : 0);
 
             bool inputCanBurn = inventory.InputStack?.CanBurn() ?? false;
             int quantitySlots = 0;
@@ -685,9 +686,9 @@ namespace OddWire.GameContent
                 if (quantitySlots < FuelBonusCapacity)
                     quantitySlots++;
             }
-            dialogTree.SetInt("quantityCookingSlots", quantitySlots);
+            dialogTree.SetInt(DialogKeys.QUANTITY_COOKING_SLOTS, quantitySlots);
 
-            dialogTree.SetInt("inputCanBurn", inputCanBurn ? 1 : 0);
+            dialogTree.SetInt(DialogKeys.INPUT_CAN_BURN, inputCanBurn ? 1 : 0);
         }
         
         
