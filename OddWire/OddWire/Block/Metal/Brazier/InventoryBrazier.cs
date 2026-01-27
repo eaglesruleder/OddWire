@@ -82,7 +82,13 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     
     ItemSlot[] _fuelSlotRefs;
     public ItemSlot[] FuelSlots => _fuelSlotRefs;
-    
+    public bool ProcessAsFuel
+    { get {
+        for(int i = 1; i < FuelSlots.Length; i++)
+            if (FuelSlots[i]?.Itemstack.CanBurn() == true)
+                return true;
+        return false;
+    } }
 
     public bool HasCookingContainer =>
         InputStack?.ItemAttributes?.KeyExists("cookingContainerSlots") == true;
@@ -138,7 +144,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     {
         base.DidModifyItemSlot(slot, extractedStack);
 
-        if(!HasCookingContainer)
+        if(ProcessAsFuel)
             CollapseStacks();
         
         if (slot != InputSlot)

@@ -102,17 +102,11 @@ namespace OddWire.GameContent
 
         public int FuelBonusCapacity => Block.Attributes?["fuelBonusCapacity"]?.AsInt() ?? 0;
         
-        private bool CanIgniteFuel
-        { get {
-            if (!BurnsAllFuel)
-                return false;
-
-            var fuelSlots = inventory.FuelSlots;
-            for (int i = 0; i < fuelSlots.Length; i++)
-                if (fuelSlots[i].Itemstack?.CanBurn(true) ?? false)
-                    return true;
-            return false;
-        } }
+        private bool CanIgniteFuel =>
+            BurnsAllFuel
+        &&  (inventory.FuelStack?.CanBurn(true) == true
+        ||   inventory.ProcessAsFuel
+            );
         
         public bool CanSmeltInput
         { get {
@@ -669,14 +663,17 @@ namespace OddWire.GameContent
             
             dialogTree.SetString(DialogKeys.OUTPUT_TEXT, inventory.GetOutputText());
 
-            bool haveCookingContainer = inventory.HasCookingContainer;
-            dialogTree.SetInt(DialogKeys.HAVE_COOKING_CONTAINER, haveCookingContainer ? 1 : 0);
-
-            bool inputCanBurn = inventory.InputStack?.CanBurn() ?? false;
+            DialogKeys.InputTypeEnum inputType =
+                inventory.InputSlot.Empty ? DialogKeys.InputTypeEnum.None
+            :   inventory.HasCookingContainer ? DialogKeys.InputTypeEnum.Container
+            :   inventory.ProcessAsFuel ? DialogKeys.InputTypeEnum.Fuel
+            :   DialogKeys.InputTypeEnum.Undefined;
+            dialogTree.SetInt(DialogKeys.INPUT_TYPE, (int)inputType);
+            
             int quantitySlots = 0;
-            if(haveCookingContainer)
+            if(inputType == DialogKeys.InputTypeEnum.Container)
                 quantitySlots = inventory.CookingSlots.Length;
-            else if (inputCanBurn)
+            else if (inputType == DialogKeys.InputTypeEnum.Fuel)
             {
                 ItemSlot[] fuelSlots = inventory.FuelSlots;
                 for (int i = 2; i < fuelSlots.Length && i < 2+FuelBonusCapacity; i++)
@@ -686,9 +683,7 @@ namespace OddWire.GameContent
                 if (quantitySlots < FuelBonusCapacity)
                     quantitySlots++;
             }
-            dialogTree.SetInt(DialogKeys.QUANTITY_COOKING_SLOTS, quantitySlots);
-
-            dialogTree.SetInt(DialogKeys.INPUT_CAN_BURN, inputCanBurn ? 1 : 0);
+            dialogTree.SetInt(DialogKeys.INPUT_ADDITIONAL_SLOTS, quantitySlots);
         }
         
         

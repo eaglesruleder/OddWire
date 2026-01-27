@@ -14,15 +14,22 @@ namespace OddWire.GameContent
         public class TreeKeys
         {
             public const string OUTPUT_TEXT = "outputText";
-            public const string HAVE_COOKING_CONTAINER = "haveCookingContainer";
-            public const string INPUT_CAN_BURN = "inputCanBurn";
-            public const string QUANTITY_COOKING_SLOTS = "quantityCookingSlots";
+            public const string INPUT_TYPE = "inputType";
+            public const string INPUT_ADDITIONAL_SLOTS = "inputAdditionalSlots";
             public const string FURNACE_TEMPERATURE = "furnaceTemperature";
             public const string ORE_TEMPERATURE = "oreTemperature";
             public const string FUEL_BURN_TIME = "fuelBurnTime";
             public const string MAX_FUEL_BURN_TIME = "maxFuelBurnTime";
             public const string ORE_COOKING_TIME = "oreCookingTime";
             public const string MAX_ORE_COOKING_TIME = "maxOreCookingTime";
+            
+            public enum InputTypeEnum
+                {None = 0
+                ,Item = 1
+                ,Container = 2
+                ,Fuel = 3
+                ,Undefined = 99
+                }
         }
         
         private const string SCKEY_SMALL_BLOCK_GUI = "smallblockgui";
@@ -91,11 +98,10 @@ namespace OddWire.GameContent
         void SetupDialog()
         {
             string outputText = Attributes.GetString(TreeKeys.OUTPUT_TEXT, "");
-            bool haveCookingContainer = Attributes.GetInt(TreeKeys.HAVE_COOKING_CONTAINER) > 0;
-            bool inputCanBurn = Attributes.GetInt(TreeKeys.INPUT_CAN_BURN) > 0;
-            int qtyCookingSlots = Attributes.GetInt(TreeKeys.QUANTITY_COOKING_SLOTS);
+            TreeKeys.InputTypeEnum inputType = (TreeKeys.InputTypeEnum)Attributes.GetInt(TreeKeys.INPUT_TYPE);
+            int qtyCookingSlots = Attributes.GetInt(TreeKeys.INPUT_ADDITIONAL_SLOTS);
             
-            string stateKey = $"{outputText}{haveCookingContainer}{inputCanBurn}{qtyCookingSlots}";
+            string stateKey = $"{outputText}{inputType}{qtyCookingSlots}";
 
             if (stateKey == _prevStateKey
             &&  SingleComposer != null
