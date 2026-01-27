@@ -576,6 +576,12 @@ namespace OddWire.GameContent
                 mesher.AddMeshData(contentmesh);
             }
             
+            if (CurrentModel == EnumFirepitModel.Spit)
+            {
+                this.CacheMesh(Block.Shape.Folder() + "spit-stick", CacheKey, out var spitMesh);
+                mesher.AddMeshData(spitMesh);
+            }
+            
             string burnState = Block.Variant["burnstate"];
             if (burnState == null)
                 return true;

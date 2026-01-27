@@ -23,5 +23,11 @@ namespace OddWire.VintageStory.API.Common
 
             return nspace + path;
         }
+
+        public static string Folder(this CompositeShape shape)
+        {
+            string path = shape.Path();
+            return path.Substring(0,  path.LastIndexOf('/')+1);
+        }
     }
 }

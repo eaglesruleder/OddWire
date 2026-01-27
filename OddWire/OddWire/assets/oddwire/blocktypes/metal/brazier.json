@@ -79,6 +79,9 @@
 		"ember": { base: "game:block/coal/ember" },
 		"ashes": { base: "game:block/wood/firepit/ground" },
 		"fire": { base: "game:block/wood/firepit/fire" },
+
+		"charred": { base: "game:block/wood/charred" },
+		"aged": { base: "game:block/wood/debarked/aged" },
 		
 		"peat": { base: "game:block/soil/peat" },
 		"bundle": { base: "game:block/hay/bundle" },
