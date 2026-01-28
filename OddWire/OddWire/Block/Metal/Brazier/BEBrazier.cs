@@ -7,6 +7,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
+using OddWire.VintageStory.API.Client;
 using OddWire.VintageStory.API.Common;
 using OddWire.VintageStory.GameContent;
 
@@ -565,7 +566,7 @@ namespace OddWire.GameContent
         
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
-            this.CacheMesh(Block.Shape.Path(), CacheKey, out var brazierMesh);
+            tesselator.CacheTesselateShape(this, Block.Shape.Path(), CacheKey, out var brazierMesh);
             mesher.AddMeshData(brazierMesh);
             
             ItemStack contentStack = inventory.ContentStack;
@@ -578,7 +579,7 @@ namespace OddWire.GameContent
             
             if (CurrentModel == EnumFirepitModel.Spit)
             {
-                this.CacheMesh(Block.Shape.Folder() + "spit-stick", CacheKey, out var spitMesh);
+                tesselator.CacheTesselateShape(this, Block.Shape.Folder() + "spit-stick", CacheKey, out var spitMesh);
                 mesher.AddMeshData(spitMesh);
             }
             
@@ -587,8 +588,8 @@ namespace OddWire.GameContent
                 return true;
 
             if (!IsWide)
-                _fuelRenderers[0].Tesselate(mesher, this, ShortNormalFuelSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null, burnState != "clean");
-            _fuelRenderers[1].Tesselate(mesher, this, ShortWideFuelSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null, burnState != "clean");
+                _fuelRenderers[0].Tesselate(mesher, tesselator, this, ShortNormalFuelSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null, burnState != "clean");
+            _fuelRenderers[1].Tesselate(mesher, tesselator, this, ShortWideFuelSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null, burnState != "clean");
             
             var fuelSlots = inventory.FuelSlots;
             for (int i = 2; i < _fuelRenderers.Length && i < fuelSlots.Length; i++)
@@ -596,7 +597,7 @@ namespace OddWire.GameContent
                 ItemSlot fuelSlot = fuelSlots[i];
                 bool slotIsBurning = IsBurning && _burnFromSlot == i;
                 if (slotIsBurning || fuelSlot.Itemstack.CanBurn(true))
-                    _fuelRenderers[i].Tesselate(mesher, this, fuelSlot, burnState, slotIsBurning ? _burnStack : null);
+                    _fuelRenderers[i].Tesselate(mesher, tesselator, this, fuelSlot, burnState, slotIsBurning ? _burnStack : null);
             }
             return true;
         }

@@ -1,9 +1,8 @@
 using System;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
-using OddWire.VintageStory.API.Common;
+using OddWire.VintageStory.API.Client;
 
 #nullable disable
 
@@ -48,7 +47,7 @@ public class FuelRenderer
         _transform = transform ?? new ModelTransform().EnsureDefaultValues();
     }
 
-    public void Tesselate(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack, bool? showEmbers = null)
+    public void Tesselate(ITerrainMeshPool mesher, ITesselatorAPI tesselator, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack, bool? showEmbers = null)
     {
         if (mesher == null
         ||  be == null
@@ -65,20 +64,20 @@ public class FuelRenderer
             string emberKey = renderFuel
                 ? $"{burnState}-{_modelKey}"
                 : isBurning ? $"extinct-{_modelKey}" : $"cold-{_modelKey}";
-            AddEmbers(mesher, be, emberKey);
+            AddEmbers(mesher, tesselator, be, emberKey);
         }
         
         if (renderFuel)
-            AddFuel(mesher, be, slot, burnState, burnStack);
+            AddFuel(mesher, tesselator, be, slot, burnState, burnStack);
     }
 
-    private void AddEmbers(ITerrainMeshPool mesher, BlockEntity be, string meshKey)
+    private void AddEmbers(ITerrainMeshPool mesher, ITesselatorAPI tesselator, BlockEntity be, string meshKey)
     {
-        if (be.CacheMesh($"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh, transform: _transform))
+        if (tesselator.CacheTesselateShape(be, $"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh, transform: _transform))
             mesher.AddMeshData(embersMesh);
     }
 
-    private void AddFuel(ITerrainMeshPool mesher, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack)
+    private void AddFuel(ITerrainMeshPool mesher, ITesselatorAPI tesselator, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack)
     {
         string key;
         GroundStorageProperties gsProps;
@@ -112,9 +111,9 @@ public class FuelRenderer
         string meshKey = $"{burnState}-{_modelKey}";
 
         MeshData fuelMesh;
-        bool hasMesh = be.CacheMesh($"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty, _transform);
+        bool hasMesh = tesselator.CacheTesselateShape(be, $"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty, _transform);
         if (!hasMesh)
-            be.CacheMesh($"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), _transform);
+            tesselator.CacheTesselateShape(be, $"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), _transform);
         mesher.AddMeshData(fuelMesh);
     }
 }

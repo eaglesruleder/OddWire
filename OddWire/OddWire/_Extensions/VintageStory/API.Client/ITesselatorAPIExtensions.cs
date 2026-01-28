@@ -2,13 +2,15 @@ using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Util;
+using OddWire.VintageStory.API.Common;
 
-namespace OddWire.VintageStory.API.Common
+namespace OddWire.VintageStory.API.Client
 {
-    public static class BlockEntityExtensions
+    public static class ITesselatorAPIExtensions
     {
-        public static bool CacheMesh
-            (this BlockEntity blockEntity
+        public static bool CacheTesselateShape
+            (this ITesselatorAPI tesselator
+            ,BlockEntity blockEntity
             ,string path, string cacheKey
             ,out MeshData meshdata
             ,int? qtyRootElements = null
@@ -38,8 +40,7 @@ namespace OddWire.VintageStory.API.Common
                     renderElements += 1 + CountElementChildren(shape.Elements[i].Children);
             }
             
-            ITesselatorAPI mesher = ((ICoreClientAPI)blockEntity.Api).Tesselator;
-            mesher.TesselateShape(block, shape, out meshdata, quantityElements: renderElements);
+            tesselator.TesselateShape(block, shape, out meshdata, quantityElements: renderElements);
             if(transform is not null)
                 meshdata.ModelTransform(transform);
             
