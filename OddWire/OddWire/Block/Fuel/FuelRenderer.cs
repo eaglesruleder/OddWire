@@ -60,21 +60,20 @@ public class FuelRenderer
 
         if (showEmbers ?? _showEmbers)
         {
-            bool isBurning = be is IFirePit firepit && firepit.IsBurning;
+            bool isBurning = (be as IFirePit)?.IsBurning == true;
             string emberKey = renderFuel
                 ? $"{burnState}-{_modelKey}"
                 : isBurning ? $"extinct-{_modelKey}" : $"cold-{_modelKey}";
-            AddEmbers(mesher, tesselator, be, emberKey);
+            tesselator.CacheTesselateShape
+                (be.Api
+                ,slot.Itemstack.Collectible
+                ,$"{ShapePath}embers/{emberKey}", CacheKey
+                ,mesher, transform: _transform
+                );
         }
         
         if (renderFuel)
             AddFuel(mesher, tesselator, be, slot, burnState, burnStack);
-    }
-
-    private void AddEmbers(ITerrainMeshPool mesher, ITesselatorAPI tesselator, BlockEntity be, string meshKey)
-    {
-        if (tesselator.CacheTesselateShape(be, $"{ShapePath}embers/{meshKey}", CacheKey, out MeshData embersMesh, transform: _transform))
-            mesher.AddMeshData(embersMesh);
     }
 
     private void AddFuel(ITerrainMeshPool mesher, ITesselatorAPI tesselator, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack)
@@ -109,11 +108,9 @@ public class FuelRenderer
             modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
         
         string meshKey = $"{burnState}-{_modelKey}";
-
-        MeshData fuelMesh;
-        bool hasMesh = tesselator.CacheTesselateShape(be, $"{ShapePath}{key}/{meshKey}", CacheKey, out fuelMesh, modelQty, _transform);
+        
+        bool hasMesh = tesselator.CacheTesselateShape(be.Api, be.Block, $"{ShapePath}{key}/{meshKey}", CacheKey, mesher, modelQty, _transform);
         if (!hasMesh)
-            tesselator.CacheTesselateShape(be, $"{ShapePath}firewood/{meshKey}", CacheKey, out fuelMesh, (int)Math.Ceiling(0.5f * stackQty), _transform);
-        mesher.AddMeshData(fuelMesh);
+            tesselator.CacheTesselateShape(be.Api, be.Block, $"{ShapePath}firewood/{meshKey}", CacheKey, mesher, (int)Math.Ceiling(0.5f * stackQty), _transform);
     }
 }

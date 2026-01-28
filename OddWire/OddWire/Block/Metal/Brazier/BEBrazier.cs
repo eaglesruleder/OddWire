@@ -566,8 +566,7 @@ namespace OddWire.GameContent
         
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
-            tesselator.CacheTesselateShape(this, Block.Shape.Path(), CacheKey, out var brazierMesh);
-            mesher.AddMeshData(brazierMesh);
+            tesselator.CacheTesselateShape(Api, Block, Block.Shape.Path(), CacheKey, mesher);
             
             ItemStack contentStack = inventory.ContentStack;
             MeshData contentmesh = GetContentMesh(contentStack, tesselator);
@@ -578,10 +577,7 @@ namespace OddWire.GameContent
             }
             
             if (CurrentModel == EnumFirepitModel.Spit)
-            {
-                tesselator.CacheTesselateShape(this, Block.Shape.Folder() + "spit-stick", CacheKey, out var spitMesh);
-                mesher.AddMeshData(spitMesh);
-            }
+                tesselator.CacheTesselateShape(Api, Block, Block.Shape.Folder() + "spit-stick", CacheKey, mesher);
             
             string burnState = Block.Variant["burnstate"];
             if (burnState == null)

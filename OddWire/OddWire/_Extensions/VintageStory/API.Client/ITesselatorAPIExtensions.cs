@@ -10,7 +10,26 @@ namespace OddWire.VintageStory.API.Client
     {
         public static bool CacheTesselateShape
             (this ITesselatorAPI tesselator
-            ,BlockEntity blockEntity
+            ,ICoreAPI api
+            ,CollectibleObject textureCollectible
+            ,string path, string cacheKey
+            ,ITerrainMeshPool mesher
+            ,int? qtyRootElements = null
+            ,ModelTransform? transform = null
+            )
+        {
+            if(!tesselator.CacheTesselateShape(api, textureCollectible, path, cacheKey, out MeshData meshData, qtyRootElements, transform))
+                return false;
+            
+            if(mesher is not null)
+                mesher.AddMeshData(meshData);
+            return true;
+        }
+        
+        public static bool CacheTesselateShape
+            (this ITesselatorAPI tesselator
+            ,ICoreAPI api
+            ,CollectibleObject textureCollectible
             ,string path, string cacheKey
             ,out MeshData meshdata
             ,int? qtyRootElements = null
@@ -19,15 +38,11 @@ namespace OddWire.VintageStory.API.Client
         {
             string meshKey = $"{path}{transform?.ToKey()}#{qtyRootElements}";
             
-            Dictionary<string, MeshData> meshes = ObjectCacheUtil.GetOrCreate(blockEntity.Api, cacheKey, () => new Dictionary<string, MeshData>());
+            Dictionary<string, MeshData> meshes = ObjectCacheUtil.GetOrCreate(api, cacheKey, () => new Dictionary<string, MeshData>());
             if (meshes.TryGetValue(meshKey, out meshdata))
                 return true;
-            
-            Block block = blockEntity.Api.World.BlockAccessor.GetBlock(blockEntity.Pos);
-            if (block.BlockId == 0)
-                return false;
 
-            Shape shape = Shape.TryGet(blockEntity.Api, $"{path}.json");
+            Shape shape = Shape.TryGet(api, $"{path}.json");
             if (shape == null)
                 return false;
 
@@ -40,7 +55,7 @@ namespace OddWire.VintageStory.API.Client
                     renderElements += 1 + CountElementChildren(shape.Elements[i].Children);
             }
             
-            tesselator.TesselateShape(block, shape, out meshdata, quantityElements: renderElements);
+            tesselator.TesselateShape(textureCollectible, shape, out meshdata, quantityElements: renderElements);
             if(transform is not null)
                 meshdata.ModelTransform(transform);
             
