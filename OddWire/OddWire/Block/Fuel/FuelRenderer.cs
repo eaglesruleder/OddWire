@@ -62,9 +62,9 @@ public class FuelRenderer
         if (showEmbers ?? _showEmbers)
         {
             bool isBurning = (be as IFirePit)?.IsBurning == true;
-            string emberKey = renderFuel
+            string emberKey = renderFuel || !isBurning
                 ? $"{burnState}-{_modelKey}"
-                : isBurning ? $"extinct-{_modelKey}" : $"cold-{_modelKey}";
+                : $"extinct-{_modelKey}";
             tesselator.CacheTesselateShape
                 (be.Api
                 ,be.Block
@@ -113,6 +113,6 @@ public class FuelRenderer
         
         bool hasMesh = tesselator.CacheTesselateShape(be.Api, be.Block, shapeKey, CacheKey, mesher, modelQty, _transform);
         if (!hasMesh)
-            throw new Exception($"Shape not found - {shapeKey}");
+            tesselator.CacheTesselateShape(be.Api, be.Block, $"{_defaultShapeRoot}firewood/{burnState}-{_modelKey}", CacheKey, mesher, modelQty, _transform);
     }
 }

@@ -461,7 +461,9 @@ namespace OddWire.GameContent
             
             _burnStack = new()
                 {Key = stack.Collectible.Code.Path
-                ,ShapeRoot = stack.Attributes["shapeFuelStackRoot"]?.ToString()
+                ,ShapeRoot = 
+                    stack.Item?.Attributes["shapeFuelStackRoot"]?.ToString()
+                ??  stack.Block?.Attributes["shapeFuelStackRoot"]?.ToString()
                 ,CombustibleProps = combustibleProps
                 ,StorageProps = storageProps
                 };
