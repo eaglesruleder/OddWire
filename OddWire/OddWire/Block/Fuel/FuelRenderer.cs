@@ -66,7 +66,7 @@ public class FuelRenderer
                 : isBurning ? $"extinct-{_modelKey}" : $"cold-{_modelKey}";
             tesselator.CacheTesselateShape
                 (be.Api
-                ,slot.Itemstack.Collectible
+                ,be.Block
                 ,$"{ShapePath}embers/{emberKey}", CacheKey
                 ,mesher, transform: _transform
                 );
