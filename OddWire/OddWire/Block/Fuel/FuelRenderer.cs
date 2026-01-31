@@ -109,10 +109,10 @@ public class FuelRenderer
         if (stackRatio > 0)
             modelQty = (int)Math.Ceiling(stackRatio.Value * modelQty);
         
-        string meshKey = $"{burnState}-{_modelKey}";
+        string shapeKey = $"{rootPath.EndWith('/')}{burnState}-{_modelKey}";
         
-        bool hasMesh = tesselator.CacheTesselateShape(be.Api, be.Block, $"{rootPath.EndWith('/')}{meshKey}", CacheKey, mesher, modelQty, _transform);
+        bool hasMesh = tesselator.CacheTesselateShape(be.Api, be.Block, shapeKey, CacheKey, mesher, modelQty, _transform);
         if (!hasMesh)
-            throw new Exception($"Shape not found - {rootPath.EndWith('/')}{meshKey}");
+            throw new Exception($"Shape not found - {shapeKey}");
     }
 }
