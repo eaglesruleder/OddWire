@@ -128,6 +128,43 @@ namespace OddWire.GameContent
 
         private FuelRenderer[] _fuelRenderers;
 
+        private FuelRenderer.Properties[] FuelRenderProps
+        { get {
+            var stackPositions =
+                Block.Attributes?["fuelRendererProps"]?.AsObject<FuelRenderer.Properties[]>() 
+            ??  Array.Empty<FuelRenderer.Properties>();
+
+            int outLen = Math.Max(2, stackPositions.Length);
+            var result = new FuelRenderer.Properties[outLen];
+            
+            result[0] = stackPositions.Length > 0
+            ?   stackPositions[0]
+            :   new FuelRenderer.Properties
+                {DefaultShapeRoot = FuelShapePath
+                ,ModelKey = "normal"
+                ,Transform = new ModelTransform()
+                };
+            result[0].Transform.EnsureDefaultValues();
+            
+            result[1] = stackPositions.Length > 1
+            ?   stackPositions[1]
+            :   new FuelRenderer.Properties
+                {DefaultShapeRoot = FuelShapePath
+                ,ModelKey = "wide"
+                ,Transform = new ModelTransform()
+                };
+            result[1].Transform.EnsureDefaultValues();
+            
+            for (int i = 2; i < stackPositions.Length; i++)
+            {
+                result[i] = stackPositions[i];
+                result[i].Transform.EnsureDefaultValues();
+            }
+
+            return result;
+        } }
+
+
         private GuiDialogBlockEntityBrazier _clientDialog;
         public virtual string DialogTitle => Lang.Get("Brazier");
         
@@ -162,8 +199,8 @@ namespace OddWire.GameContent
                     _fuelRenderers = new FuelRenderer[2];
                     _fuelRenderers[0] = stackPositions.Length == 1
                     ?   new FuelRenderer(stackPositions[0])
-                    :   new FuelRenderer(FuelShapePath, "normal", true, new ModelTransform().EnsureDefaultValues());
-                    _fuelRenderers[1] = new FuelRenderer(FuelShapePath, "wide", true, new ModelTransform().EnsureDefaultValues());
+                    :   new FuelRenderer(FuelShapePath, "normal", new ModelTransform().EnsureDefaultValues());
+                    _fuelRenderers[1] = new FuelRenderer(FuelShapePath, "wide", new ModelTransform().EnsureDefaultValues());
                 }
                 else
                 {
@@ -553,21 +590,6 @@ namespace OddWire.GameContent
                 renderer.SetContents(null, null);
         }
         
-        private ItemSlot ShortNormalFuelSlot => IsWide ? null : inventory.FuelSlot;
-        private ItemSlot ShortWideFuelSlot
-        { get {
-            if (IsWide
-            &&  inventory.FuelSlot?.StackSize > 0
-                )
-                return inventory.FuelSlot;
-            
-            ItemSlot contentSlot = inventory.ContentSlot;
-            return
-                contentSlot.Itemstack?.CanBurn(true) ?? false
-            ?   contentSlot
-            :   null;
-        } }
-        
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
             tesselator.CacheTesselateShape(Api, Block, Block.Shape.Path(), CacheKey, mesher);
@@ -587,9 +609,29 @@ namespace OddWire.GameContent
             if (burnState == null)
                 return true;
 
+            var stackPositions = FuelRenderProps;
+
+            ItemSlot normalSlot = IsWide ? null : inventory.FuelSlot;
+            ItemSlot wideSlot;
+            if (IsWide
+            &&  inventory.FuelSlot?.StackSize > 0
+                )
+                wideSlot = inventory.FuelSlot;
+            else
+            {
+                ItemSlot contentSlot = inventory.ContentSlot;
+                wideSlot = 
+                    contentSlot.Itemstack?.CanBurn(true) ?? false
+                ?   contentSlot
+                :   null;
+            }
+            
+            TesselateEmbers(mesher, tesselator, burnState, 0, normalSlot, stackPositions[0]);
+            TesselateEmbers(mesher, tesselator, burnState, 1, wideSlot, stackPositions[1]);
+            
             if (!IsWide)
-                _fuelRenderers[0].Tesselate(mesher, tesselator, this, ShortNormalFuelSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null, burnState != "clean");
-            _fuelRenderers[1].Tesselate(mesher, tesselator, this, ShortWideFuelSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null, burnState != "clean");
+                _fuelRenderers[0].Tesselate(mesher, tesselator, this, normalSlot, burnState, IsBurning && _burnFromSlot == 0 ? _burnStack : null, burnState != "clean");
+            _fuelRenderers[1].Tesselate(mesher, tesselator, this, wideSlot, burnState, IsBurning && _burnFromSlot == 1 ? _burnStack : null, burnState != "clean");
             
             var fuelSlots = inventory.FuelSlots;
             for (int i = 2; i < _fuelRenderers.Length && i < fuelSlots.Length; i++)
@@ -600,6 +642,21 @@ namespace OddWire.GameContent
                     _fuelRenderers[i].Tesselate(mesher, tesselator, this, fuelSlot, burnState, slotIsBurning ? _burnStack : null);
             }
             return true;
+        }
+
+        private void TesselateEmbers(ITerrainMeshPool mesher, ITesselatorAPI tesselator, string burnState, int slotIndex, ItemSlot fuelSlot, FuelRenderer.Properties props)
+        {
+            string embersZeroKey =
+                IsBurning
+            &&  _burnFromSlot != slotIndex
+            && (fuelSlot?.StackSize ?? 0) <= 0
+            ?   "extinct" : burnState;
+            
+            tesselator.CacheTesselateShape
+                (Api, Block
+                ,$"{FuelShapePath}embers/{embersZeroKey}-{props.ModelKey}", CacheKey
+                ,mesher, transform: props.Transform
+                );
         }
         
         private MeshData GetContentMesh(ItemStack contentStack, ITesselatorAPI tesselator)

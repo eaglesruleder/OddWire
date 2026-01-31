@@ -14,13 +14,11 @@ public class FuelRenderer
     {
         public string DefaultShapeRoot;
         public string ModelKey;
-        public bool ShowEmbers;
         public ModelTransform Transform;
         
         public Properties Clone() => new()
             {DefaultShapeRoot = DefaultShapeRoot
             ,ModelKey = ModelKey
-            ,ShowEmbers = ShowEmbers
             ,Transform = Transform
             };
     }
@@ -29,22 +27,19 @@ public class FuelRenderer
     
     private readonly string _defaultShapeRoot;
     private readonly string _modelKey;
-    private readonly bool _showEmbers;
     private readonly ModelTransform _transform;
 
     public FuelRenderer(Properties props)
     {
         _defaultShapeRoot = props.DefaultShapeRoot;
         _modelKey = props.ModelKey ?? "normal";
-        _showEmbers = props.ShowEmbers;
         _transform = props.Transform ?? new ModelTransform().EnsureDefaultValues();
     }
     
-    public FuelRenderer(string defaultShapeRoot, string modelKey, bool showEmbers, ModelTransform transform)
+    public FuelRenderer(string defaultShapeRoot, string modelKey, ModelTransform transform)
     {
         _defaultShapeRoot = defaultShapeRoot;
         _modelKey = modelKey;
-        _showEmbers = showEmbers;
         _transform = transform ?? new ModelTransform().EnsureDefaultValues();
     }
 
@@ -58,20 +53,6 @@ public class FuelRenderer
         bool renderFuel =
             burnStack != null
         ||  slot?.StackSize > 0;
-
-        if (showEmbers ?? _showEmbers)
-        {
-            bool isBurning = (be as IFirePit)?.IsBurning == true;
-            string emberKey = renderFuel || !isBurning
-                ? $"{burnState}-{_modelKey}"
-                : $"extinct-{_modelKey}";
-            tesselator.CacheTesselateShape
-                (be.Api
-                ,be.Block
-                ,$"{_defaultShapeRoot}embers/{emberKey}", CacheKey
-                ,mesher, transform: _transform
-                );
-        }
         
         if (renderFuel)
             AddFuel(mesher, tesselator, be, slot, burnState, burnStack);
