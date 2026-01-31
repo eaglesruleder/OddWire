@@ -2,6 +2,7 @@ using System;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
+using OddWire.System;
 using OddWire.VintageStory.API.Client;
 
 #nullable disable
@@ -11,13 +12,13 @@ public class FuelRenderer
 {
     public class Properties
     {
-        public string ShapePath;
+        public string DefaultShapeRoot;
         public string ModelKey;
         public bool ShowEmbers;
         public ModelTransform Transform;
         
         public Properties Clone() => new()
-            {ShapePath = ShapePath
+            {DefaultShapeRoot = DefaultShapeRoot
             ,ModelKey = ModelKey
             ,ShowEmbers = ShowEmbers
             ,Transform = Transform
@@ -26,22 +27,22 @@ public class FuelRenderer
     
     public virtual string CacheKey => "fuel-meshes";
     
-    public readonly string ShapePath;
+    private readonly string _defaultShapeRoot;
     private readonly string _modelKey;
     private readonly bool _showEmbers;
     private readonly ModelTransform _transform;
 
     public FuelRenderer(Properties props)
     {
-        ShapePath = props.ShapePath;
+        _defaultShapeRoot = props.DefaultShapeRoot;
         _modelKey = props.ModelKey ?? "normal";
         _showEmbers = props.ShowEmbers;
         _transform = props.Transform ?? new ModelTransform().EnsureDefaultValues();
     }
     
-    public FuelRenderer(string shapePath, string modelKey, bool showEmbers, ModelTransform transform)
+    public FuelRenderer(string defaultShapeRoot, string modelKey, bool showEmbers, ModelTransform transform)
     {
-        ShapePath = shapePath;
+        _defaultShapeRoot = defaultShapeRoot;
         _modelKey = modelKey;
         _showEmbers = showEmbers;
         _transform = transform ?? new ModelTransform().EnsureDefaultValues();
@@ -67,7 +68,7 @@ public class FuelRenderer
             tesselator.CacheTesselateShape
                 (be.Api
                 ,be.Block
-                ,$"{ShapePath}embers/{emberKey}", CacheKey
+                ,$"{_defaultShapeRoot}embers/{emberKey}", CacheKey
                 ,mesher, transform: _transform
                 );
         }
@@ -78,39 +79,40 @@ public class FuelRenderer
 
     private void AddFuel(ITerrainMeshPool mesher, ITesselatorAPI tesselator, BlockEntity be, ItemSlot slot, string burnState, FuelBurnStack burnStack)
     {
-        string key;
-        GroundStorageProperties gsProps;
+        string rootPath;
+        float? stackRatio;
 
         if (burnStack != null)
         {
-            key = burnStack.Key;
-            gsProps = burnStack.StorageProps;
+            rootPath = burnStack.ShapeRoot;
+            stackRatio = burnStack.StorageProps?.ModelItemsToStackSizeRatio;
         }
         else
         {
-            key =
-                slot?.Itemstack?.Item?.Code.Path
-            ??  slot?.Itemstack?.Block?.Code.Path
-            ??  "firewood";
-
-            gsProps =
+            rootPath = slot?.Itemstack?.Item?.Attributes["shapeFuelStackRoot"]?.ToString()
+                  ??   slot?.Itemstack?.Block?.Attributes["shapeFuelStackRoot"]?.ToString();
+            stackRatio =
                 slot?.Itemstack?.Collectible
                 ?.GetBehavior<CollectibleBehaviorGroundStorable>()
-                ?.StorageProps;
+                ?.StorageProps
+                ?.ModelItemsToStackSizeRatio;
         }
+
+        rootPath ??= $"{_defaultShapeRoot}firewood/";
+        stackRatio ??= 0.5f;
 
         int stackQty = slot?.StackSize ?? 0;
         if (burnStack != null)
             stackQty++;
 
         int modelQty = stackQty;
-        if (gsProps?.ModelItemsToStackSizeRatio > 0)
-            modelQty = (int)Math.Ceiling(gsProps.ModelItemsToStackSizeRatio * modelQty);
+        if (stackRatio > 0)
+            modelQty = (int)Math.Ceiling(stackRatio.Value * modelQty);
         
         string meshKey = $"{burnState}-{_modelKey}";
         
-        bool hasMesh = tesselator.CacheTesselateShape(be.Api, be.Block, $"{ShapePath}{key}/{meshKey}", CacheKey, mesher, modelQty, _transform);
+        bool hasMesh = tesselator.CacheTesselateShape(be.Api, be.Block, $"{rootPath.EndWith('/')}{meshKey}", CacheKey, mesher, modelQty, _transform);
         if (!hasMesh)
-            tesselator.CacheTesselateShape(be.Api, be.Block, $"{ShapePath}firewood/{meshKey}", CacheKey, mesher, (int)Math.Ceiling(0.5f * stackQty), _transform);
+            throw new Exception($"Shape not found - {rootPath.EndWith('/')}{meshKey}");
     }
 }

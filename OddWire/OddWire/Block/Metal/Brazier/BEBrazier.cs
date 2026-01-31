@@ -20,6 +20,7 @@ namespace OddWire.GameContent
     public class FuelBurnStack
     {
         public string Key;
+        public string ShapeRoot;
         public CombustibleProperties CombustibleProps;
         public int BurnTemp => CombustibleProps?.BurnTemperature ?? 0;
         public GroundStorageProperties StorageProps;
@@ -460,6 +461,7 @@ namespace OddWire.GameContent
             
             _burnStack = new()
                 {Key = stack.Collectible.Code.Path
+                ,ShapeRoot = stack.Attributes["shapeFuelStackRoot"]?.ToString()
                 ,CombustibleProps = combustibleProps
                 ,StorageProps = storageProps
                 };
@@ -716,6 +718,7 @@ namespace OddWire.GameContent
             if (_burnStack != null)
             {
                 tree.SetString("_burnStack.Key", _burnStack.Key);
+                tree.SetString("_burnStack.ShapeRoot", _burnStack.ShapeRoot);
                 tree.SetCombustibleProps("_burnStack.CombustibleProps", _burnStack.CombustibleProps);
                 tree.SetGroundStorageProps("_burnStack.GSProps",_burnStack.StorageProps);
             }
@@ -739,6 +742,7 @@ namespace OddWire.GameContent
             if (_burnKey != null)
                 _burnStack = new()
                 {Key = _burnKey
+                ,ShapeRoot = tree.GetString("_burnStack.ShapeRoot")
                 ,CombustibleProps = tree.GetCombustibleProps("_burnStack.CombustibleProps")
                 ,StorageProps = tree.GetGroundStorageProps("_burnStack.GSProps")
                 };
