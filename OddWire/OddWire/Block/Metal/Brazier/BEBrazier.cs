@@ -120,8 +120,8 @@ namespace OddWire.GameContent
         
         private bool CanIgniteFuel =>
             BurnsAllFuel
-        &&  (inventory.FuelStack?.CanBurn(true) == true
-        ||   inventory.InputStack?.CanBurn(true) == true
+        &&  (inventory.FuelCanBurn() == true
+        ||   inventory.InputCanBurn()
             );
         
         public bool CanSmeltInput
@@ -192,6 +192,7 @@ namespace OddWire.GameContent
             base.Initialize(api);
 
             inventory.pos = Pos;
+            inventory.FuelBonusCapacity = FuelBonusCapacity;
             inventory.LateInitialize("smelting-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, api);
 
             RegisterGameTickListener(OnBurnTick, 100);
@@ -445,7 +446,7 @@ namespace OddWire.GameContent
             int candidateCount = 0;
             for (int i = 0; i < fuelSlots.Length; i++)
             {
-                if (fuelSlots[i].Itemstack?.CanBurn(true) ?? false)
+                if (fuelSlots[i].Itemstack?.CanBurn() ?? false)
                 {
                     candidates[i] = fuelSlots[i];
                     candidateCount++;
@@ -618,7 +619,7 @@ namespace OddWire.GameContent
             {
                 ItemSlot contentSlot = inventory.ContentSlot;
                 wideSlot = 
-                    contentSlot.Itemstack?.CanBurn(true) ?? false
+                    contentSlot.Itemstack?.CanBurn() ?? false
                 ?   contentSlot
                 :   null;
             }
@@ -635,7 +636,7 @@ namespace OddWire.GameContent
             {
                 ItemSlot fuelSlot = fuelSlots[i];
                 bool slotIsBurning = IsBurning && _burnFromSlot == i;
-                if (slotIsBurning || fuelSlot?.Itemstack?.CanBurn(true) == true)
+                if (slotIsBurning || fuelSlot?.Itemstack?.CanBurn() == true)
                     TesselateFuel(mesher, tesselator, burnState, fuelSlot, slotIsBurning ? _burnStack : null, stackPositions[i]);
             }
             return true;
@@ -774,7 +775,7 @@ namespace OddWire.GameContent
             DialogKeys.InputTypeEnum inputType =
                 inventory.InputSlot.Empty ? DialogKeys.InputTypeEnum.None
             :   inventory.HasCookingContainer ? DialogKeys.InputTypeEnum.Container
-            :   inventory.InputStack?.CanBurn(true) == true ? DialogKeys.InputTypeEnum.Fuel
+            :   inventory.InputCanBurn() ? DialogKeys.InputTypeEnum.Fuel
             :   DialogKeys.InputTypeEnum.Undefined;
             dialogTree.SetInt(DialogKeys.INPUT_TYPE, (int)inputType);
             

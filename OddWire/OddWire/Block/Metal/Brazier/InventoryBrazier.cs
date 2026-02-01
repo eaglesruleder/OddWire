@@ -13,6 +13,8 @@ namespace OddWire.GameContent;
 
 public class InventoryBrazier : InventoryBase, ISlotProvider
 {
+    private const int MAX_SLOTS = 7;
+    
     ItemSlot[] slots;
     ItemSlot[] processingSlots;
     public BlockPos pos;
@@ -43,9 +45,20 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         set {}
     }
 
-    public override bool CanContain(ItemSlot sinkSlot, ItemSlot sourceSlot) =>
-        GetSlotId(sinkSlot) < 3
-    ||  base.CanContain(sinkSlot, sourceSlot);
+    public override bool CanContain(ItemSlot sinkSlot, ItemSlot sourceSlot)
+    {
+        int index = GetSlotId(sinkSlot);
+
+        if (index > 2
+        &&  InputCanBurn()
+        &&  index - 3 >= FuelBonusCapacity
+            )
+            return false;
+        
+        return
+            index < 3
+        ||  base.CanContain(sinkSlot, sourceSlot);
+    }
     
     
     public ItemSlot FuelSlot => this[0];
@@ -53,6 +66,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     {   get => this[0].Itemstack;
         set { this[0].Itemstack = value; this[0].MarkDirty(); }
     }
+    public bool FuelCanBurn(bool reqStackSize = false) => FuelStack?.CanBurn(reqStackSize) == true;
         
     public ItemSlot InputSlot => this[1];
     public ItemStack InputStack
@@ -63,6 +77,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     {   get => GetTemp(InputStack);
         set => SetTemp(InputStack, value);
     }
+    public bool InputCanBurn(bool reqStackSize = true) => InputStack?.CanBurn(reqStackSize) == true;
     public float InputMeltingPoint => InputStack.Collectible.GetMeltingPoint(Api.World, this, InputSlot);
 
     public ItemSlot OutputSlot => this[2];
@@ -83,6 +98,8 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     ItemSlot[] _fuelSlotRefs;
     public ItemSlot[] FuelSlots => _fuelSlotRefs;
 
+    public int FuelBonusCapacity = 0;
+    
     public bool HasCookingContainer =>
         InputStack?.ItemAttributes?.KeyExists("cookingContainerSlots") == true;
 
@@ -93,7 +110,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
     { get {
         if (HasCookingContainer)
             return InputStack.ItemAttributes["maxContainerSlotStackSize"].AsInt(999);
-        if (InputStack?.CanBurn() == true)
+        if (InputCanBurn())
             return 999;
         return 0;
     } }
@@ -105,7 +122,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         // slot 1 = input
         // slot 2 = output
         // slot 3,4,5,6 = extra input slots with crucible in input
-        slots = GenEmptySlots(7);
+        slots = GenEmptySlots(MAX_SLOTS);
         processingSlots = new[]{ slots[3], slots[4], slots[5], slots[6] };
         _fuelSlotRefs = new[]{ slots[0], slots[1], slots[3], slots[4], slots[5], slots[6] };
         baseWeight = 4f;
@@ -166,16 +183,20 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
 
     public override WeightedSlot GetBestSuitedSlot(ItemSlot sourceSlot, ItemStackMoveOperation op, List<ItemSlot> skipSlots = null)
     {
-        if (!HasCookingContainer && InputStack?.CanBurn(true) != true)
+        skipSlots ??= new();
+        
+        if (InputCanBurn())
+            for (int i = MAX_SLOTS-1; i > FuelBonusCapacity+3; i--)
+                skipSlots.Add(slots[i]);
+        else if (!HasCookingContainer)
         {
-            if (skipSlots == null)
-                skipSlots = new List<ItemSlot>();
             skipSlots.Add(slots[2]);
             skipSlots.Add(slots[3]);
             skipSlots.Add(slots[4]);
             skipSlots.Add(slots[5]);
             skipSlots.Add(slots[6]);
         }
+        
         return base.GetBestSuitedSlot(sourceSlot, op, skipSlots);
     }
 
@@ -252,8 +273,8 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         for (int i = 0; i < processingSlots.Length; i++)
         {
             var slot = processingSlots[i];
-            if (slot is not null
-            && slot.Itemstack?.CanBurn() != true
+            if (slot.Itemstack?.CanBurn() != true
+            ||  i > FuelBonusCapacity
                )
             {
                 Api.World.SpawnItemEntity(slot.Itemstack, droppos);
