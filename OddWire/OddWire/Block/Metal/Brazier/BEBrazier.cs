@@ -509,10 +509,8 @@ namespace OddWire.GameContent
 
             stack.StackSize -= 1;
             if (stack.StackSize <= 0)
-            {
                 slot.Itemstack = null;
-                slot.MarkDirty();
-            }
+            slot.MarkDirty();
         }
         
         

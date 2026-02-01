@@ -186,7 +186,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         skipSlots ??= new();
         
         if (InputCanBurn())
-            for (int i = MAX_SLOTS-1; i > FuelBonusCapacity+3; i--)
+            for (int i = MAX_SLOTS-1; i > FuelBonusCapacity+2; i--)
                 skipSlots.Add(slots[i]);
         else if (!HasCookingContainer)
         {
@@ -273,9 +273,10 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         for (int i = 0; i < processingSlots.Length; i++)
         {
             var slot = processingSlots[i];
-            if (slot.Itemstack?.CanBurn() != true
-            ||  i > FuelBonusCapacity
-               )
+            if (slot.StackSize > 0
+            && (slot.Itemstack?.CanBurn() != true
+            ||  i >= FuelBonusCapacity
+               ))
             {
                 Api.World.SpawnItemEntity(slot.Itemstack, droppos);
                 slot.Itemstack = null;
@@ -289,7 +290,7 @@ public class InventoryBrazier : InventoryBase, ISlotProvider
         for (int i = 0; i < processingSlots.Length; i++)
         {
             var slot = processingSlots[i];
-            if (slot is not null)
+            if (slot.StackSize > 0)
             {
                 Api.World.SpawnItemEntity(slot.Itemstack, droppos);
                 slot.Itemstack = null;
