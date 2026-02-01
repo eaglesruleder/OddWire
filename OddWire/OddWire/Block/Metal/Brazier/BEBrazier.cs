@@ -121,7 +121,7 @@ namespace OddWire.GameContent
         private bool CanIgniteFuel =>
             BurnsAllFuel
         &&  (inventory.FuelStack?.CanBurn(true) == true
-        ||   inventory.ProcessAsFuel
+        ||   inventory.InputStack?.CanBurn(true) == true
             );
         
         public bool CanSmeltInput
@@ -440,18 +440,19 @@ namespace OddWire.GameContent
 
         public virtual ItemSlot GetSlotToIgnite(out int index)
         {
-            ItemSlot[] candidates = new ItemSlot[inventory.Count];
+            ItemSlot[] fuelSlots = inventory.FuelSlots;
+            ItemSlot[] candidates = new ItemSlot[fuelSlots.Length];
             int candidateCount = 0;
-            for (int i = 0; i < candidates.Length; i++)
+            for (int i = 0; i < fuelSlots.Length; i++)
             {
-                if (i == 2)
-                    continue;
-                
-                if (inventory[i].Itemstack?.CanBurn(true) ?? false)
+                if (fuelSlots[i].Itemstack?.CanBurn(true) ?? false)
                 {
-                    candidates[i] = inventory[i];
+                    candidates[i] = fuelSlots[i];
                     candidateCount++;
                 }
+                //  If !InputSlot.CanBurn, dont try burn ingredients
+                else if (i == 1)
+                    break;
             }
 
             if (candidateCount == 0)
@@ -630,11 +631,11 @@ namespace OddWire.GameContent
             TesselateFuel(mesher, tesselator, burnState, wideSlot, IsBurning && _burnFromSlot == 1 ? _burnStack : null, stackPositions[1]);
             
             var fuelSlots = inventory.FuelSlots;
-            for (int i = 2; i < fuelSlots.Length && i < fuelSlots.Length; i++)
+            for (int i = 2; i < fuelSlots.Length && i < stackPositions.Length; i++)
             {
                 ItemSlot fuelSlot = fuelSlots[i];
                 bool slotIsBurning = IsBurning && _burnFromSlot == i;
-                if (slotIsBurning || fuelSlot.Itemstack.CanBurn(true))
+                if (slotIsBurning || fuelSlot?.Itemstack?.CanBurn(true) == true)
                     TesselateFuel(mesher, tesselator, burnState, fuelSlot, slotIsBurning ? _burnStack : null, stackPositions[i]);
             }
             return true;
@@ -773,7 +774,7 @@ namespace OddWire.GameContent
             DialogKeys.InputTypeEnum inputType =
                 inventory.InputSlot.Empty ? DialogKeys.InputTypeEnum.None
             :   inventory.HasCookingContainer ? DialogKeys.InputTypeEnum.Container
-            :   inventory.ProcessAsFuel ? DialogKeys.InputTypeEnum.Fuel
+            :   inventory.InputStack?.CanBurn(true) == true ? DialogKeys.InputTypeEnum.Fuel
             :   DialogKeys.InputTypeEnum.Undefined;
             dialogTree.SetInt(DialogKeys.INPUT_TYPE, (int)inputType);
             
