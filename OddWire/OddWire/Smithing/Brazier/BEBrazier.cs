@@ -624,6 +624,9 @@ namespace OddWire.GameContent
             
             TesselateEmbers(mesher, tesselator, burnState, 0, normalSlot, stackPositions[0]);
             TesselateEmbers(mesher, tesselator, burnState, 1, wideSlot, stackPositions[1]);
+
+            if (burnState == "clean")
+                burnState = "cold";
             
             if (!IsWide)
                 TesselateFuel(mesher, tesselator, burnState, normalSlot, IsBurning && _burnFromSlot == 0 ? _burnStack : null, stackPositions[0]);
@@ -642,7 +645,7 @@ namespace OddWire.GameContent
 
         private void TesselateEmbers(ITerrainMeshPool mesher, ITesselatorAPI tesselator, string burnState, int slotIndex, ItemSlot fuelSlot, FuelTesselateProperties props)
         {
-            string embersZeroKey =
+            string embersKey =
                 IsBurning
             &&  _burnFromSlot != slotIndex
             && (fuelSlot?.StackSize ?? 0) <= 0
@@ -650,7 +653,7 @@ namespace OddWire.GameContent
             
             tesselator.CacheTesselateShape
                 (Api, Block
-                ,$"{FuelShapePath}embers/{embersZeroKey}-{props.ModelKey}", CacheKey
+                ,$"{FuelShapePath}embers/{embersKey}-{props.ModelKey}", CacheKey
                 ,mesher, transform: props.Transform
                 );
         }
