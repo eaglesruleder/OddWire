@@ -7,7 +7,7 @@ namespace OddWire
     {
         public override void Start(ICoreAPI api)
         {
-            api.RegisterBlockClass($"{Mod.Info.ModID}.holysymbol", typeof(BlockBrazier));
+            api.RegisterBlockClass($"{Mod.Info.ModID}smithing.brazier.block", typeof(BlockBrazier));
             api.RegisterBlockEntityClass($"{Mod.Info.ModID}smithing.brazier.blockentity", typeof(BlockEntityBrazier));
             
             base.Start(api);
