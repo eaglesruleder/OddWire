@@ -1,0 +1,19 @@
+{
+    "block-brazier-short-copper-*": "Brazier (Copper)",
+    "block-brazier-tall-copper-*": "Tall Brazier (Copper)",
+    "block-brazier-short-tinbronze-*": "Brazier (Tin Bronze)",
+    "block-brazier-tall-tinbronze-*": "Tall Brazier (Tin Bronze)",
+    "block-brazier-short-bismuthbronze-*": "Brazier (Bismuth Bronze)",
+    "block-brazier-tall-bismuthbronze-*": "Tall Brazier (Bismuth Bronze)",
+    "block-brazier-short-blackbronze-*": "Brazier (Black Bronze)",
+    "block-brazier-tall-blackbronze-*": "Tall Brazier (Black Bronze)",
+    "block-brazier-short-iron-*": "Brazier (Iron)",
+    "block-brazier-tall-iron-*": "Tall Brazier (Iron)",
+    "block-brazier-short-meteoriciron-*": "Brazier (Meteoric Iron)",
+    "block-brazier-tall-meteoriciron-*": "Tall Brazier (Meteoric Iron)",
+    "block-brazier-short-steel-*": "Brazier (Steel)",
+    "block-brazier-tall-steel-*": "Tall Brazier (Steel)",
+    "blockhelp-brazier-open":  "Open",
+    "blockhelp-brazier-ignite": "Ignite",
+    "blockhelp-brazier-refuel":  "Refuel"
+}
