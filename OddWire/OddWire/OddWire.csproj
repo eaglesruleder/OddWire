@@ -54,7 +54,6 @@
 
     <ItemGroup>
       <Folder Include="assets\oddwire\shapes\block\fuel\" />
-      <Folder Include="Block\Metal\" />
     </ItemGroup>
 
 </Project>

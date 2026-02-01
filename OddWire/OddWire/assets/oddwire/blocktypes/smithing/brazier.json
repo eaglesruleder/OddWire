@@ -1,7 +1,7 @@
 {
 	"code": "brazier",
-	class: "oddwire.BlockBrazier",
-	entityClass: "oddwire.Brazier",
+	class: "oddwiresmithing.brazier.block",
+	entityClass: "oddwiresmithing.brazier.blockentity",
 	entityBehaviors: [
 		{ name: "FirepitAmbient" }
 	],
