@@ -53,7 +53,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="assets\oddwire\shapes\block\fuel\" />
+      <Folder Include="assets\oddwire\shapes\smithing\fuel\" />
     </ItemGroup>
 
 </Project>

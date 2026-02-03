@@ -15,19 +15,19 @@
 			},
 		fuelRendererProps:
 			[{
-				"DefaultShapeRoot": "oddwire:shapes/block/fuel/",
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
 				"ModelKey": "normal",
 				"ShowEmbers": true,
 				"Transform": {translation: { x: 0, y: 0.1875, z: 0 }}
 			},
 				{
-				"DefaultShapeRoot": "oddwire:shapes/block/fuel/",
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
 				"ModelKey": "wide",
 				"ShowEmbers": true,
 				"Transform": {translation: { x: 0, y: 0.1875, z: 0 }}
 			},
 			{
-				"DefaultShapeRoot": "oddwire:shapes/block/fuel/",
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
 				"ModelKey": "normal",
 				"Transform":
 				   {translation: { x: 0, y: 0.5, z: 0 },
@@ -35,7 +35,7 @@
 				   }
 			},
 			{
-				"DefaultShapeRoot": "oddwire:shapes/block/fuel/",
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
 				"ModelKey": "wide",
 				"Transform":
 				   {translation: { x: 0, y: 0.5, z: 0 },
@@ -43,7 +43,7 @@
 				   }
 			},
 			{
-				"DefaultShapeRoot": "oddwire:shapes/block/fuel/",
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
 				"ModelKey": "normal",
 				"Transform":
 				{translation: { x: 0, y: 0.8125, z: 0 },
@@ -51,7 +51,7 @@
 				}
 			},
 			{
-				"ShapePath": "oddwire:shapes/block/fuel/",
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
 				"ModelKey": "wide",
 				"Transform":
 				{translation: { x: 0, y: 0.8125, z: 0 },
@@ -69,7 +69,7 @@
 	],
 	behaviors: [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
 	"renderpass": "OpaqueNoCull",
-	"shape": { "base": "block/metal/brazier/brazier-{height}" },
+	"shape": { "base": "smithing/brazier/brazier-{height}" },
 	"faceCullMode": "NeverCull",
 	"textures": {
 		"metal": { base: "game:block/metal/sheet-plain/{material}3" },

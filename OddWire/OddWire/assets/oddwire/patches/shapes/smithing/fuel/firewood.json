@@ -3,6 +3,6 @@
     "file": "game:itemtypes/resource/firewood",
     "op": "addmerge",
     "path": "/attributes/shapeFuelStackRoot",
-    "value": "oddwire:shapes/block/fuel/firewood"
+    "value": "oddwire:shapes/smithing/fuel/firewood"
   }
 ]

@@ -42,7 +42,7 @@ namespace OddWire.GameContent
     
     public class BlockEntityBrazier : BlockEntityOpenableContainer, IFirePit, IHeatSource, ITemperatureSensitive
     {
-        public virtual string FuelShapePath => "oddwire:shapes/block/fuel/";
+        public virtual string FuelShapePath => "oddwire:shapes/smithing/fuel/";
         public virtual string CacheKey => "brazier-meshes";
         
         #region BlockEntityContainer
