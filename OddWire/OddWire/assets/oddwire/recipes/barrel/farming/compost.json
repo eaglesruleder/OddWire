@@ -1,0 +1,226 @@
+[
+	{
+		code: "compost",
+		sealHours: 480,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+		],
+		output: { type: "item", code: "game:compost", stackSize: 12 }
+	},
+	{
+		code: "compost-drygrass",
+		sealHours: 600,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:drygrass", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 20 }
+	},
+	{
+		code: "compost-fruit",
+		sealHours: 360,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:fruit-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 14 }
+	},
+	{
+		code: "compost-pickledvegetable",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:pickledvegetable-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-rawcassava",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:rawcassava-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-vegetable",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:vegetable-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-bushmeat",
+		sealHours: 240,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:bushmeat-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 20 }
+	},
+	{
+		code: "compost-egg",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:egg-*", quantity: 16 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 14 }
+	},
+	{
+		code: "compost-fish",
+		sealHours: 240,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:fish-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 20 }
+	},
+	{
+		code: "compost-insect",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:insect-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-legume",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:legume-*", quantity: 16 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 14 }
+	},
+	{
+		code: "compost-pickledlegume",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:pickledlegume-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-poultry",
+		sealHours: 240,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:poultry-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 20 }
+	},
+	{
+		code: "compost-redmeat",
+		sealHours: 240,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:redmeat-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 20 }
+	},
+	{
+		code: "compost-grain",
+		sealHours: 360,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:grain-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 14 }
+	},
+	{
+		code: "compost-flour",
+		sealHours: 360,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:flour-*", quantity: 32 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 14 }
+	},
+	{
+		code: "compost-dough",
+		sealHours: 240,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:dough-*", quantity: 16 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-breadcharred",
+		sealHours: 240,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:bread-*-charred", quantity: 24 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 18 }
+	},
+	{
+		code: "compost-bread",
+		sealHours: 240,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:bread-*", quantity: 16 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-butter",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:butter-*", quantity: 16 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 14 }
+	},
+	{
+		code: "compost-rawcheese",
+		sealHours: 240,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:rawcheese-*", quantity: 4 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-cheese-1slice",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:cheese-*-1slice", quantity: 16 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-cheese-2slice",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:cheese-*-2slice", quantity: 8 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-cheese-3slice",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:cheese-*-3slice", quantity: 6 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+	{
+		code: "compost-cheese-4slice",
+		sealHours: 300,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:cheese-*-4slice", quantity: 4 }
+		],
+		output: { type: "item", code: "game:compost", stackSize: 16 }
+	},
+]
