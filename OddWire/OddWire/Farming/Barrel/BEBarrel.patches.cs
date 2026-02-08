@@ -24,7 +24,7 @@ namespace OddWire.Patches
             double sealedTime = __instance.Api.World.Calendar.TotalHours - __instance.SealedSinceTotalHours;
             var slots = new [] { __instance.Inventory[0], __instance.Inventory[1] };
             
-            BarrelFailureRecipe currentFailRecipe = null;
+            BarrelFailureRecipe? currentFailRecipe = null;
             var barrelFailRecipes = __instance.Api.GetBarrelFailRecipes();
             for (int i = 0; i < barrelFailRecipes.Count; i++)
             {
@@ -40,7 +40,7 @@ namespace OddWire.Patches
                     currentFailRecipe = recipe;
             }
             
-            if (currentFailRecipe is null)
+            if (currentFailRecipe?.Spoil is null)
                 return;
 
             float spoilRate = 0;

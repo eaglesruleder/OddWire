@@ -1,0 +1,18 @@
+[
+	{
+		code: "sourcompost-fruit",
+		sealHours: 100,
+		ingredients: [
+			{ type: "item", code: "game:rot", litres: 50 },
+			{ type: "item", code: "game:fruit-*", quantity: 32 }
+		],
+		"spoil":
+			{"MinEnvTemp": 0
+			,MaxEnvTemp: 33
+			,TempSpoilChance: 0.5
+			,WaterVulnerable: true
+			,WetSpoilChance: 0.5
+		},
+		output: { type: "item", code: "game:compost", stackSize: 1 }
+	}
+]
