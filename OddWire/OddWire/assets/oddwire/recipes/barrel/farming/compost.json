@@ -8,6 +8,15 @@
 		output: { type: "item", code: "game:compost", stackSize: 12 }
 	},
 	{
+		"code": "compost-sourcompost",
+		"sealHours": 300,
+		"ingredients": [
+			{ "type": "item", "code": "game:rot", "litres": 50 },
+			{ "type": "item", "code": "sourcompost", "quantity": 32 }
+		],
+		"output": { "type": "item", "code": "game:compost", "stackSize": 32 }
+	},
+	{
 		code: "compost-drygrass",
 		sealHours: 600,
 		ingredients: [
