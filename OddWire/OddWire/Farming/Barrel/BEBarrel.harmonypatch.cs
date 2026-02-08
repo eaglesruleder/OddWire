@@ -75,15 +75,40 @@ namespace OddWire.Patches
             if (api?.World == null)
                 return 0f;
             
-            return
+            float temp =
                 api.World.BlockAccessor.GetClimateAt
                     (be.Pos
                     ,EnumGetClimateMode.ForSuppliedDate_TemperatureRainfallOnly
                     ,api.World.Calendar.TotalDays
                     )?.Temperature
                 ??  0f;
+
+            if (HasGreenhouseTempBonus(api, be.Pos))
+                temp += 5;
+            
+            return temp;
         }
 
+        private static bool HasGreenhouseTempBonus(ICoreAPI api, BlockPos pos)
+        {
+            BlockPos upPos = pos.UpCopy();
+            int rainMapY = api.World.BlockAccessor.GetRainMapHeightAt(upPos.X, upPos.Z);
+            if (rainMapY <= upPos.Y)
+                return false;
+            
+            var roomReg = api.ModLoader.GetModSystem<RoomRegistry>();
+            if (roomReg == null)
+                return false;
+
+            Room room = roomReg.GetRoomForPosition(upPos);
+            if (room == null)
+                return false;
+            
+            return
+                room.SkylightCount > room.NonSkylightCount
+            &&  room.ExitCount == 0;
+        }
+        
         private static bool IsWetRecently(BlockEntityBarrel barrelEntity)
         {
             var api = barrelEntity.Api;
