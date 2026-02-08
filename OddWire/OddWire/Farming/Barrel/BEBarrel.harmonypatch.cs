@@ -36,7 +36,9 @@ namespace OddWire.Patches
                    )
                     continue;
 
-                if (recipe.SealHours > currentFailRecipe?.SealHours)
+                if (currentFailRecipe is null
+                ||  currentFailRecipe.SealHours > recipe.SealHours
+                    )
                     currentFailRecipe = recipe;
             }
             
