@@ -10,7 +10,7 @@ namespace OddWire.Patches
     [HarmonyPatch(typeof(BlockEntityBarrel), "OnEvery3Second")]
     public static class BEBarrel_OnEvery3Second_Patch
     {
-        private const float SPOIL_DT_MODIFIER = 3600;
+        private const float SPOIL_DT_MODIFIER = 20 * 24 * 60 * 60;
         
         [HarmonyPostfix]
         public static void Postfix(BlockEntityBarrel __instance, float dt)
@@ -47,7 +47,7 @@ namespace OddWire.Patches
 
             float spoilRate = 0;
             
-            float temp = __instance.Api.World.BlockAccessor.GetClimateAt(__instance.Pos)?.Temperature ?? 0f;
+            float temp = GetEnvTemperature(__instance);
             if (currentFailRecipe.Spoil.MinEnvTemp > temp
             ||  currentFailRecipe.Spoil.MaxEnvTemp < temp
                 )
@@ -59,7 +59,7 @@ namespace OddWire.Patches
                 spoilRate += currentFailRecipe.Spoil.WetSpoilChance ?? 0;
             
             if (spoilRate > 0
-            &&  __instance.Api.World.Rand.NextDouble() >= spoilRate * dt * SPOIL_DT_MODIFIER
+            &&  __instance.Api.World.Rand.NextDouble() < spoilRate * dt / SPOIL_DT_MODIFIER
             &&  currentFailRecipe.TryCraftNow(__instance.Api, sealedTime, slots)
                )
             {
@@ -68,20 +68,47 @@ namespace OddWire.Patches
                 __instance.Api.World.BlockAccessor.MarkBlockEntityDirty(__instance.Pos);
             }
         }
-
-        private static bool IsWetRecently(BlockEntityBarrel be)
+        
+        private static float GetEnvTemperature(BlockEntityBarrel be)
         {
-            var world = be.Api?.World;
-            if (world is null)
+            var api = be.Api;
+            if (api?.World == null)
+                return 0f;
+            
+            return
+                api.World.BlockAccessor.GetClimateAt
+                    (be.Pos
+                    ,EnumGetClimateMode.ForSuppliedDate_TemperatureRainfallOnly
+                    ,api.World.Calendar.TotalDays
+                    )?.Temperature
+                ??  0f;
+        }
+
+        private static bool IsWetRecently(BlockEntityBarrel barrelEntity)
+        {
+            var api = barrelEntity.Api;
+            var world = api?.World;
+            if (world == null)
                 return false;
 
             var blockAccessor = world.BlockAccessor;
-            var climate = blockAccessor.GetClimateAt(be.Pos);
-            return
-                climate is not null
-            &&  TryGetPrecipitation(climate, out var precipitation)
-            && !(precipitation <= 0f)
-            &&  TryIsSkyExposed(blockAccessor, be.Pos);
+            if (!TryIsSkyExposed(blockAccessor, barrelEntity.Pos))
+                return false;
+
+            var weather = api.ModLoader.GetModSystem<WeatherSystemBase>();
+            if (weather == null)
+                return false;
+
+            double totalDays = world.Calendar.TotalDays;
+            
+            return weather.GetPrecipitation
+                (barrelEntity.Pos, totalDays
+                ,blockAccessor.GetClimateAt
+                    (barrelEntity.Pos
+                    ,EnumGetClimateMode.ForSuppliedDate_TemperatureRainfallOnly
+                    ,totalDays
+                    )
+                ) > 0;
         }
 
         private static MethodInfo? GetRainMapHeightAtMethod;
@@ -102,33 +129,6 @@ namespace OddWire.Patches
                 return pos.Y >= floatHeight;
 
             return false;
-        }
-
-        private static bool TryGetPrecipitation(object climate, out float precipitation)
-        {
-            precipitation = 0f;
-            
-            var precipitationProperty =
-                climate.GetType().GetProperty("Precipitation")
-            ??  climate.GetType().GetProperty("Rainfall");
-            if (precipitationProperty == null)
-                return false;
-
-            var value = precipitationProperty.GetValue(climate);
-            switch (value)
-            {
-                case float floatValue:
-                    precipitation = floatValue;
-                    return true;
-                case double doubleValue:
-                    precipitation = (float)doubleValue;
-                    return true;
-                case int intValue:
-                    precipitation = intValue;
-                    return true;
-                default:
-                    return false;
-            }
         }
     }
 }

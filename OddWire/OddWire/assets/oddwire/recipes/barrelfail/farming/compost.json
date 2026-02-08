@@ -7,7 +7,7 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 12 }
 	},
@@ -20,7 +20,7 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 14 }
 	},
@@ -33,7 +33,7 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
@@ -46,7 +46,7 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
@@ -59,24 +59,24 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
 	{
 		code: "compost-bushmeat",
-		sealHours: 240,
+		sealHours: 40,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
 			{ type: "item", code: "game:bushmeat-*", quantity: 32 }
 		],
 		"spoil":
 			{maxEnvTemp: 33
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
-		output: { type: "item", code: "sourcompost", stackSize: 20 }
+		output: { type: "item", code: "sourcompost", stackSize: 0 }
 	},
 	{
 		code: "compost-egg",
@@ -87,26 +87,26 @@
 		],
 		"spoil": 
 			{maxEnvTemp: 36
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 14 }
 	},
 	{
 		code: "compost-fish",
-		sealHours: 240,
+		sealHours: 40,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
 			{ type: "item", code: "game:fish-*", quantity: 32 }
 		],
 		"spoil":
-			{maxEnvTemp: 32
-			,tempSpoilChance: 0.5
+			{maxEnvTemp: 3
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
-		output: { type: "item", code: "sourcompost", stackSize: 20 }
+		output: { type: "item", code: "sourcompost", stackSize: 0 }
 	},
 	{
 		code: "compost-insect",
@@ -117,7 +117,7 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
@@ -130,7 +130,7 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 14 }
 	},
@@ -143,39 +143,39 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
 	{
 		code: "compost-poultry",
-		sealHours: 240,
+		sealHours: 40,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
 			{ type: "item", code: "game:poultry-*", quantity: 32 }
 		],
 		"spoil":
 			{maxEnvTemp: 33
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
-		output: { type: "item", code: "sourcompost", stackSize: 20 }
+		output: { type: "item", code: "sourcompost", stackSize: 0 }
 	},
 	{
 		code: "compost-redmeat",
-		sealHours: 240,
+		sealHours: 40,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
 			{ type: "item", code: "game:redmeat-*", quantity: 32 }
 		],
 		"spoil": 
 			{maxEnvTemp: 33
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
-		output: { type: "item", code: "sourcompost", stackSize: 20 }
+		output: { type: "item", code: "sourcompost", stackSize: 0 }
 	},
 	{
 		code: "compost-grain",
@@ -186,7 +186,7 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 14 }
 	},
@@ -199,46 +199,46 @@
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 14 }
 	},
 	{
 		code: "compost-dough",
-		sealHours: 240,
+		sealHours: 40,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
 			{ type: "item", code: "game:dough-*", quantity: 16 }
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
 	{
 		code: "compost-breadcharred",
-		sealHours: 240,
+		sealHours: 40,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
-			{ type: "item", code: "game:bread-*-charred", quantity: 24 }
+			{ type: "item", code: "game:bread-*-charred", quantity: 4 }
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 18 }
 	},
 	{
 		code: "compost-bread",
-		sealHours: 240,
+		sealHours: 40,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
 			{ type: "item", code: "game:bread-*", quantity: 16 }
 		],
 		"spoil":
 			{waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
@@ -251,24 +251,24 @@
 		],
 		"spoil":
 			{maxEnvTemp: 34
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 14 }
 	},
 	{
 		code: "compost-rawcheese",
-		sealHours: 240,
+		sealHours: 40,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
 			{ type: "item", code: "game:rawcheese-*", quantity: 4 }
 		],
 		"spoil":
 			{maxEnvTemp: 33
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
@@ -281,24 +281,24 @@
 		],
 		"spoil":
 			{maxEnvTemp: 34
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
 	{
-		code: "compost-cheese-2slice",
+		code: "compost-cheese-slice",
 		sealHours: 300,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
-			{ type: "item", code: "game:cheese-*-2slice", quantity: 8 }
+			{ type: "item", code: "game:cheese-*-slice", quantity: 8 }
 		],
 		"spoil":
 			{maxEnvTemp: 34
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
@@ -311,9 +311,9 @@
 		],
 		"spoil":
 			{maxEnvTemp: 34
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
@@ -326,9 +326,9 @@
 		],
 		"spoil":
 			{maxEnvTemp: 34
-			,tempSpoilChance: 0.5
+			,tempSpoilChance: 1
 			,waterVulnerable: true
-			,wetSpoilChance: 0.5
+			,wetSpoilChance: 4
 			},
 		output: { type: "item", code: "sourcompost", stackSize: 16 }
 	},
