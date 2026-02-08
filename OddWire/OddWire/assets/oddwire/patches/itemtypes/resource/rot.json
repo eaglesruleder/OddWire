@@ -1,0 +1,8 @@
+[
+  {
+    "file": "game:itemtypes/resource/rot",
+    "op": "addmerge",
+    "path": "/attributes/waterTightContainerProps/containable",
+    "value": true
+  }
+]

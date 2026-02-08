@@ -9,6 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Reference Include="0Harmony">
+          <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Lib\0Harmony.dll</HintPath>
+        </Reference>
         <Reference Include="cairo-sharp">
           <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Lib\cairo-sharp.dll</HintPath>
         </Reference>
