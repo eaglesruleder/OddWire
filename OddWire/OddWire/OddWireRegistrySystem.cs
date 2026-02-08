@@ -6,7 +6,7 @@ public partial class OddWireRegistrySystem : ModSystem
 {
     public static bool canRegister = true;
     
-    public override double ExecuteOrder() => 0.6;
+    public override double ExecuteOrder() => 0.61;
 
     public override void StartPre(ICoreAPI api)
     {
