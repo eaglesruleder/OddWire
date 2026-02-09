@@ -1,0 +1,496 @@
+[
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "sourcompost",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:fruit-*",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:pickledvegetable-*",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:rawcassava-*",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:vegetable-*",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:insect-*",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:legume-*",
+        "quantity": 16
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:pickledlegume-*",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:grain-*",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:flour-*",
+        "quantity": 32
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:dough-*",
+        "quantity": 16
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:bread-*-charred",
+        "quantity": 24
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:bread-*",
+        "quantity": 16
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:butter-*",
+        "quantity": 16
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:rawcheese-*",
+        "quantity": 4
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:cheese-*-1slice",
+        "quantity": 16
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:cheese-*-2slice",
+        "quantity": 8
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:cheese-*-3slice",
+        "quantity": 6
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  },
+  {
+    "ingredientPattern": "_O_,CGC",
+    "ingredients": {
+      "O": {
+        "type": "item",
+        "code": "game:cheese-*-4slice",
+        "quantity": 4
+      },
+      "C": {
+        "type": "item",
+        "code": "game:compost",
+        "quantity": 16
+      },
+      "G": {
+        "type": "item",
+        "code": "game:drygrass",
+        "quantity": 32
+      }
+    },
+    "width": 3,
+    "height": 2,
+    "output": {
+      "type": "block",
+      "code": "compostpile"
+    }
+  }
+]
