@@ -292,7 +292,7 @@
 		sealHours: 300,
 		ingredients: [
 			{ type: "item", code: "game:rot", litres: 50 },
-			{ type: "item", code: "game:cheese-*-slice", quantity: 8 }
+			{ type: "item", code: "game:cheese-*-2slice", quantity: 8 }
 		],
 		"spoil":
 			{maxEnvTemp: 34
