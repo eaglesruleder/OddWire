@@ -1,0 +1,45 @@
+{
+	code: "compostpile",
+	class: "oddwirefarming.compostpile.block",
+	entityClass: "oddwirefarming.compostpile.blockentity",
+	behaviors: [ { name: "UnstableFalling" } ],
+	shape: { base: "farming/compostpile/compostpile-1" },
+	creativeinventory: { "general": ["*"], "decorative": ["*"] },
+	blockmaterial: "Soil",
+	replaceable: 200,
+	maxStackSize: 1,
+	lightAbsorption: 1,
+	textures: {
+		"block": { base: "farming/compostpile-normal" },
+		"splat": { base: "farming/compostsplat-normal" }
+	},
+	sideao: { all: false },
+	sidesolid: { all: false },
+	emitsideao: { all: false },
+	sideopaque: { all: false },
+	collisionbox: {
+		x1: 0, y1: 0, z1: 0,
+		x2: 1, y2: 0.9375, z2: 1
+	},
+	selectionbox: {
+		x1: 0, y1: 0, z1: 0,
+		x2: 1, y2: 0.9375, z2: 1
+	},
+	combustibleProps: {
+		burnTemperature: 600,
+		burnDuration: 20,
+	},
+	sounds: {
+		place: "game:block/dirt",
+		break: "game:block/dirt",
+		hit: "game:block/dirt",
+		walk: "game:walk/grass"
+	},
+	materialDensity: 600,
+	heldTpIdleAnimation: "holdbothhandslarge", heldRightReadyAnimation: "heldblockready", heldTpUseAnimation: "twohandplaceblock",
+	tpHandTransform: {
+		translation: { x: -1.7, y: -0.95, z: -0.69 },
+		rotation: { x: 12, y: 14, z: -81 },
+		scale: 0.36
+	}
+}
