@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
@@ -7,28 +7,15 @@ public class BlockEntityCompostPile : BlockEntity
 {
     private const int MAX_STACK_SIZE = 64;
     
-    private static int _nutritionTypes = -1;
-    private static int NutritionTypes
-    { get {
-        if (_nutritionTypes < 0)
-        {
-            _nutritionTypes = 0;
-            
-            var nutritionTypeValues = Enum.GetValues(typeof(EnumFoodCategory));
-            _nutritionTypes = nutritionTypeValues.Length;
-            foreach(var nutritionTypeValue in nutritionTypeValues)
-                if((int)nutritionTypeValue < 0)
-                    _nutritionTypes--;
-        }
-        return _nutritionTypes;
-    } }
-    
-    private int[]? _nutritionStacks;
+    private Dictionary<EnumFoodCategory, int>? _nutritionStacks;
     public int TotalQty
     { get {
+        if (_nutritionStacks is null)
+            return 0;
+        
         int result = 0;
-        for(int i = 0; i < _nutritionStacks?.Length; i++)
-            result += _nutritionStacks[i];
+        foreach(var kvp in _nutritionStacks)
+            result += kvp.Value;
         return result;
     } }
 
@@ -36,7 +23,7 @@ public class BlockEntityCompostPile : BlockEntity
     {
         base.Initialize(api);
 
-        _nutritionStacks = new int[NutritionTypes];
+        _nutritionStacks = new();
 
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery3Seconds, 3000);
@@ -69,19 +56,14 @@ public class BlockEntityCompostPile : BlockEntity
         ||  nutritionProps is null
             )
             return false;
-
-        int nutritionKey = (int)nutritionProps.FoodCategory;
-        if (nutritionKey < 0
-        ||  nutritionKey >= _nutritionStacks.Length
-            )
-            return false;
         
         int room = MAX_STACK_SIZE - TotalQty;
-        if(room < 0)
+        if(room < 1)
             return false;
         
         accepted = slot.StackSize > room ? room : slot.StackSize;
-        _nutritionStacks[nutritionKey] += accepted;
+        _nutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
+        _nutritionStacks[nutritionProps.FoodCategory] = cur + accepted;
         MarkDirty(true);
         return true;
     }
@@ -91,18 +73,27 @@ public class BlockEntityCompostPile : BlockEntity
         base.FromTreeAttributes(tree, worldAccessForResolve);
 
         if(_nutritionStacks is null)
-            _nutritionStacks = new int[NutritionTypes];
-            
-        for (int i = 0; i < NutritionTypes; i++)
-            _nutritionStacks[i] = tree.GetInt($"_nutrition[{i}]");
+            _nutritionStacks = new();
+
+        int nutritionLength = tree.GetInt("_nutritionStacks.Count");
+        for (int i = 0; i < nutritionLength; i++)
+            _nutritionStacks.Add((EnumFoodCategory)tree.GetInt($"_nutritionStacks<{i}>"),tree.GetInt($"_nutritionStacks[{i}]"));
     }
 
     public override void ToTreeAttributes(ITreeAttribute tree)
     {
         base.ToTreeAttributes(tree);
 
-        if(_nutritionStacks is not null)
-            for (int i = 0; i < NutritionTypes; i++)
-                tree.SetInt($"_nutrition[{i}]", _nutritionStacks[i]);
+        if (_nutritionStacks is not null)
+        {
+            tree.SetInt("_nutritionStacks.Count", _nutritionStacks.Count);
+            int i = 0;
+            foreach (var stack in _nutritionStacks)
+            {
+                tree.SetInt($"_nutritionStacks<{i}>", (int)stack.Key);
+                tree.SetInt($"_nutritionStacks[{i}]", stack.Value);
+                i++;
+            }
+        }
     }
 }
