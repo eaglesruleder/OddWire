@@ -1,3 +1,4 @@
+using System;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
@@ -5,23 +6,38 @@ namespace OddWire.GameContent
 {
     public class BlockEntityCompostPile : BlockEntity
     {
-        public int FruitQty { get; private set; }
-        public int VegetableQty { get; private set; }
-        public int GrainQty { get; private set; }
-        public int ProteinQty { get; private set; }
-        public int DairyQty { get; private set; }
-
-        public int Capacity { get; private set; } = 256;
-
-        public int TotalQty => FruitQty + VegetableQty + GrainQty + ProteinQty + DairyQty;
+        private const int MAX_STACK_SIZE = 64;
+        
+        private static int _nutritionTypes = -1;
+        private static int NutritionTypes
+        { get {
+            if (_nutritionTypes < 0)
+            {
+                _nutritionTypes = 0;
+                
+                var nutritionTypeValues = Enum.GetValues(typeof(EnumFoodCategory));
+                _nutritionTypes = nutritionTypeValues.Length;
+                foreach(var nutritionTypeValue in nutritionTypeValues)
+                    if((int)nutritionTypeValue < 0)
+                        _nutritionTypes--;
+            }
+            return _nutritionTypes;
+        } }
+        
+        private int[]? _nutritionStacks;
+        public int TotalQty
+        { get {
+            int result = 0;
+            for(int i = 0; i < _nutritionStacks?.Length; i++)
+                result += _nutritionStacks[i];
+            return result;
+        } }
 
         public override void Initialize(ICoreAPI api)
         {
             base.Initialize(api);
 
-            var attrs = Block?.Attributes;
-            if (attrs != null)
-                Capacity = attrs["capacity"].AsInt(Capacity);
+            _nutritionStacks = new int[NutritionTypes];
 
             if (api.Side == EnumAppSide.Server)
                 RegisterGameTickListener(OnEvery3Seconds, 3000);
@@ -33,65 +49,62 @@ namespace OddWire.GameContent
             // Intentionally empty for now.
         }
 
-        public bool TryAdd(EnumFoodCategory cat, int qty, out int accepted)
+        public bool TryAdd(ItemSlot slot, out int accepted)
         {
             accepted = 0;
-            if (qty <= 0)
+            if (slot.StackSize < 1)
                 return false;
 
-            int room = Capacity - TotalQty;
-            if (room <= 0)
+            if (TryAddNutrition(slot, out accepted))
+                return accepted > 0;
+            
+            return false;
+        }
+
+        private bool TryAddNutrition(ItemSlot slot, out int accepted)
+        {
+            accepted = 0;
+            
+            var nutritionProps =  slot.Itemstack?.Collectible?.NutritionProps;
+            if (_nutritionStacks is null
+            ||  nutritionProps is null
+                )
                 return false;
 
-            accepted = qty > room ? room : qty;
-
-            switch (cat)
-            {
-                case EnumFoodCategory.Fruit: FruitQty += accepted; break;
-                case EnumFoodCategory.Vegetable: VegetableQty += accepted; break;
-                case EnumFoodCategory.Grain: GrainQty += accepted; break;
-                case EnumFoodCategory.Protein: ProteinQty += accepted; break;
-                case EnumFoodCategory.Dairy: DairyQty += accepted; break;
-                default:
-                    // Unknown category -> reject (forces you to decide later)
-                    accepted = 0;
-                    return false;
-            }
-
+            int nutritionKey = (int)nutritionProps.FoodCategory;
+            if (nutritionKey < 0
+            ||  nutritionKey >= _nutritionStacks.Length
+                )
+                return false;
+            
+            int room = MAX_STACK_SIZE - TotalQty;
+            if(room < 0)
+                return false;
+            
+            accepted = slot.StackSize > room ? room : slot.StackSize;
+            _nutritionStacks[nutritionKey] += accepted;
             MarkDirty(true);
-            return accepted > 0;
+            return true;
         }
 
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
         {
             base.FromTreeAttributes(tree, worldAccessForResolve);
 
-            FruitQty = tree.GetInt("fruitQty");
-            VegetableQty = tree.GetInt("vegetableQty");
-            GrainQty = tree.GetInt("grainQty");
-            ProteinQty = tree.GetInt("proteinQty");
-            DairyQty = tree.GetInt("dairyQty");
+            if(_nutritionStacks is null)
+                _nutritionStacks = new int[NutritionTypes];
+                
+            for (int i = 0; i < NutritionTypes; i++)
+                _nutritionStacks[i] = tree.GetInt($"_nutrition[{i}]");
         }
 
         public override void ToTreeAttributes(ITreeAttribute tree)
         {
             base.ToTreeAttributes(tree);
 
-            tree.SetInt("fruitQty", FruitQty);
-            tree.SetInt("vegetableQty", VegetableQty);
-            tree.SetInt("grainQty", GrainQty);
-            tree.SetInt("proteinQty", ProteinQty);
-            tree.SetInt("dairyQty", DairyQty);
+            if(_nutritionStacks is not null)
+                for (int i = 0; i < NutritionTypes; i++)
+                    tree.SetInt($"_nutrition[{i}]", _nutritionStacks[i]);
         }
-    }
-
-    // Keep this local so you can map to VS categories however you like
-    public enum EnumFoodCategory
-    {
-        Fruit,
-        Vegetable,
-        Grain,
-        Protein,
-        Dairy
     }
 }
