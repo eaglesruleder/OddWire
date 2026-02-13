@@ -7,8 +7,10 @@ public class BlockEntityCompostPile : BlockEntity
 {
     private const int MAX_STACK_SIZE = 64;
     
+    private int _brownsQty = 0;
+    private int _inoculumQty = 0;
     private Dictionary<EnumFoodCategory, int>? _nutritionStacks;
-    public int TotalQty
+    public int NutritionQty
     { get {
         if (_nutritionStacks is null)
             return 0;
@@ -57,7 +59,7 @@ public class BlockEntityCompostPile : BlockEntity
             )
             return false;
         
-        int room = MAX_STACK_SIZE - TotalQty;
+        int room = MAX_STACK_SIZE - NutritionQty;
         if(room < 1)
             return false;
 
