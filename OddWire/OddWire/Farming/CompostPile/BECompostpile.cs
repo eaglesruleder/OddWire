@@ -60,11 +60,33 @@ public class BlockEntityCompostPile : BlockEntity
         int room = MAX_STACK_SIZE - TotalQty;
         if(room < 1)
             return false;
+
+        int actualStackSize = slot.StackSize;
+        int adjustedStackSize = actualStackSize;
+        int adjustedStackRatio = 1;
+        if (slot.MaxSlotStackSize != 64)
+        {
+            adjustedStackRatio = 64 / slot.MaxSlotStackSize;
+            adjustedStackSize = actualStackSize * adjustedStackRatio;
+        }
+
+        while
+           (actualStackSize > 0 
+        &&  adjustedStackSize > room
+            )
+        {
+            actualStackSize--;
+            adjustedStackSize -= adjustedStackRatio;
+        }
         
-        accepted = slot.StackSize > room ? room : slot.StackSize;
+        if(actualStackSize < 1)
+            return false;
+        
         _nutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
-        _nutritionStacks[nutritionProps.FoodCategory] = cur + accepted;
+        _nutritionStacks[nutritionProps.FoodCategory] = cur + adjustedStackSize;
         MarkDirty(true);
+        
+        accepted = actualStackSize;
         return true;
     }
 
