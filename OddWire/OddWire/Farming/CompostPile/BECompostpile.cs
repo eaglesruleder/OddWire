@@ -6,9 +6,9 @@ using Vintagestory.API.Datastructures;
 namespace OddWire.GameContent;
 public class BlockEntityCompostPile : BlockEntity
 {
-    private const int MAX_BROWNS = 64 * 3;
-    private const int MAX_NUTRITION_SIZE = 64;
-    private const int MAX_INOCULUM_SIZE = 16;
+    private const int MAX_INPUT_BROWNS = 64 * 3;
+    private const int MAX_INPUT_NUTRITION = 64;
+    private const int MAX_INPUT_INOCULUM = 16;
     private const int SOUR_PER_INOCULUM = 2;
     private const int ROT_PER_INOCULUM = 4;
     
@@ -70,7 +70,7 @@ public class BlockEntityCompostPile : BlockEntity
             )
             return false;
         
-        int room = MAX_NUTRITION_SIZE - NutritionQty;
+        int room = MAX_INPUT_NUTRITION - NutritionQty;
         if(room < 1)
             return false;
         
@@ -96,7 +96,7 @@ public class BlockEntityCompostPile : BlockEntity
     private bool TryAddBrowns(ItemSlot slot, out int accepted)
     {
         accepted = 0;
-        int room = MAX_BROWNS - _brownsQty;
+        int room = MAX_INPUT_BROWNS - _brownsQty;
         if (room < 1
         ||  slot.Itemstack?.Item?.Code != "drygrass"
             )
@@ -114,7 +114,7 @@ public class BlockEntityCompostPile : BlockEntity
     private bool TryAddInoculum(ItemSlot slot, out int accepted)
     {
         accepted = 0;
-        int room = MAX_INOCULUM_SIZE - _inoculumQty;
+        int room = MAX_INPUT_INOCULUM - _inoculumQty;
         if(room < 1)
             return false;
 
