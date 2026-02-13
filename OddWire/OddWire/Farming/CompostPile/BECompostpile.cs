@@ -9,11 +9,18 @@ public class BlockEntityCompostPile : BlockEntity
     private const int MAX_INPUT_BROWNS = 64 * 3;
     private const int MAX_INPUT_NUTRITION = 64;
     private const int MAX_INPUT_INOCULUM = 16;
+    
     private const int SOUR_PER_INOCULUM = 2;
     private const int ROT_PER_INOCULUM = 4;
     
-    private int _brownsQty = 0;
-    private int _inoculumQty = 0;
+    private const int BROWNS_PER_COMPOST = 16;
+    private const int NUTRITION_PER_COMPOST = 8;
+    private const float BASE_COMPOST_CHANCE = 0.33f;
+    
+    private double _prevTimeComposted;
+    
+    private int _brownsQty;
+    private int _inoculumQty;
     private Dictionary<EnumFoodCategory, int>? _nutritionStacks;
     public int NutritionQty
     { get {
@@ -30,6 +37,8 @@ public class BlockEntityCompostPile : BlockEntity
     {
         base.Initialize(api);
 
+        _prevTimeComposted = Api.World.Calendar.TotalHours;
+        
         _nutritionStacks = new();
 
         if (api.Side == EnumAppSide.Server)
@@ -38,9 +47,72 @@ public class BlockEntityCompostPile : BlockEntity
 
     private void OnEvery3Seconds(float dt)
     {
-        // Placeholder: later convert categories into compost/sour/rot etc.
-        // Intentionally empty for now.
+        if (Api?.Side != EnumAppSide.Server
+        ||  _nutritionStacks is null
+        ||  _nutritionStacks.Count == 0
+            )
+            return;
+
+        int possibleMax = Math.Min
+            (_brownsQty / BROWNS_PER_COMPOST
+            ,NutritionQty / NUTRITION_PER_COMPOST
+            );
+
+        if (possibleMax < 1)
+            return;
+        
+        double totalHours = Api.World.Calendar.TotalHours;
+        
+        int transitions = (int)((totalHours - _prevTimeComposted) * GetCompostRate());
+        if (transitions < 1)
+            return;
+
+        _prevTimeComposted = totalHours;
+        
+        _brownsQty -= transitions * BROWNS_PER_COMPOST;
+        RemoveRandomNutrition(transitions * NUTRITION_PER_COMPOST);
+        _inoculumQty += transitions;
+
+        MarkDirty(true);
     }
+    
+    private float GetCompostRate()
+    {
+        if (_inoculumQty < 1)
+            return 0f;
+        
+        float inoculumFactor = Math.Clamp((float)_inoculumQty / MAX_INPUT_INOCULUM, 0.1f, 1f);
+        return BASE_COMPOST_CHANCE * inoculumFactor;
+    }
+
+    private void RemoveRandomNutrition(int amount)
+    {
+        if (amount <= 0
+        || _nutritionStacks is null
+        || _nutritionStacks.Count == 0
+            )
+            return;
+
+        var keys = new List<EnumFoodCategory>(_nutritionStacks.Keys);
+        var rand = Api.World.Rand;
+
+        for (int i = 0; i < amount; i++)
+        {
+            int index = rand.Next(keys.Count);
+            var key = keys[index];
+
+            _nutritionStacks[key]--;
+            if (_nutritionStacks[key] < 1)
+            {
+                _nutritionStacks.Remove(key);
+                keys.RemoveAt(index);
+
+                if (keys.Count < 1)
+                    break;
+            }
+        }
+    }
+
 
     public bool TryAdd(ItemSlot slot, out int accepted)
     {
@@ -158,6 +230,8 @@ public class BlockEntityCompostPile : BlockEntity
     {
         base.FromTreeAttributes(tree, worldAccessForResolve);
 
+        _prevTimeComposted = tree.GetDouble("_prevTimeComposted");
+        
         _brownsQty = tree.GetInt("_brownsQty");
         _inoculumQty = tree.GetInt("_inoculumQty");
         
@@ -175,6 +249,8 @@ public class BlockEntityCompostPile : BlockEntity
     {
         base.ToTreeAttributes(tree);
 
+        tree.SetDouble("_prevTimeComposted", _prevTimeComposted);
+        
         tree.SetInt("_brownsQty", _brownsQty);
         tree.SetInt("_inoculumQty", _inoculumQty);
         
