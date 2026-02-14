@@ -8,9 +8,14 @@ using Vintagestory.GameContent;
 namespace OddWire.GameContent;
 public class BlockEntityCompostPile : BlockEntity
 {
-    private const int MAX_INPUT_BROWNS = 64 * 3;
-    private const int MAX_INPUT_NUTRITION = 64;
-    private const int MAX_INPUT_INOCULUM = 16;
+    private const int BROWNS_MAXQTY = 64 * 3;
+    private const int BROWNS_MAXINPUT = 16;
+    
+    private const int NUTRITION_MAXQTY = 64;
+    private const int NUTRITION_MAXINPUT = 8;
+    
+    private const int INOCULUM_MAXQTY = 16;
+    private const int INOCULUM_MAXINPUT = 4;
     
     private const int SOUR_PER_INOCULUM = 2;
     private const int ROT_PER_INOCULUM = 4;
@@ -105,6 +110,112 @@ public class BlockEntityCompostPile : BlockEntity
             RegisterGameTickListener(OnEvery3Seconds, 3000);
     }
 
+    public bool TryAdd(ItemSlot slot, out int accepted)
+    {
+        accepted = 0;
+        if (slot.StackSize < 1)
+            return false;
+
+        if (TryAddNutrition(slot, out accepted)
+        ||  TryAddBrowns(slot, out accepted)
+        ||  TryAddInoculum(slot, out accepted)
+            )
+        {
+            MarkDirty(true);
+            return accepted > 0;
+        }
+        
+        return false;
+    }
+
+    private bool TryAddNutrition(ItemSlot slot, out int accepted)
+    {
+        accepted = 0;
+        
+        var nutritionProps = slot.Itemstack?.Collectible?.NutritionProps;
+        if (_nutritionStacks is null
+        ||  nutritionProps is null
+            )
+            return false;
+        
+        int room = NUTRITION_MAXQTY - NutritionQty;
+        if(room < 1)
+            return false;
+        
+        int ratio = 1;
+        if (slot.Itemstack?.Collectible?.MaxStackSize != 64)
+            ratio = Math.Max(64 / slot.Itemstack.Collectible.MaxStackSize, 1);
+        
+        if (slot.StackSize < ratio)
+            return false;
+                
+        int adjustedStackSize = slot.StackSize / ratio;
+        int adjustedAccept = Math.Max(adjustedStackSize > room ? room : adjustedStackSize, NUTRITION_MAXINPUT);
+        
+        _nutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
+        _nutritionStacks[nutritionProps.FoodCategory] = cur + adjustedAccept;
+        
+        accepted = adjustedAccept * ratio;
+        return true;
+    }
+
+    private bool TryAddBrowns(ItemSlot slot, out int accepted)
+    {
+        accepted = 0;
+        int room = BROWNS_MAXQTY - _brownsQty;
+        if (room < 1
+        ||  slot.Itemstack?.Item?.Code != "game:drygrass"
+            )
+            return false;
+        
+        accepted = Math.Min(slot.StackSize > room ? room : slot.StackSize, BROWNS_MAXINPUT);
+
+        _brownsQty += accepted;
+        
+        return true;
+    }
+
+    private bool TryAddInoculum(ItemSlot slot, out int accepted)
+    {
+        accepted = 0;
+        int room = INOCULUM_MAXQTY - _inoculumQty;
+        if(room < 1)
+            return false;
+
+        string code = slot.Itemstack?.Item?.Code;
+        if (code is null)
+            return false;
+        
+        if(code == "game:compost")
+        {
+            accepted = Math.Min(slot.StackSize > room ? room : slot.StackSize, INOCULUM_MAXINPUT);
+
+            _inoculumQty += accepted;
+            return true;
+        }
+
+        if (code == "oddwire:sourcompost"
+        ||  code == "game:rot"
+           )
+        {
+            int ratio = code == "oddwire:sourcompost" ? SOUR_PER_INOCULUM : ROT_PER_INOCULUM;
+            
+            if (slot.StackSize < ratio)
+                return false;
+                
+            int adjustedStackSize = slot.StackSize / ratio;
+            int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, INOCULUM_MAXINPUT);
+
+            _inoculumQty += adjustedAccept;
+            accepted = adjustedAccept * ratio;
+            return true;
+        }
+
+        return false;
+    }
+    
+    
+    
     private void OnEvery3Seconds(float dt)
     {
         if (Api?.Side != EnumAppSide.Server)
@@ -126,14 +237,12 @@ public class BlockEntityCompostPile : BlockEntity
 
         // Don't simulate absurdly large jumps, cap at 2 weeks
         dtHours = Math.Min(dtHours, 24 * 14);
-
-        ClimateCondition conds = Api.World.BlockAccessor.GetClimateAt(Pos, EnumGetClimateMode.ForSuppliedDate_TemperatureRainfallOnly, totalHours / Api.World.Calendar.HoursPerDay);
-        float rainfall = Math.Clamp(conds?.Rainfall ?? 0, 0f, 1f);
         
         bool skyExposed = Api.World.BlockAccessor.GetRainMapHeightAt(Pos.X, Pos.Z) <= Pos.Y;
         if (skyExposed)
         {
-            float wetGain = rainfall * (float)(dtHours / 24) * RAIN_TO_MOISTURE_PER_DAY;
+            ClimateCondition conds = Api.World.BlockAccessor.GetClimateAt(Pos, EnumGetClimateMode.ForSuppliedDate_TemperatureRainfallOnly, totalHours / Api.World.Calendar.HoursPerDay);
+            float wetGain = Math.Clamp(conds?.Rainfall ?? 0, 0f, 1f) * (float)(dtHours / 24) * RAIN_TO_MOISTURE_PER_DAY;
             _moisture01 = Math.Clamp(_moisture01 + wetGain, 0f, 1f);
         }
 
@@ -157,7 +266,7 @@ public class BlockEntityCompostPile : BlockEntity
         float envTemp = GetEnvTemperature(totalHours, skyExposed, out _);
         float tempFactor = GetTemperatureFactor(envTemp);
         float moistureFactor = GetMoistureFactor(_moisture01);
-        float inoculumFactor = Math.Clamp((float)_inoculumQty / MAX_INPUT_INOCULUM, 0.1f, 1f);
+        float inoculumFactor = Math.Clamp((float)_inoculumQty / INOCULUM_MAXQTY, 0.1f, 1f);
 
         return BASE_COMPOST_CHANCE * inoculumFactor * tempFactor * moistureFactor;
     }
@@ -220,118 +329,6 @@ public class BlockEntityCompostPile : BlockEntity
         }
     }
 
-
-    public bool TryAdd(ItemSlot slot, out int accepted)
-    {
-        accepted = 0;
-        if (slot.StackSize < 1)
-            return false;
-
-        if (TryAddNutrition(slot, out accepted)
-        ||  TryAddBrowns(slot, out accepted)
-        ||  TryAddInoculum(slot, out accepted)
-            )
-        {
-            MarkDirty(true);
-            return accepted > 0;
-        }
-        
-        return false;
-    }
-
-    private bool TryAddNutrition(ItemSlot slot, out int accepted)
-    {
-        accepted = 0;
-        
-        var nutritionProps =  slot.Itemstack?.Collectible?.NutritionProps;
-        if (_nutritionStacks is null
-        ||  nutritionProps is null
-            )
-            return false;
-        
-        int room = MAX_INPUT_NUTRITION - NutritionQty;
-        if(room < 1)
-            return false;
-        
-        int ratio = 1;
-        if (slot.MaxSlotStackSize != 64)
-            ratio = Math.Max(64 / slot.MaxSlotStackSize, 1);
-        
-        if (slot.StackSize < ratio)
-            return false;
-                
-        int adjustedStackSize = slot.StackSize / ratio;
-        int adjustedAccept = adjustedStackSize > room 
-        ?   room
-        :   adjustedStackSize;
-        
-        _nutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
-        _nutritionStacks[nutritionProps.FoodCategory] = cur + adjustedAccept;
-        
-        accepted = adjustedAccept * ratio;
-        return true;
-    }
-
-    private bool TryAddBrowns(ItemSlot slot, out int accepted)
-    {
-        accepted = 0;
-        int room = MAX_INPUT_BROWNS - _brownsQty;
-        if (room < 1
-        ||  slot.Itemstack?.Item?.Code != "drygrass"
-            )
-            return false;
-        
-        accepted = slot.StackSize > room 
-        ?   room
-        :   slot.StackSize;
-
-        _brownsQty += accepted;
-        
-        return true;
-    }
-
-    private bool TryAddInoculum(ItemSlot slot, out int accepted)
-    {
-        accepted = 0;
-        int room = MAX_INPUT_INOCULUM - _inoculumQty;
-        if(room < 1)
-            return false;
-
-        string code = slot.Itemstack?.Item?.Code;
-        if (code is null)
-            return false;
-        
-        if(code == "compost")
-        {
-            accepted = slot.StackSize > room 
-            ?   room
-            :   slot.StackSize;
-
-            _inoculumQty += accepted;
-            return true;
-        }
-
-        if (code == "sourcompost"
-        ||  code == "rot"
-           )
-        {
-            int ratio = code == "sourcompost" ? SOUR_PER_INOCULUM : ROT_PER_INOCULUM;
-            
-            if (slot.StackSize < ratio)
-                return false;
-                
-            int adjustedStackSize = slot.StackSize / ratio;
-            int adjustedAccept = adjustedStackSize > room 
-            ?   room
-            :   adjustedStackSize;
-
-            _inoculumQty += adjustedAccept;
-            accepted = adjustedAccept * ratio;
-            return true;
-        }
-
-        return false;
-    }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
     {
