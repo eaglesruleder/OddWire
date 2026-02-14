@@ -8,12 +8,15 @@ using Vintagestory.GameContent;
 namespace OddWire.GameContent;
 public class BlockEntityCompostPile : BlockEntity
 {
+    private const int BROWNS_INIT = 16;
     private const int BROWNS_MAXQTY = 64 * 3;
     private const int BROWNS_MAXINPUT = 16;
     
+    private const int NUTRITION_INIT = 16;
     private const int NUTRITION_MAXQTY = 64;
     private const int NUTRITION_MAXINPUT = 8;
     
+    private const int INOCULUM_INIT = 2;
     private const int INOCULUM_MAXQTY = 16;
     private const int INOCULUM_MAXINPUT = 4;
     
@@ -108,6 +111,17 @@ public class BlockEntityCompostPile : BlockEntity
 
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery3Seconds, 3000);
+    }
+
+    public override void OnBlockPlaced(ItemStack byItemStack = null)
+    {
+        base.OnBlockPlaced(byItemStack);
+
+        _brownsQty = BROWNS_INIT;
+        _nutritionStacks ??= new Dictionary<EnumFoodCategory, int>();
+        _nutritionStacks.Clear();
+        _nutritionStacks[EnumFoodCategory.Unknown] = NUTRITION_INIT;
+        _inoculumQty = INOCULUM_INIT;
     }
 
     public bool TryAdd(ItemSlot slot, out int accepted)

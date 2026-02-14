@@ -5,17 +5,17 @@
       "O": {
         "type": "item",
         "code": "sourcompost",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -31,17 +31,17 @@
       "O": {
         "type": "item",
         "code": "game:fruit-*",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -57,17 +57,17 @@
       "O": {
         "type": "item",
         "code": "game:pickledvegetable-*",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -83,17 +83,17 @@
       "O": {
         "type": "item",
         "code": "game:rawcassava-*",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -109,17 +109,17 @@
       "O": {
         "type": "item",
         "code": "game:vegetable-*",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -135,17 +135,17 @@
       "O": {
         "type": "item",
         "code": "game:insect-*",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -161,17 +161,17 @@
       "O": {
         "type": "item",
         "code": "game:legume-*",
-        "quantity": 16
+        "quantity": 1
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -187,17 +187,17 @@
       "O": {
         "type": "item",
         "code": "game:pickledlegume-*",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -213,17 +213,17 @@
       "O": {
         "type": "item",
         "code": "game:grain-*",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -239,17 +239,17 @@
       "O": {
         "type": "item",
         "code": "game:flour-*",
-        "quantity": 32
+        "quantity": 16
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -265,17 +265,17 @@
       "O": {
         "type": "item",
         "code": "game:dough-*",
-        "quantity": 16
+        "quantity": 1
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -296,12 +296,12 @@
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -317,17 +317,17 @@
       "O": {
         "type": "item",
         "code": "game:bread-*",
-        "quantity": 16
+        "quantity": 1
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -343,17 +343,17 @@
       "O": {
         "type": "item",
         "code": "game:butter-*",
-        "quantity": 16
+        "quantity": 1
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -374,12 +374,12 @@
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -395,17 +395,17 @@
       "O": {
         "type": "item",
         "code": "game:cheese-*-1slice",
-        "quantity": 16
+        "quantity": 1
       },
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -426,12 +426,12 @@
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -452,12 +452,12 @@
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
@@ -478,12 +478,12 @@
       "C": {
         "type": "item",
         "code": "game:compost",
-        "quantity": 16
+        "quantity": 1
       },
       "G": {
         "type": "item",
         "code": "game:drygrass",
-        "quantity": 32
+        "quantity": 16
       }
     },
     "width": 3,
