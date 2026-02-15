@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
@@ -374,7 +378,62 @@ public class BlockEntityCompostPile : BlockEntity
             }
         }
     }
+    
+    public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
+    {
+        double totalHours = Api?.World?.Calendar?.TotalHours ?? 0;
+        bool skyExposed = Api?.World?.BlockAccessor != null && Api.World.BlockAccessor.GetRainMapHeightAt(Pos.X, Pos.Z) <= Pos.Y;
 
+        float envTemp = 0;
+        bool inGreenhouse = false;
+        if (Api?.World is not null)
+            envTemp = GetEnvTemperature(totalHours, skyExposed, out inGreenhouse);
+
+        dsc.AppendLine(Lang.Get("Temperature: {0:0.#}°C", envTemp));
+        if (inGreenhouse)
+            dsc.AppendLine(Lang.Get("greenhousetempbonus"));
+
+        float moisturePct = (float)Math.Round(_moisture01 * 100f, 0);
+        string moistureColor = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, Math.Max(0, moisturePct))]);
+        dsc.AppendLine(Lang.Get("Moisture: <font color=\"#{0}\">{1}%</font>", moistureColor, moisturePct));
+
+        dsc.AppendLine();
+
+        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _brownsQty, BROWNS_MAXQTY));
+        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", NutritionQty, NUTRITION_MAXQTY));
+        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inoculumQty, INOCULUM_MAXQTY));
+
+        // Consider removing
+        if (_nutritionStacks?.Count > 0)
+        {
+            var parts = _nutritionStacks
+                .Where(kvp => kvp.Value > 0)
+                .OrderByDescending(kvp => kvp.Value)
+                .Select(kvp => $"{kvp.Key}:{kvp.Value}")
+                .ToArray();
+
+            if (parts.Length > 0)
+                dsc.AppendLine(Lang.Get("Nutrition mix: {0}", string.Join(", ", parts)));
+        }
+
+        dsc.AppendLine();
+
+        int possibleMax = Math.Min(
+            _brownsQty / BROWNS_PER_COMPOST,
+            NutritionQty / NUTRITION_PER_COMPOST
+            );
+
+        float ratePerHour = Api?.World != null ? GetCompostRate(totalHours) : 0f;
+
+        // Show why the rate is what it is.
+        float tempFactor = GetTemperatureFactor(envTemp);
+        float moistureFactor = GetMoistureFactor(_moisture01);
+        float inoculumFactor = Math.Clamp((float)_inoculumQty / INOCULUM_MAXQTY, 0.1f, 1f);
+
+        dsc.AppendLine(Lang.Get("Compost rate: {0:0.00}/hr", ratePerHour));
+        dsc.AppendLine(Lang.Get("Factors: Inoculum {0:0.00} × Temp {1:0.00} × Moisture {2:0.00}", inoculumFactor, tempFactor, moistureFactor));
+        dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
+    }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
     {
