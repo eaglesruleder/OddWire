@@ -3,8 +3,38 @@
 	class: "oddwirefarming.compostpile.block",
 	entityClass: "oddwirefarming.compostpile.blockentity",
 	behaviors: [ { name: "UnstableFalling" } ],
-	shape: { base: "farming/compostpile/compostpile-1" },
-	creativeinventory: { "general": ["*"], "decorative": ["*"] },
+	shape: { base: "farming/compostpile/compostpile-{size}" },
+	"variantgroups": [
+		{ code:"size", states: ["#1", "#2", "#3", "#4", "#5"] }
+	],
+	dropsByType: {
+		"*-#1": [
+			{type: "block"
+			,code: "compostpile"
+			,quantity: { avg: 1 }
+			}],
+		"*-#2": [
+			{type: "block"
+			,code: "compostpile"
+			,quantity: { avg: 2 }
+			}],
+		"*-#3": [
+			{type: "block"
+			,code: "compostpile"
+			,quantity: { avg: 3 }
+			}],
+		"*-#4": [
+			{type: "block"
+			,code: "compostpile"
+			,quantity: { avg: 4 }
+			}],
+		"*-#5": [
+			{type: "block"
+			,code: "compostpile"
+			,quantity: { avg: 5 }
+			}],
+		},
+	creativeinventory: { "general": ["*"] },
 	blockmaterial: "Soil",
 	replaceable: 200,
 	maxStackSize: 1,
@@ -17,13 +47,49 @@
 	sidesolid: { all: false },
 	emitsideao: { all: false },
 	sideopaque: { all: false },
-	collisionbox: {
-		x1: 0, y1: 0, z1: 0,
-		x2: 1, y2: 0.9375, z2: 1
+	collisionboxByType: {
+		"compostpile-#1": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.2, z2: 0.9375
+		},
+		"compostpile-#2": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.4, z2: 0.9375
+		},
+		"compostpile-#3": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.6, z2: 0.9375
+		},
+		"compostpile-#4": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.6, z2: 0.9375
+		},
+		"compostpile-#5": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.8, z2: 0.9375
+		},
 	},
-	selectionbox: {
-		x1: 0, y1: 0, z1: 0,
-		x2: 1, y2: 0.9375, z2: 1
+	selectionboxByType: {
+		"compostpile-#1": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.2, z2: 0.9375
+		},
+		"compostpile-#2": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.4, z2: 0.9375
+		},
+		"compostpile-#3": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.6, z2: 0.9375
+		},
+		"compostpile-#4": {
+			x1: 0, y1: 0, z1: 0,
+			x2: 1, y2: 0.6, z2: 1
+		},
+		"compostpile-#5": {
+			x1: 0, y1: 0, z1: 0,
+			x2: 1, y2: 0.8, z2: 1
+		},
 	},
 	combustibleProps: {
 		burnTemperature: 600,

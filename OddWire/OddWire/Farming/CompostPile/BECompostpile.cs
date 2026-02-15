@@ -99,6 +99,18 @@ public class BlockEntityCompostPile : BlockEntity
 
         return temp;
     }
+
+    public void UpdateShapeStackSize() => SetShapeStackSize(_brownsQty + NutritionQty + _inoculumQty);
+    public void SetShapeStackSize(int stackSize)
+    {
+        AssetLocation loc = Block.CodeWithVariant("size", $"#{Math.Ceiling((float)stackSize / 64):0}");
+        Block block = Api.World.GetBlock(loc);
+        if (block == null)
+            return;
+
+        Api.World.BlockAccessor.ExchangeBlock(block.Id, Pos);
+        Block = block;
+    }
     
     
     public override void Initialize(ICoreAPI api)
@@ -116,12 +128,31 @@ public class BlockEntityCompostPile : BlockEntity
     public override void OnBlockPlaced(ItemStack byItemStack = null)
     {
         base.OnBlockPlaced(byItemStack);
-
-        _brownsQty = BROWNS_INIT;
+        
+        int stackSize = ResolvePlacedStackSize(byItemStack.Block?.Code ?? byItemStack.Item.Code);
+        
+        _brownsQty = BROWNS_INIT * stackSize;
         _nutritionStacks ??= new Dictionary<EnumFoodCategory, int>();
         _nutritionStacks.Clear();
-        _nutritionStacks[EnumFoodCategory.Unknown] = NUTRITION_INIT;
-        _inoculumQty = INOCULUM_INIT;
+        _nutritionStacks[EnumFoodCategory.Unknown] = NUTRITION_INIT * stackSize;
+        _inoculumQty = INOCULUM_INIT * stackSize;
+        
+        UpdateShapeStackSize();
+    }
+    
+    private int ResolvePlacedStackSize(AssetLocation? itemCode)
+    {
+        if (itemCode is null)
+            return 1;
+
+        string[] pathParts = itemCode.ToString().Split('-');
+        if (pathParts.Length < 2
+        || !int.TryParse(pathParts[^1], out int stackSize)
+        ||  stackSize < 1
+           )
+            return 1;
+
+        return stackSize;
     }
 
     public bool TryAdd(ItemSlot slot, out int accepted)
@@ -135,6 +166,7 @@ public class BlockEntityCompostPile : BlockEntity
         ||  TryAddInoculum(slot, out accepted)
             )
         {
+            UpdateShapeStackSize();
             MarkDirty(true);
             return accepted > 0;
         }
