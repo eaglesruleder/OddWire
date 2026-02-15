@@ -21,8 +21,9 @@ public class BlockEntityCompostPile : BlockEntity
     private const int NUTRITION_MAXINPUT = 8;
     
     private const int INOCULUM_INIT = 2;
-    private const int INOCULUM_MAXQTY = 16;
+    private const int INOCULUM_MAXQTY = 64;
     private const int INOCULUM_MAXINPUT = 4;
+    private const int INOCULUM_MAXINPUTQTY = 16;
     
     private const int SOUR_PER_INOCULUM = 2;
     private const int ROT_PER_INOCULUM = 4;
@@ -55,6 +56,9 @@ public class BlockEntityCompostPile : BlockEntity
             result += kvp.Value;
         return result;
     } }
+
+    private static float GetInoculumFactor(int inoculumQty) =>
+        Math.Clamp((float)inoculumQty / INOCULUM_MAXQTY, 0.1f, 1f);
     
     private static float GetTemperatureFactor(float tempC)
     {
@@ -66,6 +70,21 @@ public class BlockEntityCompostPile : BlockEntity
         return 0.10f;
     }
 
+    private float GetNutritionFactor()
+    {
+        if (_nutritionStacks is null
+        ||  _nutritionStacks?.Count < 1
+            )
+            return 0;
+
+        JsonObject? speedByCat = Block.Attributes?["nutritionSpeedByCategory"];
+
+        float weighted = 0f;
+        foreach (var kvp in _nutritionStacks)
+            weighted += (speedByCat?[kvp.Key.ToString()]?.AsFloat(1f) ?? 1f) * kvp.Value;
+        return weighted / NUTRITION_MAXQTY;
+    }
+    
     private static float GetMoistureFactor(float moisture01)
     {
         if (moisture01 <= 0.05f)
@@ -92,8 +111,8 @@ public class BlockEntityCompostPile : BlockEntity
         {
             var room = Api.ModLoader.GetModSystem<RoomRegistry>()?.GetRoomForPosition(Pos.UpCopy());
             if (room != null
-                &&  room.SkylightCount > room.NonSkylightCount
-                &&  room.ExitCount == 0
+            &&  room.SkylightCount > room.NonSkylightCount
+            &&  room.ExitCount == 0
                )
             {
                 inGreenhouse = true;
@@ -107,6 +126,9 @@ public class BlockEntityCompostPile : BlockEntity
     public void UpdateShapeStackSize() => SetShapeStackSize(_brownsQty + NutritionQty + _inoculumQty);
     public void SetShapeStackSize(int stackSize)
     {
+        if (Api.Side != EnumAppSide.Server)
+            return;
+        
         AssetLocation loc = Block.CodeWithVariant("size", $"#{Math.Ceiling((float)stackSize / 64):0}");
         Block block = Api.World.GetBlock(loc);
         if (block == null)
@@ -120,10 +142,8 @@ public class BlockEntityCompostPile : BlockEntity
     public override void Initialize(ICoreAPI api)
     {
         base.Initialize(api);
-
-        _prevTimeComposted = Api.World.Calendar.TotalHours;
         
-        _nutritionStacks = new();
+        _nutritionStacks ??= new();
 
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery3Seconds, 3000);
@@ -142,6 +162,8 @@ public class BlockEntityCompostPile : BlockEntity
         _inoculumQty = INOCULUM_INIT * stackSize;
         
         UpdateShapeStackSize();
+        
+        _prevTimeComposted = Api.World.Calendar.TotalHours;
     }
     
     private int ResolvePlacedStackSize(AssetLocation? itemCode)
@@ -200,7 +222,7 @@ public class BlockEntityCompostPile : BlockEntity
             return false;
                 
         int adjustedStackSize = slot.StackSize / ratio;
-        int adjustedAccept = Math.Max(adjustedStackSize > room ? room : adjustedStackSize, NUTRITION_MAXINPUT);
+        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, NUTRITION_MAXINPUT);
         
         _nutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
         _nutritionStacks[nutritionProps.FoodCategory] = cur + adjustedAccept;
@@ -214,7 +236,7 @@ public class BlockEntityCompostPile : BlockEntity
         accepted = 0;
         int room = BROWNS_MAXQTY - _brownsQty;
         if (room < 1
-        ||  slot.Itemstack?.Item?.Code != "game:drygrass"
+        ||  slot.Itemstack?.Item?.Code.ToString() != "game:drygrass"
             )
             return false;
         
@@ -228,11 +250,11 @@ public class BlockEntityCompostPile : BlockEntity
     private bool TryAddInoculum(ItemSlot slot, out int accepted)
     {
         accepted = 0;
-        int room = INOCULUM_MAXQTY - _inoculumQty;
+        int room = INOCULUM_MAXINPUTQTY - _inoculumQty;
         if(room < 1)
             return false;
 
-        string code = slot.Itemstack?.Item?.Code;
+        string code = slot.Itemstack?.Item?.Code.ToString();
         if (code is null)
             return false;
         
@@ -281,18 +303,13 @@ public class BlockEntityCompostPile : BlockEntity
         if (_prevTimeMoistureUpdated < 0)
             _prevTimeMoistureUpdated = totalHours;
 
-        double dtHours = totalHours - _prevTimeMoistureUpdated;
-        if (dtHours <= 0.1)
-            return;
-
-        // Don't simulate absurdly large jumps, cap at 2 weeks
-        dtHours = Math.Min(dtHours, 24 * 14);
+        float dtDays = (float)Math.Min((totalHours - _prevTimeMoistureUpdated)/24, 14);
         
         bool skyExposed = Api.World.BlockAccessor.GetRainMapHeightAt(Pos.X, Pos.Z) <= Pos.Y;
         if (skyExposed)
         {
             ClimateCondition conds = Api.World.BlockAccessor.GetClimateAt(Pos, EnumGetClimateMode.ForSuppliedDate_TemperatureRainfallOnly, totalHours / Api.World.Calendar.HoursPerDay);
-            float wetGain = Math.Clamp(conds?.Rainfall ?? 0, 0f, 1f) * (float)(dtHours / 24) * RAIN_TO_MOISTURE_PER_DAY;
+            float wetGain = Math.Clamp(conds?.Rainfall ?? 0, 0f, 1f) * dtDays * RAIN_TO_MOISTURE_PER_DAY;
             _moisture01 = Math.Clamp(_moisture01 + wetGain, 0f, 1f);
         }
 
@@ -300,10 +317,11 @@ public class BlockEntityCompostPile : BlockEntity
         float tempDryMultiplier = Math.Clamp(0.5f + envTemp / 40f, 0.2f, 2.0f);
         float shelterMultiplier = (skyExposed ? 1.0f : 0.75f) * (inGreenhouse ? 0.85f : 1.0f);
 
-        float dryLoss = (float)(dtHours / 24.0) * DRY_OUT_PER_DAY_AT_20C * tempDryMultiplier * shelterMultiplier;
+        float dryLoss = dtDays * DRY_OUT_PER_DAY_AT_20C * tempDryMultiplier * shelterMultiplier;
         _moisture01 = Math.Clamp(_moisture01 - dryLoss, 0f, 1f);
 
         _prevTimeMoistureUpdated = totalHours;
+        MarkDirty();
     }
     
     private float GetCompostRate(double totalHours)
@@ -312,13 +330,13 @@ public class BlockEntityCompostPile : BlockEntity
             return 0f;
 
         bool skyExposed = Api.World.BlockAccessor.GetRainMapHeightAt(Pos.X, Pos.Z) <= Pos.Y;
-
         float envTemp = GetEnvTemperature(totalHours, skyExposed, out _);
-        float tempFactor = GetTemperatureFactor(envTemp);
-        float moistureFactor = GetMoistureFactor(_moisture01);
-        float inoculumFactor = Math.Clamp((float)_inoculumQty / INOCULUM_MAXQTY, 0.1f, 1f);
-
-        return BASE_COMPOST_CHANCE * inoculumFactor * tempFactor * moistureFactor;
+        return
+            BASE_COMPOST_CHANCE
+        *   GetInoculumFactor(_inoculumQty)
+        *   GetTemperatureFactor(envTemp)
+        *   GetMoistureFactor(_moisture01)
+        *   GetNutritionFactor();
     }
 
     private void ProcessCompost(double totalHours)
@@ -328,26 +346,28 @@ public class BlockEntityCompostPile : BlockEntity
             )
             return;
 
-        int possibleMax = Math.Min
+        int room = INOCULUM_MAXQTY - _inoculumQty;
+        int available = Math.Min
             (_brownsQty / BROWNS_PER_COMPOST
             ,NutritionQty / NUTRITION_PER_COMPOST
             );
 
-        if (possibleMax < 1)
+        if (room < 1
+        ||  available < 1
+            )
             return;
         
         int transitions = (int)((totalHours - _prevTimeComposted) * GetCompostRate(totalHours));
         if (transitions < 1)
             return;
 
-        transitions = Math.Min(transitions, possibleMax);
-
-        _prevTimeComposted = totalHours;
+        transitions = Math.Min(transitions, Math.Min(room,available));
         
         _brownsQty -= transitions * BROWNS_PER_COMPOST;
         RemoveRandomNutrition(transitions * NUTRITION_PER_COMPOST);
         _inoculumQty += transitions;
 
+        _prevTimeComposted = totalHours;
         MarkDirty(true);
     }
 
@@ -416,23 +436,22 @@ public class BlockEntityCompostPile : BlockEntity
                 dsc.AppendLine(Lang.Get("Nutrition mix: {0}", string.Join(", ", parts)));
         }
 
-        dsc.AppendLine();
-
         int possibleMax = Math.Min(
             _brownsQty / BROWNS_PER_COMPOST,
             NutritionQty / NUTRITION_PER_COMPOST
             );
+        dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
+
+        dsc.AppendLine();
 
         float ratePerHour = Api?.World != null ? GetCompostRate(totalHours) : 0f;
-
-        // Show why the rate is what it is.
-        float tempFactor = GetTemperatureFactor(envTemp);
-        float moistureFactor = GetMoistureFactor(_moisture01);
-        float inoculumFactor = Math.Clamp((float)_inoculumQty / INOCULUM_MAXQTY, 0.1f, 1f);
-
-        dsc.AppendLine(Lang.Get("Compost rate: {0:0.00}/hr", ratePerHour));
-        dsc.AppendLine(Lang.Get("Factors: Inoculum {0:0.00} × Temp {1:0.00} × Moisture {2:0.00}", inoculumFactor, tempFactor, moistureFactor));
-        dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
+        if (ratePerHour <= 0)
+            ratePerHour = 0.00001f;
+        
+        dsc.AppendLine(Lang.Get("Compost time: {0:0.00}hr", 1f/ratePerHour));
+        dsc.AppendLine(Lang.Get("Factors: Inoculum {0:0}% × Temp {1:0}% × Moisture {2:0}% × Nutrition {3:0}%"
+            ,100f*GetInoculumFactor(_inoculumQty), 100f*GetTemperatureFactor(envTemp), 100f*GetMoistureFactor(_moisture01), 100f*GetNutritionFactor())
+            );
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
@@ -442,7 +461,6 @@ public class BlockEntityCompostPile : BlockEntity
         _prevTimeComposted = tree.GetDouble("_prevTimeComposted");
         _prevTimeMoistureUpdated = tree.GetDouble("_prevTimeMoistureUpdated");
         _moisture01 = tree.GetFloat("_moisture01", DEFAULT_MOISTURE);
-
         
         _brownsQty = tree.GetInt("_brownsQty");
         _inoculumQty = tree.GetInt("_inoculumQty");
@@ -464,14 +482,13 @@ public class BlockEntityCompostPile : BlockEntity
         tree.SetDouble("_prevTimeComposted", _prevTimeComposted);
         tree.SetDouble("_prevTimeMoistureUpdated", _prevTimeMoistureUpdated);
         tree.SetFloat("_moisture01", _moisture01);
-
         
         tree.SetInt("_brownsQty", _brownsQty);
         tree.SetInt("_inoculumQty", _inoculumQty);
         
+        tree.SetInt("_nutritionStacks.Count", _nutritionStacks?.Count ?? 0);
         if (_nutritionStacks is not null)
         {
-            tree.SetInt("_nutritionStacks.Count", _nutritionStacks.Count);
             int i = 0;
             foreach (var stack in _nutritionStacks)
             {
