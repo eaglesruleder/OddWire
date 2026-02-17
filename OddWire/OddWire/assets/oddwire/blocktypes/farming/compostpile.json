@@ -16,37 +16,11 @@
 	"variantgroups": [
 		{ code:"size", states: ["#1", "#2", "#3", "#4", "#5"] }
 	],
-	dropsByType: {
-		"*-#1": [
-			{type: "block"
-			,code: "compostpile"
-			,quantity: { avg: 1 }
-			}],
-		"*-#2": [
-			{type: "block"
-			,code: "compostpile"
-			,quantity: { avg: 2 }
-			}],
-		"*-#3": [
-			{type: "block"
-			,code: "compostpile"
-			,quantity: { avg: 3 }
-			}],
-		"*-#4": [
-			{type: "block"
-			,code: "compostpile"
-			,quantity: { avg: 4 }
-			}],
-		"*-#5": [
-			{type: "block"
-			,code: "compostpile"
-			,quantity: { avg: 5 }
-			}],
-		},
+	drops: [],
 	creativeinventory: { "general": ["*"] },
 	blockmaterial: "Soil",
 	replaceable: 200,
-	maxStackSize: 1,
+	maxStackSize: 32,
 	lightAbsorption: 1,
 	textures: {
 		"block": { base: "farming/compostpile-normal" },
@@ -115,6 +89,17 @@
 	tpHandTransform: {
 		translation: { x: -1.7, y: -0.95, z: -0.69 },
 		rotation: { x: 12, y: 14, z: -81 },
-		scale: 0.36
+		scale: 0.5
+	},
+	fpHandTransform: {
+		translation: { x: -1.7, y: -0.95, z: -0.69 },
+		rotation: { x: 12, y: 14, z: -81 },
+		scale: 0.5
+	},
+	guiTransform: {
+		translation: { x: 0, y: -5, z: 0 },
+	},
+	groundTransform: {
+		scale: 3.5
 	}
 }

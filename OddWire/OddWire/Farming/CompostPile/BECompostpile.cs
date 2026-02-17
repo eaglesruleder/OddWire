@@ -139,6 +139,51 @@ public class BlockEntityCompostPile : BlockEntity
     }
     
     
+    public bool CanHarvest(out int compostPileQty, out int compostQty)
+    {
+        int bulkPortions = Math.Min(_brownsQty / BROWNS_INIT, NutritionQty / NUTRITION_INIT);
+        compostPileQty = Math.Min(bulkPortions, _inoculumQty / INOCULUM_INIT);
+        compostQty = Math.Max(_inoculumQty - bulkPortions*INOCULUM_INIT, 0);
+        return _inoculumQty > 0;
+    }
+    
+    public void HarvestCompostPile(int qty, float dropQuantityMultiplier)
+    {
+        Block spawnBlock = Api.World.GetBlock(new AssetLocation("oddwire:compostpile-#1"));
+        
+        int remaining = (int)(qty * dropQuantityMultiplier);
+        while (remaining > 0)
+        {
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, 32)+1);
+            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
+            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
+            remaining -= spawnNow;
+        }
+        
+        _brownsQty -= BROWNS_INIT * qty;
+        RemoveRandomNutrition(NUTRITION_INIT * qty);
+        _inoculumQty -= INOCULUM_INIT * qty;
+        MarkDirty();
+    }
+
+    public void HarvestCompost(int qty, float dropQuantityMultiplier)
+    {
+        Item spawnItem = Api.World.GetItem(new AssetLocation("game:compost"));
+        
+        int remaining = (int)(qty * dropQuantityMultiplier);
+        while (remaining > 0)
+        {
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, 32)+1);
+            ItemStack stack = new ItemStack(spawnItem, spawnNow);
+            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
+            remaining -= spawnNow;
+        }
+        
+        _inoculumQty -= qty;
+        MarkDirty();
+    }
+    
+    
     public override void Initialize(ICoreAPI api)
     {
         base.Initialize(api);
@@ -152,33 +197,21 @@ public class BlockEntityCompostPile : BlockEntity
     public override void OnBlockPlaced(ItemStack byItemStack = null)
     {
         base.OnBlockPlaced(byItemStack);
+
+        int.TryParse(Block.LastCodePart().Substring(1), out int stackBonus);
+        stackBonus--;
+        if(stackBonus < 1)
+            stackBonus = 0;
         
-        int stackSize = ResolvePlacedStackSize(byItemStack.Block?.Code ?? byItemStack.Item.Code);
-        
-        _brownsQty = BROWNS_INIT * stackSize;
+        _brownsQty = BROWNS_INIT + stackBonus * 44;
         _nutritionStacks ??= new Dictionary<EnumFoodCategory, int>();
         _nutritionStacks.Clear();
-        _nutritionStacks[EnumFoodCategory.Unknown] = NUTRITION_INIT * stackSize;
-        _inoculumQty = INOCULUM_INIT * stackSize;
+        _nutritionStacks[EnumFoodCategory.Unknown] = NUTRITION_INIT + stackBonus * 12;
+        _inoculumQty = INOCULUM_INIT + stackBonus * 8;
         
         UpdateShapeStackSize();
         
         _prevTimeComposted = Api.World.Calendar.TotalHours;
-    }
-    
-    private int ResolvePlacedStackSize(AssetLocation? itemCode)
-    {
-        if (itemCode is null)
-            return 1;
-
-        string[] pathParts = itemCode.ToString().Split('-');
-        if (pathParts.Length < 2
-        || !int.TryParse(pathParts[^1], out int stackSize)
-        ||  stackSize < 1
-           )
-            return 1;
-
-        return stackSize;
     }
 
     public bool TryAdd(ItemSlot slot, out int accepted)
