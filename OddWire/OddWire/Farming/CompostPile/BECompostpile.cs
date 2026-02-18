@@ -34,12 +34,14 @@ public class BlockEntityCompostPile : BlockEntity
     
     private const int OUTPUT_MAXQTY = 48;
     
-    private const float BASE_COMPOST_CHANCE = 0.33f;
+    private const float BASE_COMPOST_RATE = 0.33f;
     private const float DEFAULT_MOISTURE = 0.55f;
     private const float OPTIMAL_MOISTURE = 0.60f;
     private const float RAIN_TO_MOISTURE_PER_DAY = 0.40f; 
     private const float DRY_OUT_PER_DAY_AT_20C = 0.25f; 
     private const float GREENHOUSE_TEMP_BONUS = 5f;
+
+    private const int HARVEST_MAX_PER_STACK = 8;
     
     
     private double _prevTimeComposted = -1;
@@ -134,8 +136,9 @@ public class BlockEntityCompostPile : BlockEntity
     {
         if (Api.Side != EnumAppSide.Server)
             return;
-        
-        AssetLocation loc = Block.CodeWithVariant("size", $"#{Math.Ceiling((float)stackSize / 64):0}");
+
+        int variantSize = Math.Clamp((int)Math.Ceiling((float)stackSize / 64), 1, 5);
+        AssetLocation loc = Block.CodeWithVariant("size", $"#{variantSize:0}");
         Block block = Api.World.GetBlock(loc);
         if (block == null)
             return;
@@ -143,15 +146,16 @@ public class BlockEntityCompostPile : BlockEntity
         Api.World.BlockAccessor.ExchangeBlock(block.Id, Pos);
         Block = block;
     }
-
-
-    public bool CanHarvest() => _inoculumQty > 0 || _outputQty > 0;
+    
+    
     public bool CanHarvest(out int compostPileQty, out int compostQty)
     {
         int bulkPortions = Math.Min(_brownsQty / BROWNS_INIT, NutritionQty / NUTRITION_INIT);
         compostPileQty = Math.Min(bulkPortions, _inoculumQty / INOCULUM_INIT);
         compostQty = _outputQty;
-        return CanHarvest();
+        return
+            compostPileQty > 0
+        ||  compostQty > 0;
     }
     
     public void HarvestCompostPile(int qty, float dropQuantityMultiplier)
@@ -161,7 +165,7 @@ public class BlockEntityCompostPile : BlockEntity
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, 32)+1);
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, HARVEST_MAX_PER_STACK))+1;
             ItemStack stack = new ItemStack(spawnBlock, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
@@ -180,7 +184,7 @@ public class BlockEntityCompostPile : BlockEntity
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, 32)+1);
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, HARVEST_MAX_PER_STACK))+1;
             ItemStack stack = new ItemStack(spawnItem, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
@@ -248,8 +252,9 @@ public class BlockEntityCompostPile : BlockEntity
     private bool TryAddNutrition(ItemSlot slot, out int accepted)
     {
         accepted = 0;
-        
-        var nutritionProps = slot.Itemstack?.Collectible?.NutritionProps;
+
+        var stackCollectible = slot.Itemstack?.Collectible;
+        var nutritionProps = stackCollectible?.NutritionProps;
         if (_nutritionStacks is null
         ||  nutritionProps is null
             )
@@ -260,8 +265,10 @@ public class BlockEntityCompostPile : BlockEntity
             return false;
         
         int ratio = 1;
-        if (slot.Itemstack?.Collectible?.MaxStackSize != 64)
-            ratio = Math.Max(64 / slot.Itemstack.Collectible.MaxStackSize, 1);
+        if (stackCollectible != null
+        &&  stackCollectible.MaxStackSize != 64
+            )
+            ratio = Math.Max(64 / stackCollectible.MaxStackSize, 1);
         
         if (slot.StackSize < ratio)
             return false;
@@ -355,7 +362,6 @@ public class BlockEntityCompostPile : BlockEntity
         _moisture01 = Math.Clamp(_moisture01 - dryLoss, 0f, 1f);
 
         _prevTimeMoistureUpdated = totalHours;
-        MarkDirty();
     }
     
     private float GetCompostRate(double totalHours)
@@ -368,7 +374,7 @@ public class BlockEntityCompostPile : BlockEntity
         bool skyExposed = Api.World.BlockAccessor.GetRainMapHeightAt(Pos.X, Pos.Z) <= Pos.Y;
         float envTemp = GetEnvTemperature(totalHours, skyExposed, out _);
         return
-            BASE_COMPOST_CHANCE
+            BASE_COMPOST_RATE
         *   GetInoculumFactor(_inoculumQty + _outputQty)
         *   GetTemperatureFactor(envTemp)
         *   GetMoistureFactor(_moisture01)
@@ -378,20 +384,23 @@ public class BlockEntityCompostPile : BlockEntity
     private void ProcessCompost(double totalHours)
     {
         double timePassed = totalHours - _prevTimeComposted;
-        int room = OUTPUT_MAXQTY - _outputQty;
         if (_nutritionStacks is null
         ||  _nutritionStacks.Count == 0
         ||  timePassed < 1
-        ||  room < 1
             )
             return;
         
+        _prevTimeComposted = totalHours;
+        
+        int room = OUTPUT_MAXQTY - _outputQty;
         int available = Math.Min(Math.Min
             (_brownsQty / BROWNS_PER_COMPOST
             ,NutritionQty / NUTRITION_PER_COMPOST
            ),_inoculumQty / INOCULUM_PER_COMPOST
             );
-        if (available < 1)
+        if (available < 1
+        ||  room < 1
+            )
             return;
 
         int transitions = (int)Math.Min(timePassed * GetCompostRate(totalHours), Math.Min(room,available));
@@ -405,7 +414,6 @@ public class BlockEntityCompostPile : BlockEntity
         _inoculumQty -= transitions * INOCULUM_PER_COMPOST;
         _outputQty += transitions;
         
-        _prevTimeComposted = totalHours;
         MarkDirty(true);
     }
 
@@ -418,14 +426,18 @@ public class BlockEntityCompostPile : BlockEntity
             return;
 
         var keys = new List<EnumFoodCategory>(_nutritionStacks.Keys);
-        var rand = Api.World.Rand;
-
-        for (int i = 0; i < amount; i++)
+        int nutritionRemaining = NutritionQty;
+        
+        int remaining = amount;
+        while (remaining > 0)
         {
-            int index = rand.Next(keys.Count);
+            int index = Api.World.Rand.Next(keys.Count);
             var key = keys[index];
 
-            _nutritionStacks[key]--;
+            int removeWeight = (int)Math.Ceiling(Api.World.Rand.NextSingle() * _nutritionStacks[key] / nutritionRemaining);
+            int removeQty = Api.World.Rand.Next(Math.Min(removeWeight, remaining)+1);
+            
+            _nutritionStacks[key] -= removeQty;
             if (_nutritionStacks[key] < 1)
             {
                 _nutritionStacks.Remove(key);
@@ -434,6 +446,8 @@ public class BlockEntityCompostPile : BlockEntity
                 if (keys.Count < 1)
                     break;
             }
+            nutritionRemaining -= removeQty;
+            remaining -= removeQty;
         }
     }
     

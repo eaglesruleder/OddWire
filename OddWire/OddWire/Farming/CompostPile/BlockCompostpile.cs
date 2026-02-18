@@ -4,6 +4,7 @@ using Vintagestory.API.MathTools;
 namespace OddWire.GameContent;
 public class BlockCompostPile : Block
 {
+    // ToDo: Runs client and server side. Fix?
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
         if (blockSel is null
@@ -27,14 +28,20 @@ public class BlockCompostPile : Block
 
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
-        if (world.Side == EnumAppSide.Server
-        &&  world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostPile be
+        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostPile be
         &&  be.CanHarvest(out int compostPileQty, out int compostQty)
             )
         {
-            be.HarvestCompostPile(world.Rand.Next(compostPileQty+1), dropQuantityMultiplier);
-            be.HarvestCompost(world.Rand.Next(compostQty+1), dropQuantityMultiplier);
-            be.UpdateShapeStackSize();
+            if (world.Side == EnumAppSide.Server)
+            {
+                if(compostPileQty > 0)
+                    be.HarvestCompostPile(world.Rand.Next(compostPileQty)+1, dropQuantityMultiplier);
+                
+                if(compostQty > 0)
+                    be.HarvestCompost(world.Rand.Next(compostQty)+1, dropQuantityMultiplier);
+                
+                be.UpdateShapeStackSize();
+            }
             return;
         }
         
