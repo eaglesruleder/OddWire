@@ -29,13 +29,16 @@ public class BlockCompostPile : Block
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
         if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostPile be
-        &&  be.CanHarvest(out int compostPileQty, out int compostQty)
+        &&  be.CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
             )
         {
             if (world.Side == EnumAppSide.Server)
             {
                 if(compostPileQty > 0)
                     be.HarvestCompostPile(world.Rand.Next(compostPileQty)+1, dropQuantityMultiplier);
+                
+                if(sourCompostQty > 0)
+                    be.HarvestSourCompost(world.Rand.Next(sourCompostQty)+1, dropQuantityMultiplier);
                 
                 if(compostQty > 0)
                     be.HarvestCompost(world.Rand.Next(compostQty)+1, dropQuantityMultiplier);

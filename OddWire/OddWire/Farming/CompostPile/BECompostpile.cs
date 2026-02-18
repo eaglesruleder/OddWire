@@ -29,6 +29,7 @@ public class BlockEntityCompostPile : BlockEntity
     private const int INOCULUM_MAXQTY = 16;
     private const int INOCULUM_MAXINPUT = 4;
     private const int INOCULUM_PER_COMPOST = 1;
+    
     private const int SOUR_PER_INOCULUM = 2;
     private const int ROT_PER_INOCULUM = 4;
     
@@ -148,13 +149,15 @@ public class BlockEntityCompostPile : BlockEntity
     }
     
     
-    public bool CanHarvest(out int compostPileQty, out int compostQty)
+    public bool CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
     {
         int bulkPortions = Math.Min(_brownsQty / BROWNS_INIT, NutritionQty / NUTRITION_INIT);
         compostPileQty = Math.Min(bulkPortions, _inoculumQty / INOCULUM_INIT);
+        sourCompostQty = Math.Max(_inoculumQty - bulkPortions * INOCULUM_INIT, 0);
         compostQty = _outputQty;
         return
             compostPileQty > 0
+        ||  sourCompostQty > 0
         ||  compostQty > 0;
     }
     
@@ -174,6 +177,23 @@ public class BlockEntityCompostPile : BlockEntity
         _brownsQty = Math.Max(_brownsQty - BROWNS_INIT * qty, 0);
         RemoveRandomNutrition(NUTRITION_INIT * qty);
         _inoculumQty = Math.Max(_inoculumQty - INOCULUM_INIT * qty, 0);
+        MarkDirty();
+    }
+    
+    public void HarvestSourCompost(int qty, float dropQuantityMultiplier)
+    {
+        Item spawnBlock = Api.World.GetItem(new AssetLocation("oddwire:sourcompost"));
+        
+        int remaining = (int)(qty * dropQuantityMultiplier);
+        while (remaining > 0)
+        {
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, HARVEST_MAX_PER_STACK))+1;
+            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
+            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
+            remaining -= spawnNow;
+        }
+        
+        _inoculumQty = Math.Max(_inoculumQty - SOUR_PER_INOCULUM * qty, 0);
         MarkDirty();
     }
 
