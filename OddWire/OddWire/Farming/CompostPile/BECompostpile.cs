@@ -222,7 +222,8 @@ public class BlockEntityCompostPile : BlockEntity
         _nutritionStacks ??= new();
 
         if (api.Side == EnumAppSide.Server)
-            RegisterGameTickListener(OnEvery3Seconds, 3000);
+            //  Around 10x per in-game hr
+            RegisterGameTickListener(OnEvery12Seconds, 12000);
     }
 
     public override void OnBlockPlaced(ItemStack byItemStack = null)
@@ -349,7 +350,7 @@ public class BlockEntityCompostPile : BlockEntity
     
     
     
-    private void OnEvery3Seconds(float dt)
+    private void OnEvery12Seconds(float dt)
     {
         if (Api?.Side != EnumAppSide.Server)
             return;
@@ -403,37 +404,51 @@ public class BlockEntityCompostPile : BlockEntity
 
     private void ProcessCompost(double totalHours)
     {
-        double timePassed = totalHours - _prevTimeComposted;
-        if (_nutritionStacks is null
-        ||  _nutritionStacks.Count == 0
-        ||  timePassed < 1
-            )
-            return;
-        
-        _prevTimeComposted = totalHours;
+        float brownsPortions = (float)_brownsQty / BROWNS_PER_COMPOST;
+        float nutritionPortions = (float)NutritionQty / NUTRITION_PER_COMPOST;
+        float bulkPortions = brownsPortions + nutritionPortions;
         
         int room = OUTPUT_MAXQTY - _outputQty;
-        int available = Math.Min(Math.Min
-            (_brownsQty / BROWNS_PER_COMPOST
-            ,NutritionQty / NUTRITION_PER_COMPOST
-           ),_inoculumQty / INOCULUM_PER_COMPOST
+        int available = Math.Min(
+            (int)Math.Floor(bulkPortions)
+            ,_inoculumQty / INOCULUM_PER_COMPOST
             );
         if (available < 1
         ||  room < 1
-            )
+           )
+        {
+            _prevTimeComposted = totalHours;
             return;
+        }
 
-        int transitions = (int)Math.Min(timePassed * GetCompostRate(totalHours), Math.Min(room,available));
+        int transitions = (int)Math.Min(totalHours - _prevTimeComposted * GetCompostRate(totalHours), Math.Min(room,available));
         if (transitions < 1)
             return;
+
+        float brownsRatio;
+        float minBrowns = Math.Max(transitions - nutritionPortions, 0f);
+        float maxBrowns = Math.Min(transitions, brownsPortions);
+        if (maxBrowns > minBrowns)
+        {
+        //  noise multi: 0 = deterministic, 0.5 = fairly random
+            float noise = 0.2f * (Api.World.Rand.NextSingle() - 0.5f) * (maxBrowns - minBrowns);
+            float mean = transitions * (brownsPortions / bulkPortions);
+            brownsRatio = Math.Clamp(mean + noise, minBrowns, maxBrowns);
+        }
+        else
+            brownsRatio = minBrowns;
+        float nutritionRatio = transitions - brownsRatio;
         
-        _brownsQty -= transitions * BROWNS_PER_COMPOST;
-        RemoveRandomNutrition(transitions * NUTRITION_PER_COMPOST);
+    //  (int) truncation slightly rewards player
+    //  At 0-2items per ~20hr in an 'organic' compost pile, idc
+        _brownsQty -= (int)Math.Min(brownsRatio * BROWNS_PER_COMPOST, _brownsQty);
+        RemoveRandomNutrition((int)(nutritionRatio * NUTRITION_PER_COMPOST));
         
-        // Handle failchance here
+    //  Handle failchance here
         _inoculumQty -= transitions * INOCULUM_PER_COMPOST;
         _outputQty += transitions;
         
+        _prevTimeComposted = totalHours;
         MarkDirty(true);
     }
 
