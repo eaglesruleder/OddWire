@@ -421,7 +421,7 @@ public class BlockEntityCompostPile : BlockEntity
             return;
         }
 
-        int transitions = (int)Math.Min(totalHours - _prevTimeComposted * GetCompostRate(totalHours), Math.Min(room,available));
+        int transitions = (int)Math.Min((totalHours - _prevTimeComposted) * GetCompostRate(totalHours), Math.Min(room,available));
         if (transitions < 1)
             return;
 
