@@ -401,14 +401,62 @@ public class BlockEntityCompostPile : BlockEntity
         *   GetMoistureFactor(_moisture01)
         *   GetNutritionFactor();
     }
+    
+    private float GetSpoilRate01(double totalHours)
+    {
+        bool skyExposed = Api.World.BlockAccessor.GetRainMapHeightAt(Pos.X, Pos.Z) <= Pos.Y;
+        float envTemp = GetEnvTemperature(totalHours, skyExposed, out _);
+        
+        JsonObject? spoilTemps = Block.Attributes?["spoilTempByCategory"];
+        if (spoilTemps is null
+        ||  _nutritionStacks is null
+        ||  _nutritionStacks.Count == 0
+            )
+            return 0f;
+        
+        float tempRisk01 = 0f;
+        foreach (var kvp in _nutritionStacks)
+        {
+            string keyA = kvp.Key.ToString();
+            float thresh =
+                spoilTemps[keyA]?.AsFloat(float.NaN)
+            ??  float.NaN;
+            if (float.IsNaN(thresh))
+                continue;
+
+            if (envTemp > thresh)
+            {
+                float risk = Math.Clamp((envTemp - thresh) / 15f, 0f, 1f);
+                if (risk > tempRisk01)
+                    tempRisk01 = risk;
+            }
+        }
+        
+        float moistRisk01 = 0f;
+        if (_moisture01 < 0.05f)
+            moistRisk01 = Math.Max(moistRisk01, 0.6f * Math.Clamp((0.05f - _moisture01) / 0.05f, 0f, 1f));
+        else if (_moisture01 > 0.85f)
+            moistRisk01 = Math.Clamp((_moisture01 - 0.85f) / 0.15f, 0f, 1f);
+        
+        return 1f - (1f - tempRisk01) * (1f - moistRisk01);
+    }
 
     private void ProcessCompost(double totalHours)
     {
+        if (_prevTimeComposted < 0)
+        {
+            _prevTimeComposted = totalHours;
+            return;
+        }
+
         float brownsPortions = (float)_brownsQty / BROWNS_PER_COMPOST;
         float nutritionPortions = (float)NutritionQty / NUTRITION_PER_COMPOST;
         float bulkPortions = brownsPortions + nutritionPortions;
         
         int room = OUTPUT_MAXQTY - _outputQty;
+
+        // NOTE: we still require inoculum present to do anything at all,
+        // even though spoiled transitions might not consume it.
         int available = Math.Min(
             (int)Math.Floor(bulkPortions)
             ,_inoculumQty / INOCULUM_PER_COMPOST
@@ -420,8 +468,9 @@ public class BlockEntityCompostPile : BlockEntity
             _prevTimeComposted = totalHours;
             return;
         }
-
-        int transitions = (int)Math.Min((totalHours - _prevTimeComposted) * GetCompostRate(totalHours), Math.Min(room,available));
+        
+        int transitions = (int)Math.Floor((totalHours - _prevTimeComposted) * GetCompostRate(totalHours));
+        transitions = Math.Min(transitions, Math.Min(room, available));
         if (transitions < 1)
             return;
 
@@ -444,9 +493,34 @@ public class BlockEntityCompostPile : BlockEntity
         _brownsQty -= (int)Math.Min(brownsRatio * BROWNS_PER_COMPOST, _brownsQty);
         RemoveRandomNutrition((int)(nutritionRatio * NUTRITION_PER_COMPOST));
         
-    //  Handle failchance here
-        _inoculumQty -= transitions * INOCULUM_PER_COMPOST;
-        _outputQty += transitions;
+        
+        float spoilRate = GetSpoilRate01(totalHours);
+        
+        int sourTransitions = (int)Math.Floor(transitions * spoilRate);
+        sourTransitions = Math.Clamp(sourTransitions, 0, transitions);
+        int compostTransitions = transitions - sourTransitions;
+        
+        if (compostTransitions > 0)
+        {
+            _inoculumQty -= Math.Min(compostTransitions, _inoculumQty);
+            _outputQty += compostTransitions;
+        }
+        
+        if (sourTransitions > 0)
+        {
+            int inoculumRoom = Math.Max(0, INOCULUM_MAXQTY - _inoculumQty);
+            int addInoculum = Math.Min(sourTransitions, inoculumRoom);
+            int addCompost = sourTransitions - addInoculum;
+
+            if (addInoculum > 0)
+                _inoculumQty += addInoculum;
+
+            if (addCompost > 0)
+            {
+                _inoculumQty -= Math.Min(addCompost, _inoculumQty);
+                _outputQty += addCompost;
+            }
+        }
         
         _prevTimeComposted = totalHours;
         MarkDirty(true);

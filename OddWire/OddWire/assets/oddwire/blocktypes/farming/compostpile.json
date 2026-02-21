@@ -10,6 +10,10 @@
 			"Dairy": 2.2,
 			"Grain": 2.3,
 			"Protein": 2.7
+		},
+		"spoilTempByCategory": {
+			"Dairy": 34,
+			"Protein": 32,
 		}
 	},
 	shape: { base: "farming/compostpile/compostpile-{size}" },
