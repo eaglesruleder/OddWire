@@ -38,12 +38,12 @@ public static class CompostpileSystem
         stackBonus--;
         if (stackBonus < 1) stackBonus = 0;
 
-        d.BrownsQty = m.Input.BrownsInit + stackBonus * m.Input.BrownsPlacedBonus;
+        d.BrownsQty = m.Browns.InitQty + stackBonus * m.Browns.PlacedBonusQty;
 
         d.NutritionStacks.Clear();
-        d.NutritionStacks[EnumFoodCategory.Unknown] = m.Input.NutritionInit + stackBonus * m.Input.NutritionPlacedBonus;
+        d.NutritionStacks[EnumFoodCategory.Unknown] = m.Nutrition.InitQty + stackBonus * m.Nutrition.PlacedBonusQty;
 
-        d.InoculumQty = m.Input.InoculumInit + stackBonus * m.Input.InoculumPlacedBonus;
+        d.InoculumQty = m.Inoculum.InitQty + stackBonus * m.Inoculum.PlacedBonusQty;
         d.OutputQty = 0;
 
         if (d.Moisture01 <= 0f && d.PrevTimeMoistureUpdated < 0)
@@ -52,9 +52,9 @@ public static class CompostpileSystem
 
     public static bool CanHarvest(CompostpileData d, CompostpileTuning m, out int compostPileQty, out int sourCompostQty, out int compostQty)
     {
-        int bulkPortions = Math.Min(d.BrownsQty / m.Input.BrownsInit, d.NutritionQty / m.Input.NutritionInit);
-        compostPileQty = Math.Min(bulkPortions, d.InoculumQty / m.Input.InoculumInit);
-        sourCompostQty = Math.Max(d.InoculumQty - bulkPortions * m.Input.InoculumInit, 0);
+        int bulkPortions = Math.Min(d.BrownsQty / m.Browns.InitQty, d.NutritionQty / m.Nutrition.InitQty);
+        compostPileQty = Math.Min(bulkPortions, d.InoculumQty / m.Inoculum.InitQty);
+        sourCompostQty = Math.Max(d.InoculumQty - bulkPortions * m.Inoculum.InitQty, 0);
         compostQty = d.OutputQty;
 
         return compostPileQty > 0 || sourCompostQty > 0 || compostQty > 0;
@@ -83,7 +83,7 @@ public static class CompostpileSystem
         var nutritionProps = collectible?.NutritionProps;
         if (nutritionProps is null) return false;
 
-        int room = m.Input.NutritionMaxQty - d.NutritionQty;
+        int room = m.Nutrition.MaxQty - d.NutritionQty;
         if (room < 1) return false;
 
         int ratio = 1;
@@ -93,7 +93,7 @@ public static class CompostpileSystem
         if (slot.StackSize < ratio) return false;
 
         int adjustedStackSize = slot.StackSize / ratio;
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, m.Input.NutritionMaxInput);
+        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, m.Nutrition.MaxInput);
 
         d.NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
         d.NutritionStacks[nutritionProps.FoodCategory] = cur + adjustedAccept;
@@ -106,13 +106,13 @@ public static class CompostpileSystem
     {
         accepted = 0;
 
-        int room = m.Input.BrownsMaxQty - d.BrownsQty;
+        int room = m.Browns.MaxQty - d.BrownsQty;
         if (room < 1) return false;
 
         if (slot.Itemstack?.Item?.Code.ToString() != "game:drygrass")
             return false;
 
-        accepted = Math.Min(slot.StackSize > room ? room : slot.StackSize, m.Input.BrownsMaxInput);
+        accepted = Math.Min(slot.StackSize > room ? room : slot.StackSize, m.Browns.MaxInput);
         d.BrownsQty += accepted;
 
         return accepted > 0;
@@ -122,22 +122,22 @@ public static class CompostpileSystem
     {
         accepted = 0;
 
-        int room = m.Input.InoculumMaxQty - d.InoculumQty;
+        int room = m.Inoculum.MaxQty - d.InoculumQty;
         if (room < 1) return false;
 
         string code = slot.Itemstack?.Item?.Code.ToString() ?? "";
         int ratio = code switch
         {
             "game:compost" => 1,
-            "oddwire:sourcompost" => m.Input.InoculumInPerSourAdded,
-            "game:rot" => m.Input.InoculumInPerRotAdded,
+            "oddwire:sourcompost" => m.Inoculum.InPerSourAdded,
+            "game:rot" => m.Inoculum.InPerRotAdded,
             _ => 0
         };
 
         if (ratio < 1 || slot.StackSize < ratio) return false;
 
         int adjustedStackSize = slot.StackSize / ratio;
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, m.Input.InoculumMaxInput);
+        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, m.Inoculum.MaxInput);
 
         d.InoculumQty += adjustedAccept;
         accepted = adjustedAccept * ratio;
@@ -172,7 +172,7 @@ public static class CompostpileSystem
     }
 
     public static float GetInoculumFactor01(CompostpileTuning m, int inoculumQty)
-        => Math.Clamp((float)inoculumQty / m.Input.InoculumMaxQty, 0.1f, 1f);
+        => Math.Clamp((float)inoculumQty / m.Inoculum.MaxQty, 0.1f, 1f);
 
     public static float GetTemperatureFactor01(float tempC)
     {
@@ -213,7 +213,7 @@ public static class CompostpileSystem
             weighted += mult * kvp.Value;
         }
 
-        return weighted / m.Input.NutritionMaxQty;
+        return weighted / m.Nutrition.MaxQty;
     }
 
     public static float GetCompostRatePerHour(ICoreAPI api, Block block, BlockPos pos, CompostpileData d, CompostpileTuning m, double totalHours)
@@ -272,14 +272,14 @@ public static class CompostpileSystem
     public static bool ProcessCompost(ICoreAPI api, Block block, BlockPos pos, CompostpileData d, CompostpileTuning m, double totalHours)
     {
         if (d.PrevTimeComposted < 0
-            || (d.InoculumQty >= m.Input.InoculumMaxQty && d.OutputQty >= m.Output.OutputMaxQty))
+            || (d.InoculumQty >= m.Inoculum.MaxQty && d.OutputQty >= m.Output.OutputMaxQty))
         {
             d.PrevTimeComposted = totalHours;
             return false;
         }
 
-        float brownsPortions = (float)d.BrownsQty / m.Input.BrownsInPerCompostPortion;
-        float nutritionPortions = (float)d.NutritionQty / m.Input.NutritionInPerCompostPortion;
+        float brownsPortions = (float)d.BrownsQty / m.Browns.InPerCompostPortion;
+        float nutritionPortions = (float)d.NutritionQty / m.Nutrition.InPerCompostPortion;
         float bulkPortions = brownsPortions + nutritionPortions;
 
         if (bulkPortions < 1f)
@@ -296,7 +296,7 @@ public static class CompostpileSystem
         int compostOutputPortions = transitions - sourOutputPortions;
 
         // Clamp sour to room, overflow into compost
-        int sourOutputRoomPortions = (m.Input.InoculumMaxQty - d.InoculumQty) / m.Output.InoculumOutPerSourPortion;
+        int sourOutputRoomPortions = (m.Inoculum.MaxQty - d.InoculumQty) / m.Output.InoculumOutPerSourPortion;
         if (sourOutputPortions > sourOutputRoomPortions)
         {
             int sourOverflowPortions = sourOutputPortions - sourOutputRoomPortions;
@@ -316,14 +316,14 @@ public static class CompostpileSystem
 
         // Bootstrap compost with sour transitions
         int inoculumAfterSourQty = d.InoculumQty + sourOutputPortions * m.Output.InoculumOutPerSourPortion;
-        int compostPossibleByInoculumPortions = inoculumAfterSourQty / m.Input.InoculumInPerCompostPortion;
+        int compostPossibleByInoculumPortions = inoculumAfterSourQty / m.Inoculum.InPerCompostPortion;
         if (compostOutputPortions > compostPossibleByInoculumPortions)
         {
             int overflowByInoculumLimitsPortions = compostOutputPortions - compostPossibleByInoculumPortions;
 
             int compostSubsidizedBySourPortions = Math.Min(
                 overflowByInoculumLimitsPortions * m.Output.InoculumOutPerSourPortion
-                / (m.Output.InoculumOutPerSourPortion + m.Input.InoculumInPerCompostPortion),
+                / (m.Output.InoculumOutPerSourPortion + m.Inoculum.InPerCompostPortion),
                 compostOutputRoomPortions
             );
 
@@ -353,15 +353,15 @@ public static class CompostpileSystem
 
         float nutritionRatio = actualTransitions - brownsRatio;
 
-        d.BrownsQty -= (int)Math.Min(brownsRatio * m.Input.BrownsInPerCompostPortion, d.BrownsQty);
-        RemoveRandomNutrition(api.World.Rand, d, (int)(nutritionRatio * m.Input.NutritionInPerCompostPortion));
+        d.BrownsQty -= (int)Math.Min(brownsRatio * m.Browns.InPerCompostPortion, d.BrownsQty);
+        RemoveRandomNutrition(api.World.Rand, d, (int)(nutritionRatio * m.Nutrition.InPerCompostPortion));
 
         d.InoculumQty = Math.Clamp(
             d.InoculumQty
             + sourOutputPortions * m.Output.InoculumOutPerSourPortion
-            - compostOutputPortions * m.Input.InoculumInPerCompostPortion,
+            - compostOutputPortions * m.Inoculum.InPerCompostPortion,
             0,
-            m.Input.InoculumMaxQty
+            m.Inoculum.MaxQty
         );
 
         d.OutputQty = Math.Clamp(

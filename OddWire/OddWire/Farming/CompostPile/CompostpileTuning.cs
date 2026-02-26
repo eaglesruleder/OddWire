@@ -1,68 +1,38 @@
 namespace OddWire.GameContent;
 
-public sealed class CompostpileInputTuning
+public sealed class CompostpileIngredientTuning
 {
-    public int BrownsInit { get; }
-    public int BrownsPlacedBonus { get; }
-    public int BrownsMaxQty { get; }
-    public int BrownsMaxInput { get; }
-    public int BrownsInPerCompostPortion { get; }
+    public string Name { get; }
+    public int InitQty { get; }
+    public int PlacedBonusQty { get; }
+    public int MaxQty { get; }
+    public int MaxInput { get; }
+    public int InPerCompostPortion { get; }
+    
+    public int InPerSourAdded { get; }
+    public int InPerRotAdded { get; }
 
-    public int NutritionInit { get; }
-    public int NutritionPlacedBonus { get; }
-    public int NutritionMaxQty { get; }
-    public int NutritionMaxInput { get; }
-    public int NutritionInPerCompostPortion { get; }
-
-    public int InoculumInit { get; }
-    public int InoculumPlacedBonus { get; }
-    public int InoculumMaxQty { get; }
-    public int InoculumMaxInput { get; }
-
-    public int InoculumInPerCompostPortion { get; }
-    public int InoculumInPerSourAdded { get; }
-    public int InoculumInPerRotAdded { get; }
-
-    public CompostpileInputTuning(
-        int brownsInit,
-        int brownsPlacedBonus,
-        int brownsMaxQty,
-        int brownsMaxInput,
-        int brownsInPerCompostPortion,
-        int nutritionInit,
-        int nutritionPlacedBonus,
-        int nutritionMaxQty,
-        int nutritionMaxInput,
-        int nutritionInPerCompostPortion,
-        int inoculumInit,
-        int inoculumPlacedBonus,
-        int inoculumMaxQty,
-        int inoculumMaxInput,
-        int inoculumInPerCompostPortion,
-        int inoculumInPerSourAdded,
-        int inoculumInPerRotAdded
+    public CompostpileIngredientTuning(
+        string name,
+        int initQty,
+        int placedBonusQty,
+        int maxQty,
+        int maxInput,
+        int inPerCompostPortion,
+        int inPerSourAdded = 1,
+        int inPerRotAdded = 1
     )
     {
-        BrownsInit = brownsInit;
-        BrownsPlacedBonus = brownsPlacedBonus;
-        BrownsMaxQty = brownsMaxQty;
-        BrownsMaxInput = brownsMaxInput;
-        BrownsInPerCompostPortion = brownsInPerCompostPortion;
+        Name = name;
 
-        NutritionInit = nutritionInit;
-        NutritionPlacedBonus = nutritionPlacedBonus;
-        NutritionMaxQty = nutritionMaxQty;
-        NutritionMaxInput = nutritionMaxInput;
-        NutritionInPerCompostPortion = nutritionInPerCompostPortion;
+        InitQty = initQty;
+        PlacedBonusQty = placedBonusQty;
+        MaxQty = maxQty;
+        MaxInput = maxInput;
+        InPerCompostPortion = inPerCompostPortion;
 
-        InoculumInit = inoculumInit;
-        InoculumPlacedBonus = inoculumPlacedBonus;
-        InoculumMaxQty = inoculumMaxQty;
-        InoculumMaxInput = inoculumMaxInput;
-
-        InoculumInPerCompostPortion = inoculumInPerCompostPortion;
-        InoculumInPerSourAdded = inoculumInPerSourAdded;
-        InoculumInPerRotAdded = inoculumInPerRotAdded;
+        InPerSourAdded = inPerSourAdded < 1 ? 1 : inPerSourAdded;
+        InPerRotAdded  = inPerRotAdded  < 1 ? 1 : inPerRotAdded;
     }
 }
 
@@ -87,10 +57,12 @@ public sealed class CompostpileProcessTuning
     )
     {
         BaseCompostRatePerHour = baseCompostRatePerHour;
+
         DefaultMoisture01 = defaultMoisture01;
         OptimalMoisture01 = optimalMoisture01;
         RainToMoisturePerDay = rainToMoisturePerDay;
         DryoutPerDayAt20C = dryoutPerDayAt20C;
+
         GreenhouseTempBonusC = greenhouseTempBonusC;
     }
 }
@@ -110,6 +82,7 @@ public sealed class CompostpileOutputTuning
     {
         OutputMaxQty = outputMaxQty;
         OutputOutPerCompostPortion = outputOutPerCompostPortion;
+
         InoculumOutPerSourPortion = inoculumOutPerSourPortion;
     }
 }
@@ -126,19 +99,27 @@ public sealed class CompostpileHarvestTuning
 
 public sealed class CompostpileTuning
 {
-    public CompostpileInputTuning Input { get; }
+    public CompostpileIngredientTuning Browns { get; }
+    public CompostpileIngredientTuning Nutrition { get; }
+    public CompostpileIngredientTuning Inoculum { get; }
+
     public CompostpileProcessTuning Process { get; }
     public CompostpileOutputTuning Output { get; }
     public CompostpileHarvestTuning Harvest { get; }
 
     public CompostpileTuning(
-        CompostpileInputTuning input,
+        CompostpileIngredientTuning browns,
+        CompostpileIngredientTuning nutrition,
+        CompostpileIngredientTuning inoculum,
         CompostpileProcessTuning process,
         CompostpileOutputTuning output,
         CompostpileHarvestTuning harvest
     )
     {
-        Input = input;
+        Browns = browns;
+        Nutrition = nutrition;
+        Inoculum = inoculum;
+
         Process = process;
         Output = output;
         Harvest = harvest;
@@ -147,28 +128,34 @@ public sealed class CompostpileTuning
 
 public static class CompostpileTuningModels
 {
-    public static readonly CompostpileTuning Default = new (
-        input: new CompostpileInputTuning(
-            brownsInit: 16,
-            brownsPlacedBonus: 44,
-            brownsMaxQty: 64 * 3,
-            brownsMaxInput: 16,
-            brownsInPerCompostPortion: 16,
+    public static readonly CompostpileTuning Default = new(
+        browns: new CompostpileIngredientTuning(
+            name: "browns",
+            initQty: 16,
+            placedBonusQty: 44,
+            maxQty: 64 * 3,
+            maxInput: 16,
+            inPerCompostPortion: 16
+        ),
+        nutrition: new CompostpileIngredientTuning(
+            name: "nutrition",
+            initQty: 16,
+            placedBonusQty: 12,
+            maxQty: 64,
+            maxInput: 8,
+            inPerCompostPortion: 8
+        ),
+        inoculum: new CompostpileIngredientTuning(
+            name: "inoculum",
+            initQty: 2,
+            placedBonusQty: 8,
+            maxQty: 16,
+            maxInput: 4,
+            inPerCompostPortion: 1,
 
-            nutritionInit: 16,
-            nutritionPlacedBonus: 12,
-            nutritionMaxQty: 64,
-            nutritionMaxInput: 8,
-            nutritionInPerCompostPortion: 8,
-
-            inoculumInit: 2,
-            inoculumPlacedBonus: 8,
-            inoculumMaxQty: 16,
-            inoculumMaxInput: 4,
-
-            inoculumInPerCompostPortion: 1,
-            inoculumInPerSourAdded: 2,
-            inoculumInPerRotAdded: 4
+            // inoculum-specific “add ratios” (source items per +1 inoculum)
+            inPerSourAdded: 2,
+            inPerRotAdded: 4
         ),
         process: new CompostpileProcessTuning(
             baseCompostRatePerHour: 0.33f,

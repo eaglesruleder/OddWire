@@ -63,9 +63,9 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _d.BrownsQty = Math.Max(_d.BrownsQty - Model.Input.BrownsInit * qty, 0);
-        RemoveRandomNutrition(Model.Input.NutritionInit * qty);
-        _d.InoculumQty = Math.Max(_d.InoculumQty - Model.Input.InoculumInit * qty, 0);
+        _d.BrownsQty = Math.Max(_d.BrownsQty - Model.Browns.InitQty * qty, 0);
+        RemoveRandomNutrition(Model.Nutrition.InitQty * qty);
+        _d.InoculumQty = Math.Max(_d.InoculumQty - Model.Inoculum.InitQty * qty, 0);
 
         MarkDirty();
     }
@@ -83,7 +83,7 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _d.InoculumQty = Math.Max(_d.InoculumQty - Model.Input.InoculumInPerSourAdded * qty, 0);
+        _d.InoculumQty = Math.Max(_d.InoculumQty - Model.Inoculum.InPerSourAdded * qty, 0);
         MarkDirty();
     }
 
@@ -201,9 +201,9 @@ public class BlockEntityCompostPile : BlockEntity
 
         dsc.AppendLine();
 
-        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _d.BrownsQty, Model.Input.BrownsMaxQty));
-        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _d.NutritionQty, Model.Input.NutritionMaxQty));
-        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _d.InoculumQty, Model.Input.InoculumMaxQty));
+        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _d.BrownsQty, Model.Browns.MaxQty));
+        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _d.NutritionQty, Model.Nutrition.MaxQty));
+        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _d.InoculumQty, Model.Inoculum.MaxQty));
         dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _d.OutputQty, Model.Output.OutputMaxQty));
 
         if (_d.NutritionStacks.Count > 0)
@@ -219,8 +219,8 @@ public class BlockEntityCompostPile : BlockEntity
         }
 
         int possibleMax = Math.Min(
-            _d.BrownsQty / Model.Input.BrownsInPerCompostPortion,
-            _d.NutritionQty / Model.Input.NutritionInPerCompostPortion
+            _d.BrownsQty / Model.Browns.InPerCompostPortion,
+            _d.NutritionQty / Model.Nutrition.InPerCompostPortion
         );
         dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
 
