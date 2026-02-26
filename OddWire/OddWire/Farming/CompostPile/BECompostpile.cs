@@ -16,32 +16,35 @@ public class BlockEntityCompostPile : BlockEntity
     private const int BROWNS_PLACED_BONUS = 44;
     private const int BROWNS_MAXQTY = 64 * 3;
     private const int BROWNS_MAXINPUT = 16;
-    private const int BROWNS_PER_COMPOST = 16;
+    private const int BROWNS_IN_PER_COMPOST_PORTIONS = 16;
     
     private const int NUTRITION_INIT = 16;
     private const int NUTRITION_PLACED_BONUS = 12;
     private const int NUTRITION_MAXQTY = 64;
     private const int NUTRITION_MAXINPUT = 8;
-    private const int NUTRITION_PER_COMPOST = 8;
+    private const int NUTRITION_IN_PER_COMPOST_PORTIONS = 8;
     
     private const int INOCULUM_INIT = 2;
     private const int INOCULUM_PLACED_BONUS = 8;
-    private const int INOCULUM_MAXQTY = 16;
+    private const int INOCULUM_MAX_QTY = 16;
     private const int INOCULUM_MAXINPUT = 4;
-    private const int INOCULUM_PER_COMPOST = 1;
+    private const int INOCULUM_IN_PER_COMPOST_PORTION = 1;
     
-    private const int SOUR_PER_INOCULUM = 2;
-    private const int ROT_PER_INOCULUM = 4;
+    private const int INOCULUM_INPER_SOURADDED = 2;
+    private const int INOCULUM_INPER_ROTADDED = 4;
     
-    private const int OUTPUT_MAXQTY = 48;
+    private const int OUTPUT_MAX_QTY = 48;
     
     private const float BASE_COMPOST_RATE = 0.33f;
     private const float DEFAULT_MOISTURE = 0.55f;
     private const float OPTIMAL_MOISTURE = 0.60f;
-    private const float RAIN_TO_MOISTURE_PER_DAY = 0.40f; 
-    private const float DRY_OUT_PER_DAY_AT_20C = 0.25f; 
+    private const float RAIN_TO_MOISTURE_PERDAY = 0.40f; 
+    private const float DRYOUT_PERDAY_AT20C = 0.25f; 
     private const float GREENHOUSE_TEMP_BONUS = 5f;
-
+    
+    private const int INOCULUM_OUT_PER_SOUR_PORTION = 1;
+    private const int OUTPUT_OUT_PER_COMPOST_PORTIONS = 1;
+    
     private const int HARVEST_MAX_PER_STACK = 8;
     
     
@@ -67,7 +70,7 @@ public class BlockEntityCompostPile : BlockEntity
 
     
     private static float GetInoculumFactor(int inoculumQty) =>
-        Math.Clamp((float)inoculumQty / INOCULUM_MAXQTY, 0.1f, 1f);
+        Math.Clamp((float)inoculumQty / INOCULUM_MAX_QTY, 0.1f, 1f);
     
     private static float GetTemperatureFactor(float tempC)
     {
@@ -193,7 +196,7 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
         
-        _inoculumQty = Math.Max(_inoculumQty - SOUR_PER_INOCULUM * qty, 0);
+        _inoculumQty = Math.Max(_inoculumQty - INOCULUM_INPER_SOURADDED * qty, 0);
         MarkDirty();
     }
 
@@ -323,15 +326,15 @@ public class BlockEntityCompostPile : BlockEntity
     private bool TryAddInoculum(ItemSlot slot, out int accepted)
     {
         accepted = 0;
-        int room = INOCULUM_MAXQTY - _inoculumQty;
+        int room = INOCULUM_MAX_QTY - _inoculumQty;
         if(room < 1)
             return false;
 
         string? code = slot.Itemstack?.Item?.Code.ToString();
         int ratio = code switch
             {"game:compost" => 1
-            ,"oddwire:sourcompost" => SOUR_PER_INOCULUM
-            ,"game:rot" => ROT_PER_INOCULUM
+            ,"oddwire:sourcompost" => INOCULUM_INPER_SOURADDED
+            ,"game:rot" => INOCULUM_INPER_ROTADDED
             ,_ => 0
             };
             
@@ -371,7 +374,7 @@ public class BlockEntityCompostPile : BlockEntity
         if (skyExposed)
         {
             ClimateCondition conds = Api.World.BlockAccessor.GetClimateAt(Pos, EnumGetClimateMode.ForSuppliedDate_TemperatureRainfallOnly, totalHours / Api.World.Calendar.HoursPerDay);
-            float wetGain = Math.Clamp(conds?.Rainfall ?? 0, 0f, 1f) * dtDays * RAIN_TO_MOISTURE_PER_DAY;
+            float wetGain = Math.Clamp(conds?.Rainfall ?? 0, 0f, 1f) * dtDays * RAIN_TO_MOISTURE_PERDAY;
             _moisture01 = Math.Clamp(_moisture01 + wetGain, 0f, 1f);
         }
 
@@ -379,7 +382,7 @@ public class BlockEntityCompostPile : BlockEntity
         float tempDryMultiplier = Math.Clamp(0.5f + envTemp / 40f, 0.2f, 2.0f);
         float shelterMultiplier = (skyExposed ? 1.0f : 0.75f) * (inGreenhouse ? 0.85f : 1.0f);
 
-        float dryLoss = dtDays * DRY_OUT_PER_DAY_AT_20C * tempDryMultiplier * shelterMultiplier;
+        float dryLoss = dtDays * DRYOUT_PERDAY_AT20C * tempDryMultiplier * shelterMultiplier;
         _moisture01 = Math.Clamp(_moisture01 - dryLoss, 0f, 1f);
 
         _prevTimeMoistureUpdated = totalHours;
@@ -401,8 +404,9 @@ public class BlockEntityCompostPile : BlockEntity
         *   GetMoistureFactor(_moisture01)
         *   GetNutritionFactor();
     }
-    
-    private float GetSpoilRate01(double totalHours)
+
+    private float GetSpoilRate01(double totalHours) => Math.Clamp(GetSpoilRate(totalHours), 0, 1);
+    private float GetSpoilRate(double totalHours)
     {
         bool skyExposed = Api.World.BlockAccessor.GetRainMapHeightAt(Pos.X, Pos.Z) <= Pos.Y;
         float envTemp = GetEnvTemperature(totalHours, skyExposed, out _);
@@ -443,84 +447,112 @@ public class BlockEntityCompostPile : BlockEntity
 
     private void ProcessCompost(double totalHours)
     {
-        if (_prevTimeComposted < 0)
+        if (_prevTimeComposted < 0
+        || (_inoculumQty >= INOCULUM_MAX_QTY
+        &&  _outputQty >= OUTPUT_MAX_QTY
+            ))
         {
             _prevTimeComposted = totalHours;
             return;
         }
 
-        float brownsPortions = (float)_brownsQty / BROWNS_PER_COMPOST;
-        float nutritionPortions = (float)NutritionQty / NUTRITION_PER_COMPOST;
+        float brownsPortions = (float)_brownsQty / BROWNS_IN_PER_COMPOST_PORTIONS;
+        float nutritionPortions = (float)NutritionQty / NUTRITION_IN_PER_COMPOST_PORTIONS;
         float bulkPortions = brownsPortions + nutritionPortions;
         
-        int room = OUTPUT_MAXQTY - _outputQty;
-
-        // NOTE: we still require inoculum present to do anything at all,
-        // even though spoiled transitions might not consume it.
-        int available = Math.Min(
-            (int)Math.Floor(bulkPortions)
-            ,_inoculumQty / INOCULUM_PER_COMPOST
-            );
-        if (available < 1
-        ||  room < 1
-           )
+        if (bulkPortions < 1)
         {
             _prevTimeComposted = totalHours;
             return;
         }
         
-        int transitions = (int)Math.Floor((totalHours - _prevTimeComposted) * GetCompostRate(totalHours));
-        transitions = Math.Min(transitions, Math.Min(room, available));
+        int transitions = (int)Math.Min((totalHours - _prevTimeComposted) * GetCompostRate(totalHours), bulkPortions);
         if (transitions < 1)
+        //  Dont update _prevTime, allows progress to accrue
             return;
+        
+    //  Scripted as clamp(sour){compost+=overflow}, clamp(compost){sour+=overflow}, bootstrap(compost){sour+=overflow}, clamp(sour)
+    //  Allows LARGE timelapses to completely fill inventory
+        int sourOutputPortions = (int)(transitions * GetSpoilRate01(totalHours));
+        int compostOutputPortions = transitions - sourOutputPortions;
+        
+    //  Clamp sour to room, overflow into compost
+        int sourOutputRoomPortions = (INOCULUM_MAX_QTY - _inoculumQty) / INOCULUM_OUT_PER_SOUR_PORTION;
+        if (sourOutputPortions > sourOutputRoomPortions)
+        {
+            int sourOverflowPortions = sourOutputPortions - sourOutputRoomPortions;
+            sourOutputPortions = sourOutputRoomPortions;
+            compostOutputPortions += sourOverflowPortions;
+        }
+        
+    //  Clamp output to room, overflow into sour
+        int compostOutputRoomPortions = (OUTPUT_MAX_QTY - _outputQty) / OUTPUT_OUT_PER_COMPOST_PORTIONS;
+        if (compostOutputPortions > compostOutputRoomPortions)
+        {
+            int compostOverflowPortions = compostOutputPortions - compostOutputRoomPortions;
+            compostOutputPortions = compostOutputRoomPortions;
+            sourOutputPortions += compostOverflowPortions;
+            compostOutputRoomPortions = 0;
+        }
+        
+    //  Bootstrap compost with sour transitions
+        int inoculumAfterSourQty = _inoculumQty + sourOutputPortions * INOCULUM_OUT_PER_SOUR_PORTION;
+        int compostPossibleByInoculumPortions = inoculumAfterSourQty / INOCULUM_IN_PER_COMPOST_PORTION;
+        if (compostOutputPortions > compostPossibleByInoculumPortions)
+        {
+            int overflowByInoculumLimitsPortions = compostOutputPortions - compostPossibleByInoculumPortions;
 
+            int compostSubsidizedBySourPortions =
+                Math.Min(
+                    overflowByInoculumLimitsPortions * INOCULUM_OUT_PER_SOUR_PORTION
+                /  (INOCULUM_OUT_PER_SOUR_PORTION + INOCULUM_IN_PER_COMPOST_PORTION)
+                    ,compostOutputRoomPortions
+                    );
+            
+            compostOutputPortions = compostPossibleByInoculumPortions + compostSubsidizedBySourPortions;
+            sourOutputPortions += overflowByInoculumLimitsPortions - compostSubsidizedBySourPortions;
+        }
+        
+        
+        int actualTransitions = compostOutputPortions + sourOutputPortions;
+        if (actualTransitions < 1)
+        //  Dont update _prevTime, allows progress to accrue
+            return;
+        
+        
         float brownsRatio;
-        float minBrowns = Math.Max(transitions - nutritionPortions, 0f);
-        float maxBrowns = Math.Min(transitions, brownsPortions);
+        float minBrowns = Math.Max(actualTransitions - nutritionPortions, 0f);
+        float maxBrowns = Math.Min(actualTransitions, brownsPortions);
+
         if (maxBrowns > minBrowns)
         {
         //  noise multi: 0 = deterministic, 0.5 = fairly random
             float noise = 0.2f * (Api.World.Rand.NextSingle() - 0.5f) * (maxBrowns - minBrowns);
-            float mean = transitions * (brownsPortions / bulkPortions);
+            float mean = actualTransitions * (brownsPortions / bulkPortions);
             brownsRatio = Math.Clamp(mean + noise, minBrowns, maxBrowns);
         }
         else
             brownsRatio = minBrowns;
-        float nutritionRatio = transitions - brownsRatio;
+
+        float nutritionRatio = actualTransitions - brownsRatio;
+        
         
     //  (int) truncation slightly rewards player
     //  At 0-2items per ~20hr in an 'organic' compost pile, idc
-        _brownsQty -= (int)Math.Min(brownsRatio * BROWNS_PER_COMPOST, _brownsQty);
-        RemoveRandomNutrition((int)(nutritionRatio * NUTRITION_PER_COMPOST));
-        
-        
-        float spoilRate = GetSpoilRate01(totalHours);
-        
-        int sourTransitions = (int)Math.Floor(transitions * spoilRate);
-        sourTransitions = Math.Clamp(sourTransitions, 0, transitions);
-        int compostTransitions = transitions - sourTransitions;
-        
-        if (compostTransitions > 0)
-        {
-            _inoculumQty -= Math.Min(compostTransitions, _inoculumQty);
-            _outputQty += compostTransitions;
-        }
-        
-        if (sourTransitions > 0)
-        {
-            int inoculumRoom = Math.Max(0, INOCULUM_MAXQTY - _inoculumQty);
-            int addInoculum = Math.Min(sourTransitions, inoculumRoom);
-            int addCompost = sourTransitions - addInoculum;
+        _brownsQty -= (int)Math.Min(brownsRatio * BROWNS_IN_PER_COMPOST_PORTIONS, _brownsQty);
+        RemoveRandomNutrition((int)(nutritionRatio * NUTRITION_IN_PER_COMPOST_PORTIONS));
 
-            if (addInoculum > 0)
-                _inoculumQty += addInoculum;
-
-            if (addCompost > 0)
-            {
-                _inoculumQty -= Math.Min(addCompost, _inoculumQty);
-                _outputQty += addCompost;
-            }
-        }
+        _inoculumQty = Math.Clamp
+           (_inoculumQty
+        +   sourOutputPortions * INOCULUM_OUT_PER_SOUR_PORTION
+        -   compostOutputPortions * INOCULUM_IN_PER_COMPOST_PORTION
+           ,0 ,INOCULUM_MAX_QTY
+           );
+        
+        _outputQty = Math.Clamp
+            (_outputQty + compostOutputPortions * OUTPUT_OUT_PER_COMPOST_PORTIONS
+            ,0 ,OUTPUT_MAX_QTY
+            );
         
         _prevTimeComposted = totalHours;
         MarkDirty(true);
@@ -582,8 +614,8 @@ public class BlockEntityCompostPile : BlockEntity
 
         dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _brownsQty, BROWNS_MAXQTY));
         dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", NutritionQty, NUTRITION_MAXQTY));
-        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inoculumQty, INOCULUM_MAXQTY));
-        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _outputQty, OUTPUT_MAXQTY));
+        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inoculumQty, INOCULUM_MAX_QTY));
+        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _outputQty, OUTPUT_MAX_QTY));
 
         // Consider removing
         if (_nutritionStacks?.Count > 0)
@@ -599,8 +631,8 @@ public class BlockEntityCompostPile : BlockEntity
         }
 
         int possibleMax = Math.Min(
-            _brownsQty / BROWNS_PER_COMPOST,
-            NutritionQty / NUTRITION_PER_COMPOST
+            _brownsQty / BROWNS_IN_PER_COMPOST_PORTIONS,
+            NutritionQty / NUTRITION_IN_PER_COMPOST_PORTIONS
             );
         dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
 
