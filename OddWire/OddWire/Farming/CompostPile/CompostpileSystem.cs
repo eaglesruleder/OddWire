@@ -8,26 +8,21 @@ namespace OddWire.GameContent;
 
 public sealed class CompostpileData
 {
-    public double PrevTimeComposted = -1;
     public double PrevTimeMoistureUpdated = -1;
-
     public float Moisture01;
 
+    public double PrevTimeComposted = -1;
     public int BrownsQty;
+    public readonly Dictionary<EnumFoodCategory, int> NutritionStacks = new();
+    public int NutritionQty
+    { get {
+        int sum = 0;
+        foreach (var kvp in NutritionStacks)
+            sum += kvp.Value;
+        return sum;
+    } }
     public int InoculumQty;
     public int OutputQty;
-
-    public readonly Dictionary<EnumFoodCategory, int> NutritionStacks = new();
-
-    public int NutritionQty
-    {
-        get
-        {
-            int sum = 0;
-            foreach (var kvp in NutritionStacks) sum += kvp.Value;
-            return sum;
-        }
-    }
 }
 
 public static class CompostpileSystem
@@ -36,7 +31,8 @@ public static class CompostpileSystem
     {
         int.TryParse(block.LastCodePart().Substring(1), out int stackBonus);
         stackBonus--;
-        if (stackBonus < 1) stackBonus = 0;
+        if (stackBonus < 1)
+            stackBonus = 0;
 
         d.BrownsQty = m.Browns.InitQty + stackBonus * m.Browns.PlacedBonusQty;
 
@@ -63,14 +59,14 @@ public static class CompostpileSystem
     public static bool TryAdd(ICoreAPI api, Block block, BlockPos pos, CompostpileData d, CompostpileTuning m, ItemSlot slot, out int accepted)
     {
         accepted = 0;
-        if (slot?.StackSize < 1) return false;
+        if (slot?.StackSize < 1)
+            return false;
 
         if (TryAddNutrition(m, d, slot, out accepted)
-            || TryAddBrowns(m, d, slot, out accepted)
-            || TryAddInoculum(m, d, slot, out accepted))
-        {
+        ||  TryAddBrowns(m, d, slot, out accepted)
+        ||  TryAddInoculum(m, d, slot, out accepted)
+            )
             return accepted > 0;
-        }
 
         return false;
     }
@@ -81,16 +77,19 @@ public static class CompostpileSystem
 
         var collectible = slot.Itemstack?.Collectible;
         var nutritionProps = collectible?.NutritionProps;
-        if (nutritionProps is null) return false;
+        if (nutritionProps is null)
+            return false;
 
         int room = m.Nutrition.MaxQty - d.NutritionQty;
-        if (room < 1) return false;
+        if (room < 1)
+            return false;
 
         int ratio = 1;
         if (collectible != null && collectible.MaxStackSize != 64)
             ratio = Math.Max(64 / collectible.MaxStackSize, 1);
 
-        if (slot.StackSize < ratio) return false;
+        if (slot.StackSize < ratio)
+            return false;
 
         int adjustedStackSize = slot.StackSize / ratio;
         int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, m.Nutrition.MaxInput);
@@ -123,18 +122,19 @@ public static class CompostpileSystem
         accepted = 0;
 
         int room = m.Inoculum.MaxQty - d.InoculumQty;
-        if (room < 1) return false;
+        if (room < 1)
+            return false;
 
         string code = slot.Itemstack?.Item?.Code.ToString() ?? "";
         int ratio = code switch
-        {
-            "game:compost" => 1,
-            "oddwire:sourcompost" => m.Inoculum.InPerSourAdded,
-            "game:rot" => m.Inoculum.InPerRotAdded,
-            _ => 0
-        };
+            {"game:compost" => 1
+            ,"oddwire:sourcompost" => m.Inoculum.InPerSourAdded
+            ,"game:rot" => m.Inoculum.InPerRotAdded
+            ,_ => 0
+            };
 
-        if (ratio < 1 || slot.StackSize < ratio) return false;
+        if (ratio < 1 || slot.StackSize < ratio)
+            return false;
 
         int adjustedStackSize = slot.StackSize / ratio;
         int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, m.Inoculum.MaxInput);
@@ -176,7 +176,7 @@ public static class CompostpileSystem
 
     public static float GetTemperatureFactor01(float tempC)
     {
-        if (tempC < 0) return 0.05f;
+        if (tempC <  0) return 0.05f;
         if (tempC < 10) return GameMath.Lerp(0.05f, 0.6f, (tempC - 0f) / 10f);
         if (tempC < 20) return GameMath.Lerp(0.6f, 1.0f, (tempC - 10f) / 10f);
         if (tempC < 55) return 1.0f;
@@ -204,7 +204,7 @@ public static class CompostpileSystem
         if (d.NutritionStacks.Count < 1)
             return 0f;
 
-        JsonObject speedByCat = block.Attributes?["nutritionSpeedByCategory"];
+        JsonObject? speedByCat = block.Attributes?["nutritionSpeedByCategory"];
 
         float weighted = 0f;
         foreach (var kvp in d.NutritionStacks)
@@ -240,7 +240,7 @@ public static class CompostpileSystem
         bool skyExposed = api.World.BlockAccessor.IsSkyExposed(pos);
         float envTemp = api.GetEnvironmentTemperatureC(pos, totalHours, skyExposed, m.Process.GreenhouseTempBonusC, out _);
 
-        JsonObject spoilTemps = block.Attributes?["spoilTempByCategory"];
+        JsonObject? spoilTemps = block.Attributes?["spoilTempByCategory"];
         if (spoilTemps is null || d.NutritionStacks.Count == 0)
             return 0f;
 
