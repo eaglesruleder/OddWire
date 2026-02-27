@@ -31,7 +31,8 @@ public sealed class CompostpileInventory
     public int NutritionQty
     { get {
         int sum = 0;
-        foreach (var kvp in NutritionStacks) sum += kvp.Value;
+        foreach (var kvp in NutritionStacks)
+            sum += kvp.Value;
         return sum;
     } }
 
@@ -119,7 +120,8 @@ public sealed class CompostpileInventory
 
     public float GetNutritionFactor01(Block block)
     {
-        if (NutritionStacks.Count < 1) return 0f;
+        if (NutritionStacks.Count < 1)
+            return 0f;
 
         JsonObject? speedByCat = block.Attributes?["nutritionSpeedByCategory"];
         float weighted = 0f;
@@ -139,7 +141,9 @@ public sealed class CompostpileInventory
         float envTemp = api.GetEnvironmentTemperatureC(pos, totalHours, skyExposed, Process.GreenhouseTempBonusC, out _);
 
         JsonObject? spoilTemps = block.Attributes?["spoilTempByCategory"];
-        if (spoilTemps is null || NutritionStacks.Count == 0)
+        if (spoilTemps is null
+        ||  NutritionStacks.Count == 0
+            )
             return 0f;
 
         float tempRisk01 = 0f;
@@ -288,7 +292,9 @@ public sealed class CompostpileInventory
     
     public void TryRemoveRandomNutrition(Random rand, int amount)
     {
-        if (amount <= 0 || NutritionStacks.Count == 0)
+        if (amount <= 0
+        ||  NutritionStacks.Count == 0
+            )
             return;
 
         var keys = new List<EnumFoodCategory>(NutritionStacks.Keys);
@@ -470,11 +476,9 @@ public sealed class CompostpileInventory
         tree.SetInt($"{key}.InoculumQty", InoculumQty);
         tree.SetInt($"{key}.OutputQty", OutputQty);
 
-        // nutrition stacks
-        var nutritionTree = new TreeAttribute();
-        foreach (var kvp in NutritionStacks)
-            nutritionTree.SetInt(kvp.Key.ToString(), kvp.Value);
-        tree[$"{key}.NutritionStacks"] = nutritionTree;
+        int nutritionLength = tree.GetInt($"{key}.NutritionStacks.Count");
+        for (int i = 0; i < nutritionLength; i++)
+            NutritionStacks[(EnumFoodCategory)tree.GetInt($"{key}.NutritionStacks<{i}>")] = tree.GetInt($"{key}.NutritionStacks[{i}]");
     }
 
     public void FromTreeAttributes(ITreeAttribute tree, string? key = null)
@@ -488,14 +492,15 @@ public sealed class CompostpileInventory
         InoculumQty = tree.GetInt($"{key}.InoculumQty");
         OutputQty = tree.GetInt($"{key}.OutputQty");
 
-        NutritionStacks.Clear();
-        var nutritionTree = tree[$"{key}.NutritionStacks"] as ITreeAttribute;
-        if (nutritionTree != null)
+        tree.SetInt($"{key}.NutritionStacks.Count", NutritionStacks?.Count ?? 0);
+        if (NutritionStacks is not null)
         {
-            foreach (var nutritionKey in nutritionTree.Values)
+            int i = 0;
+            foreach (var stack in NutritionStacks)
             {
-                if (Enum.TryParse(nutritionKey.ToString(), out EnumFoodCategory cat))
-                    NutritionStacks[cat] = nutritionTree.GetInt(nutritionKey.ToString());
+                tree.SetInt($"{key}.NutritionStacks<{i}>", (int)stack.Key);
+                tree.SetInt($"{key}.NutritionStacks[{i}]", stack.Value);
+                i++;
             }
         }
     }
