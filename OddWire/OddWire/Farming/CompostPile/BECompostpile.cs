@@ -187,7 +187,7 @@ public class BlockEntityCompostPile : BlockEntity
         float nutr = _inventory.GetNutritionFactor01(Block);
         dsc.AppendLine(Lang.Get(
             "Factors: Inoculum {0:0}% × Temp {1:0}% × Moisture {2:0}% × Nutrition {3:0}%",
-            100f * _inventory.GetInoculumFactor01(_inventory.InoculumQty + _inventory.OutputQty),
+            100f * _inventory.GetInoculumFactor01(),
             100f * _inventory.GetTemperatureFactor01(envTemp),
             100f * _inventory.GetMoistureFactor01(_inventory.Moisture01),
             100f * nutr

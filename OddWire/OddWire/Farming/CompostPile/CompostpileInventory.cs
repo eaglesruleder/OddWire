@@ -36,69 +36,8 @@ public sealed class CompostpileInventory
         return sum;
     } }
 
-    public CompostpileInventory
-        (CompostpileIngredient browns
-        ,CompostpileIngredient nutrition
-        ,CompostpileIngredient inoculum
-        ,CompostpileProcess process
-        ,CompostpileOutput output
-        ,CompostpileHarvest harvest
-        )
-    {
-        Browns = browns;
-        Nutrition = nutrition;
-        Inoculum = inoculum;
 
-        Process = process;
-        Output = output;
-        Harvest = harvest;
-    }
-
-    public static readonly CompostpileInventory Default = new(
-        browns: new CompostpileIngredient(
-            name: "browns",
-            initQty: 16,
-            placedBonusQty: 44,
-            maxQty: 64 * 3,
-            maxInput: 16,
-            inPerCompostPortion: 16,
-            requiredItemCode: "game:drygrass"
-        ),
-        nutrition: new CompostpileIngredient(
-            name: "nutrition",
-            initQty: 16,
-            placedBonusQty: 12,
-            maxQty: 64,
-            maxInput: 8,
-            inPerCompostPortion: 8
-        ),
-        inoculum: new CompostpileIngredient(
-            name: "inoculum",
-            initQty: 2,
-            placedBonusQty: 8,
-            maxQty: 16,
-            maxInput: 4,
-            inPerCompostPortion: 1,
-            inPerSourAdded: 2,
-            inPerRotAdded: 4
-        ),
-        process: new CompostpileProcess(
-            baseCompostRatePerHour: 0.33f,
-            defaultMoisture01: 0.55f,
-            optimalMoisture01: 0.60f,
-            rainToMoisturePerDay: 0.40f,
-            dryoutPerDayAt20C: 0.25f,
-            greenhouseTempBonusC: 5f
-        ),
-        output: new CompostpileOutput(
-            outputMaxQty: 48,
-            outputOutPerCompostPortion: 1,
-            inoculumOutPerSourPortion: 1
-        ),
-        harvest: new CompostpileHarvest(harvestMaxPerStack: 8)
-        );
-    
-    
+    #region RateHelpers
     public float GetCompostRatePerHour(ICoreAPI api, Block block, BlockPos pos, double totalHours)
     {
         if (InoculumQty < 1 && OutputQty < 1)
@@ -109,32 +48,15 @@ public sealed class CompostpileInventory
 
         return
             Process.BaseCompostRatePerHour
-            * Math.Clamp((float)(InoculumQty + OutputQty) / Inoculum.MaxQty, 0.1f, 1f)
-            * GetTemperatureFactor01(envTemp)
-            * GetMoistureFactor01(Moisture01)
-            * GetNutritionFactor01(block);
+        *   GetInoculumFactor01()
+        *   GetTemperatureFactor01(envTemp)
+        *   GetMoistureFactor01(Moisture01)
+        *   GetNutritionFactor01(block);
     }
 
     public float GetSpoilRate01(ICoreAPI api, Block block, BlockPos pos, double totalHours)
         => Math.Clamp(GetSpoilRate(api, block, pos, totalHours), 0f, 1f);
-
-    public float GetNutritionFactor01(Block block)
-    {
-        if (NutritionStacks.Count < 1)
-            return 0f;
-
-        JsonObject? speedByCat = block.Attributes?["nutritionSpeedByCategory"];
-        float weighted = 0f;
-
-        foreach (var kvp in NutritionStacks)
-        {
-            float mult = speedByCat?[kvp.Key.ToString()]?.AsFloat(1f) ?? 1f;
-            weighted += mult * kvp.Value;
-        }
-
-        return weighted / Nutrition.MaxQty;
-    }
-
+    
     public float GetSpoilRate(ICoreAPI api, Block block, BlockPos pos, double totalHours)
     {
         bool skyExposed = api.World.BlockAccessor.IsSkyExposed(pos);
@@ -143,7 +65,7 @@ public sealed class CompostpileInventory
         JsonObject? spoilTemps = block.Attributes?["spoilTempByCategory"];
         if (spoilTemps is null
         ||  NutritionStacks.Count == 0
-            )
+           )
             return 0f;
 
         float tempRisk01 = 0f;
@@ -168,9 +90,10 @@ public sealed class CompostpileInventory
 
         return 1f - (1f - tempRisk01) * (1f - moistureRisk01);
     }
-
-    public float GetInoculumFactor01(int inoculumQty)
-        => Math.Clamp((float)inoculumQty / Inoculum.MaxQty, 0.1f, 1f);
+    
+    
+    public float GetInoculumFactor01() =>
+        Math.Clamp((float)(InoculumQty + OutputQty) / (Inoculum.MaxQty + Output.OutputMaxQty), 0.1f, 1f);
     
     public float GetTemperatureFactor01(float tempC)
     {
@@ -181,7 +104,7 @@ public sealed class CompostpileInventory
         if (tempC < 70) return GameMath.Lerp(1.0f, 0.35f, (tempC - 55f) / 15f);
         return 0.10f;
     }
-
+    
     public float GetMoistureFactor01(float moisture01)
     {
         if (moisture01 <= 0.05f) return 0.05f;
@@ -195,6 +118,23 @@ public sealed class CompostpileInventory
         return Math.Clamp(factor, 0.05f, 1.0f);
     }
     
+    public float GetNutritionFactor01(Block block)
+    {
+        if (NutritionStacks.Count < 1)
+            return 0f;
+
+        JsonObject? speedByCat = block.Attributes?["nutritionSpeedByCategory"];
+        float weighted = 0f;
+
+        foreach (var kvp in NutritionStacks)
+        {
+            float mult = speedByCat?[kvp.Key.ToString()]?.AsFloat(1f) ?? 1f;
+            weighted += mult * kvp.Value;
+        }
+
+        return weighted / Nutrition.MaxQty;
+    }
+    #endregion
     
     public bool CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
     {
@@ -207,6 +147,69 @@ public sealed class CompostpileInventory
     }
     
     
+    public CompostpileInventory
+        (CompostpileIngredient browns
+        ,CompostpileIngredient nutrition
+        ,CompostpileIngredient inoculum
+        ,CompostpileProcess process
+        ,CompostpileOutput output
+        ,CompostpileHarvest harvest
+        )
+    {
+        Browns = browns;
+        Nutrition = nutrition;
+        Inoculum = inoculum;
+
+        Process = process;
+        Output = output;
+        Harvest = harvest;
+    }
+
+    public static readonly CompostpileInventory Default = new
+        (browns: new CompostpileIngredient
+            (name: "browns"
+            ,initQty: 16
+            ,placedBonusQty: 44
+            ,maxQty: 64 * 3
+            ,maxInput: 16
+            ,inPerCompostPortion: 16
+            ,requiredItemCode: "game:drygrass"
+            ),
+        nutrition: new CompostpileIngredient
+            (name: "nutrition"
+            ,initQty: 16
+            ,placedBonusQty: 12
+            ,maxQty: 64
+            ,maxInput: 8
+            ,inPerCompostPortion: 8
+            ),
+        inoculum: new CompostpileIngredient
+            (name: "inoculum"
+            ,initQty: 2
+            ,placedBonusQty: 8
+            ,maxQty: 16
+            ,maxInput: 4
+            ,inPerCompostPortion: 1
+            ,inPerSourAdded: 2
+            ,inPerRotAdded: 4
+            ),
+        process: new CompostpileProcess
+            (baseCompostRatePerHour: 0.33f
+            ,defaultMoisture01: 0.55f
+            ,optimalMoisture01: 0.60f
+            ,rainToMoisturePerDay: 0.40f
+            ,dryoutPerDayAt20C: 0.25f
+            ,greenhouseTempBonusC: 5f
+            ),
+        output: new CompostpileOutput
+            (outputMaxQty: 48
+            ,outputOutPerCompostPortion: 1
+            ,inoculumOutPerSourPortion: 1
+            ),
+        harvest: new CompostpileHarvest
+            (harvestMaxPerStack: 8
+            )
+        );
     
     public void ResetQuantitiesOnPlaced(Block block)
     {
@@ -224,7 +227,6 @@ public sealed class CompostpileInventory
         if (Moisture01 <= 0f && PrevTimeMoistureUpdated < 0)
             Moisture01 = Process.DefaultMoisture01;
     }
-
     
     public bool TryAdd(ICoreAPI api, ItemSlot slot, out int accepted)
     {
@@ -364,8 +366,9 @@ public sealed class CompostpileInventory
     public bool ProcessCompost(ICoreAPI api, Block block, BlockPos pos, double totalHours)
     {
         if (PrevTimeComposted < 0
-        || (InoculumQty >= Inoculum.MaxQty && OutputQty >= Output.OutputMaxQty)
-            )
+        || (InoculumQty >= Inoculum.MaxQty
+        &&  OutputQty >= Output.OutputMaxQty
+           ))
         {
             PrevTimeComposted = totalHours;
             return false;
@@ -386,7 +389,7 @@ public sealed class CompostpileInventory
             ,bulkPortions
             );
         if (transitions < 1)
-            return false; // keep accrueing progress
+            return false; // keep accruing progress
 
         int sourOutputPortions = (int)(transitions * GetSpoilRate01(api, block, pos, totalHours));
         int compostOutputPortions = transitions - sourOutputPortions;
@@ -417,11 +420,11 @@ public sealed class CompostpileInventory
         {
             int overflowByInoculumLimitsPortions = compostOutputPortions - compostPossibleByInoculumPortions;
 
-            int compostSubsidizedBySourPortions = Math.Min(
-                overflowByInoculumLimitsPortions * Output.InoculumOutPerSourPortion
-                / (Output.InoculumOutPerSourPortion + Inoculum.InPerCompostPortion),
-                compostOutputRoomPortions
-            );
+            int compostSubsidizedBySourPortions = Math.Min
+                (overflowByInoculumLimitsPortions * Output.InoculumOutPerSourPortion
+            /   (Output.InoculumOutPerSourPortion + Inoculum.InPerCompostPortion)
+                ,compostOutputRoomPortions
+                );
 
             compostOutputPortions = compostPossibleByInoculumPortions + compostSubsidizedBySourPortions;
             sourOutputPortions += overflowByInoculumLimitsPortions - compostSubsidizedBySourPortions;
