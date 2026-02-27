@@ -11,15 +11,11 @@ namespace OddWire.GameContent;
 
 public class BlockEntityCompostPile : BlockEntity
 {
-    // “static final model = …” (C# equivalent)
-    private static readonly CompostpileTuning Model = CompostpileTuningModels.Default;
+    private static readonly CompostpileInventory Model = CompostpileInventory.Default;
 
-    private readonly CompostpileData _d = new CompostpileData();
+    private readonly CompostpileState state = new CompostpileState();
 
-    public int NutritionQty => _d.NutritionQty;
-
-    public void UpdateShapeStackSize() => SetShapeStackSize(_d.BrownsQty + _d.NutritionQty + _d.InoculumQty + _d.OutputQty);
-
+    public void UpdateShapeStackSize() => SetShapeStackSize(state.BrownsQty + state.NutritionQty + state.InoculumQty + state.OutputQty);
     public void SetShapeStackSize(int stackSize)
     {
         if (Api.Side != EnumAppSide.Server)
@@ -36,13 +32,13 @@ public class BlockEntityCompostPile : BlockEntity
     }
 
     public bool CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
-        => CompostpileSystem.CanHarvest(_d, Model, out compostPileQty, out sourCompostQty, out compostQty);
+        => CompostpileSystem.CanHarvest(state, Model, out compostPileQty, out sourCompostQty, out compostQty);
 
     public bool TryAdd(ItemSlot slot, out int accepted)
     {
         accepted = 0;
 
-        if (!CompostpileSystem.TryAdd(Api, Block, Pos, _d, Model, slot, out accepted) || accepted < 1)
+        if (!CompostpileSystem.TryAdd(Api, Block, Pos, state, Model, slot, out accepted) || accepted < 1)
             return false;
 
         UpdateShapeStackSize();
@@ -63,9 +59,9 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _d.BrownsQty = Math.Max(_d.BrownsQty - Model.Browns.InitQty * qty, 0);
+        state.BrownsQty = Math.Max(state.BrownsQty - Model.Browns.InitQty * qty, 0);
         RemoveRandomNutrition(Model.Nutrition.InitQty * qty);
-        _d.InoculumQty = Math.Max(_d.InoculumQty - Model.Inoculum.InitQty * qty, 0);
+        state.InoculumQty = Math.Max(state.InoculumQty - Model.Inoculum.InitQty * qty, 0);
 
         MarkDirty();
     }
@@ -83,7 +79,7 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _d.InoculumQty = Math.Max(_d.InoculumQty - Model.Inoculum.InPerSourAdded * qty, 0);
+        state.InoculumQty = Math.Max(state.InoculumQty - Model.Inoculum.InPerSourAdded * qty, 0);
         MarkDirty();
     }
 
@@ -100,7 +96,7 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _d.OutputQty = Math.Max(_d.OutputQty - qty, 0);
+        state.OutputQty = Math.Max(state.OutputQty - qty, 0);
         MarkDirty();
     }
 
@@ -108,8 +104,8 @@ public class BlockEntityCompostPile : BlockEntity
     {
         base.Initialize(api);
 
-        if (_d.Moisture01 <= 0f && _d.PrevTimeMoistureUpdated < 0)
-            _d.Moisture01 = Model.Process.DefaultMoisture01;
+        if (state.Moisture01 <= 0f && state.PrevTimeMoistureUpdated < 0)
+            state.Moisture01 = Model.Process.DefaultMoisture01;
 
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery12Seconds, 12000);
@@ -119,10 +115,10 @@ public class BlockEntityCompostPile : BlockEntity
     {
         base.OnBlockPlaced(byItemStack);
 
-        CompostpileSystem.ResetQuantitiesOnPlaced(Block, _d, Model);
+        CompostpileSystem.ResetQuantitiesOnPlaced(Block, state, Model);
         UpdateShapeStackSize();
 
-        _d.PrevTimeComposted = Api.World.Calendar.TotalHours;
+        state.PrevTimeComposted = Api.World.Calendar.TotalHours;
     }
 
     private void OnEvery12Seconds(float dt)
@@ -132,20 +128,20 @@ public class BlockEntityCompostPile : BlockEntity
 
         double totalHours = Api.World.Calendar.TotalHours;
 
-        CompostpileSystem.UpdateMoisture(Api, Pos, _d, Model, totalHours);
+        CompostpileSystem.UpdateMoisture(Api, Pos, state, Model, totalHours);
 
-        if (CompostpileSystem.ProcessCompost(Api, Block, Pos, _d, Model, totalHours))
+        if (CompostpileSystem.ProcessCompost(Api, Block, Pos, state, Model, totalHours))
             MarkDirty(true);
     }
 
     private void RemoveRandomNutrition(int amount)
     {
-        if (amount <= 0 || _d.NutritionStacks.Count == 0)
+        if (amount <= 0 || state.NutritionStacks.Count == 0)
             return;
 
         // Keep the same “nutrition mix randomness” concept, but do it safely (no chance of infinite loop).
-        var keys = _d.NutritionStacks.Keys.ToList();
-        int nutritionRemaining = _d.NutritionQty;
+        var keys = state.NutritionStacks.Keys.ToList();
+        int nutritionRemaining = state.NutritionQty;
 
         int remaining = amount;
         while (remaining > 0 && keys.Count > 0 && nutritionRemaining > 0)
@@ -153,10 +149,10 @@ public class BlockEntityCompostPile : BlockEntity
             int index = Api.World.Rand.Next(keys.Count);
             var key = keys[index];
 
-            int stackQty = _d.NutritionStacks[key];
+            int stackQty = state.NutritionStacks[key];
             if (stackQty <= 0)
             {
-                _d.NutritionStacks.Remove(key);
+                state.NutritionStacks.Remove(key);
                 keys.RemoveAt(index);
                 continue;
             }
@@ -168,10 +164,10 @@ public class BlockEntityCompostPile : BlockEntity
             int removeQty = Api.World.Rand.Next(maxRemove) + 1; // 1..maxRemove
             removeQty = Math.Min(removeQty, stackQty);
 
-            _d.NutritionStacks[key] -= removeQty;
-            if (_d.NutritionStacks[key] < 1)
+            state.NutritionStacks[key] -= removeQty;
+            if (state.NutritionStacks[key] < 1)
             {
-                _d.NutritionStacks.Remove(key);
+                state.NutritionStacks.Remove(key);
                 keys.RemoveAt(index);
             }
 
@@ -195,20 +191,20 @@ public class BlockEntityCompostPile : BlockEntity
         if (inGreenhouse)
             dsc.AppendLine(Lang.Get("greenhousetempbonus"));
 
-        float moisturePct = (float)Math.Round(_d.Moisture01 * 100f, 0);
+        float moisturePct = (float)Math.Round(state.Moisture01 * 100f, 0);
         string moistureColor = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, Math.Max(0, moisturePct))]);
         dsc.AppendLine(Lang.Get("Moisture: <font color=\"#{0}\">{1}%</font>", moistureColor, moisturePct));
 
         dsc.AppendLine();
 
-        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _d.BrownsQty, Model.Browns.MaxQty));
-        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _d.NutritionQty, Model.Nutrition.MaxQty));
-        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _d.InoculumQty, Model.Inoculum.MaxQty));
-        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _d.OutputQty, Model.Output.OutputMaxQty));
+        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", state.BrownsQty, Model.Browns.MaxQty));
+        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", state.NutritionQty, Model.Nutrition.MaxQty));
+        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", state.InoculumQty, Model.Inoculum.MaxQty));
+        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", state.OutputQty, Model.Output.OutputMaxQty));
 
-        if (_d.NutritionStacks.Count > 0)
+        if (state.NutritionStacks.Count > 0)
         {
-            var parts = _d.NutritionStacks
+            var parts = state.NutritionStacks
                 .Where(kvp => kvp.Value > 0)
                 .OrderByDescending(kvp => kvp.Value)
                 .Select(kvp => $"{kvp.Key}:{kvp.Value}")
@@ -219,25 +215,25 @@ public class BlockEntityCompostPile : BlockEntity
         }
 
         int possibleMax = Math.Min(
-            _d.BrownsQty / Model.Browns.InPerCompostPortion,
-            _d.NutritionQty / Model.Nutrition.InPerCompostPortion
+            state.BrownsQty / Model.Browns.InPerCompostPortion,
+            state.NutritionQty / Model.Nutrition.InPerCompostPortion
         );
         dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
 
         dsc.AppendLine();
 
-        float ratePerHour = Api?.World != null ? CompostpileSystem.GetCompostRatePerHour(Api, Block, Pos, _d, Model, totalHours) : 0f;
+        float ratePerHour = Api?.World != null ? CompostpileSystem.GetCompostRatePerHour(Api, Block, Pos, state, Model, totalHours) : 0f;
         if (ratePerHour <= 0)
             ratePerHour = 0.00001f;
 
         dsc.AppendLine(Lang.Get("Compost time: {0:0.00}hr", 1f / ratePerHour));
 
-        float nutr = CompostpileSystem.GetNutritionFactor01(Block, _d, Model);
+        float nutr = CompostpileSystem.GetNutritionFactor01(Block, state, Model);
         dsc.AppendLine(Lang.Get(
             "Factors: Inoculum {0:0}% × Temp {1:0}% × Moisture {2:0}% × Nutrition {3:0}%",
-            100f * CompostpileSystem.GetInoculumFactor01(Model, _d.InoculumQty + _d.OutputQty),
+            100f * CompostpileSystem.GetInoculumFactor01(Model, state.InoculumQty + state.OutputQty),
             100f * CompostpileSystem.GetTemperatureFactor01(envTemp),
-            100f * CompostpileSystem.GetMoistureFactor01(Model, _d.Moisture01),
+            100f * CompostpileSystem.GetMoistureFactor01(Model, state.Moisture01),
             100f * nutr
         ));
     }
@@ -246,35 +242,35 @@ public class BlockEntityCompostPile : BlockEntity
     {
         base.FromTreeAttributes(tree, worldAccessForResolve);
 
-        _d.PrevTimeComposted = tree.GetDouble("_prevTimeComposted");
-        _d.PrevTimeMoistureUpdated = tree.GetDouble("_prevTimeMoistureUpdated");
-        _d.Moisture01 = tree.GetFloat("_moisture01", Model.Process.DefaultMoisture01);
+        state.PrevTimeComposted = tree.GetDouble("_prevTimeComposted");
+        state.PrevTimeMoistureUpdated = tree.GetDouble("_prevTimeMoistureUpdated");
+        state.Moisture01 = tree.GetFloat("_moisture01", Model.Process.DefaultMoisture01);
 
-        _d.BrownsQty = tree.GetInt("_brownsQty");
-        _d.InoculumQty = tree.GetInt("_inoculumQty");
-        _d.OutputQty = tree.GetInt("_outputQty");
+        state.BrownsQty = tree.GetInt("_brownsQty");
+        state.InoculumQty = tree.GetInt("_inoculumQty");
+        state.OutputQty = tree.GetInt("_outputQty");
 
-        _d.NutritionStacks.Clear();
+        state.NutritionStacks.Clear();
         int nutritionLength = tree.GetInt("_nutritionStacks.Count");
         for (int i = 0; i < nutritionLength; i++)
-            _d.NutritionStacks[(EnumFoodCategory)tree.GetInt($"_nutritionStacks<{i}>")] = tree.GetInt($"_nutritionStacks[{i}]");
+            state.NutritionStacks[(EnumFoodCategory)tree.GetInt($"_nutritionStacks<{i}>")] = tree.GetInt($"_nutritionStacks[{i}]");
     }
 
     public override void ToTreeAttributes(ITreeAttribute tree)
     {
         base.ToTreeAttributes(tree);
 
-        tree.SetDouble("_prevTimeComposted", _d.PrevTimeComposted);
-        tree.SetDouble("_prevTimeMoistureUpdated", _d.PrevTimeMoistureUpdated);
-        tree.SetFloat("_moisture01", _d.Moisture01);
+        tree.SetDouble("_prevTimeComposted", state.PrevTimeComposted);
+        tree.SetDouble("_prevTimeMoistureUpdated", state.PrevTimeMoistureUpdated);
+        tree.SetFloat("_moisture01", state.Moisture01);
 
-        tree.SetInt("_brownsQty", _d.BrownsQty);
-        tree.SetInt("_inoculumQty", _d.InoculumQty);
-        tree.SetInt("_outputQty", _d.OutputQty);
+        tree.SetInt("_brownsQty", state.BrownsQty);
+        tree.SetInt("_inoculumQty", state.InoculumQty);
+        tree.SetInt("_outputQty", state.OutputQty);
 
-        tree.SetInt("_nutritionStacks.Count", _d.NutritionStacks.Count);
+        tree.SetInt("_nutritionStacks.Count", state.NutritionStacks.Count);
         int i = 0;
-        foreach (var stack in _d.NutritionStacks)
+        foreach (var stack in state.NutritionStacks)
         {
             tree.SetInt($"_nutritionStacks<{i}>", (int)stack.Key);
             tree.SetInt($"_nutritionStacks[{i}]", stack.Value);
