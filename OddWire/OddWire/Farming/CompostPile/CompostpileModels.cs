@@ -63,7 +63,9 @@ public sealed class CompostpileIngredient
     public int PlacedBonusQty { get; }
     public int MaxQty { get; }
     public int MaxInput { get; }
+    
     public int InPerCompostPortion { get; }
+    public int InPerSourPortion { get; }
 
     public Dictionary<string, float> AddItemCodeRatios { get; }
 
@@ -74,6 +76,7 @@ public sealed class CompostpileIngredient
         ,int maxQty
         ,int maxInput
         ,int inPerCompostPortion
+        ,int inPerSourPortion
         ,Dictionary<string, float>? requiredItemCodes = null
         )
     {
@@ -83,6 +86,7 @@ public sealed class CompostpileIngredient
         MaxQty = maxQty;
         MaxInput = maxInput;
         InPerCompostPortion = inPerCompostPortion;
+        InPerSourPortion = inPerSourPortion;
         AddItemCodeRatios = requiredItemCodes ?? new Dictionary<string, float>();
     }
 

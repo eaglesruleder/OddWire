@@ -77,7 +77,7 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - _inventory.Inoculum.InPerSourAdded * qty, 0);
+        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - _inventory.Inoculum.InPerSourPortion * qty, 0);
         MarkDirty();
     }
 

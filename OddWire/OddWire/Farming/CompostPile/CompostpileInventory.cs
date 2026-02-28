@@ -173,6 +173,7 @@ public sealed class CompostpileInventory
             ,maxQty: 64 * 3
             ,maxInput: 16
             ,inPerCompostPortion: 16
+            ,inPerSourPortion: 8
             ,requiredItemCodes: new Dictionary<string, float>
                 {{"game:drygrass", 1f}
                 }
@@ -184,6 +185,7 @@ public sealed class CompostpileInventory
             ,maxQty: 64
             ,maxInput: 8
             ,inPerCompostPortion: 8
+            ,inPerSourPortion: 4
             ),
         inoculum: new CompostpileIngredient
             (name: "inoculum"
@@ -192,6 +194,7 @@ public sealed class CompostpileInventory
             ,maxQty: 16
             ,maxInput: 4
             ,inPerCompostPortion: 1
+            ,inPerSourPortion: 0
             ,requiredItemCodes: new Dictionary<string, float>
                 {{"game:compost", 1f}
                 ,{"game:rot", 2}
