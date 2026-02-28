@@ -173,7 +173,9 @@ public sealed class CompostpileInventory
             ,maxQty: 64 * 3
             ,maxInput: 16
             ,inPerCompostPortion: 16
-            ,requiredItemCode: "game:drygrass"
+            ,requiredItemCodes: new Dictionary<string, float>
+                {{"game:drygrass", 1f}
+                }
             ),
         nutrition: new CompostpileIngredient
             (name: "nutrition"
@@ -190,8 +192,11 @@ public sealed class CompostpileInventory
             ,maxQty: 16
             ,maxInput: 4
             ,inPerCompostPortion: 1
-            ,inPerSourAdded: 2
-            ,inPerRotAdded: 4
+            ,requiredItemCodes: new Dictionary<string, float>
+                {{"game:compost", 1f}
+                ,{"game:rot", 2}
+                ,{"oddwire:sourcompost", 4}
+                }
             ),
         process: new CompostpileProcess
             (baseCompostRatePerHour: 0.33f
@@ -235,8 +240,8 @@ public sealed class CompostpileInventory
             return false;
 
         if (TryAddNutrition(slot, out accepted)
-        ||  Browns.TryAddSimpleRequired(slot, ref BrownsQty, out accepted)
-        ||  TryAddInoculum(slot, out accepted)
+        ||  Browns.TryAddRef(slot, out accepted, ref BrownsQty)
+        ||  Inoculum.TryAddRef(slot, out accepted, ref InoculumQty)
             )
             return accepted > 0;
 
@@ -268,28 +273,6 @@ public sealed class CompostpileInventory
 
         accepted = adjustedAccept * ratio;
         return true;
-    }
-
-    private bool TryAddInoculum(ItemSlot slot, out int accepted)
-    {
-        accepted = 0;
-
-        int room = Inoculum.MaxQty - InoculumQty;
-        if (room < 1)
-            return false;
-
-        string code = slot.Itemstack?.Item?.Code.ToString() ?? "";
-        int ratio = Inoculum.GetInoculumAddRatio(code);
-        if (ratio < 1 || slot.StackSize < ratio)
-            return false;
-
-        int adjustedStackSize = slot.StackSize / ratio;
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, Inoculum.MaxInput);
-
-        InoculumQty += adjustedAccept;
-        accepted = adjustedAccept * ratio;
-
-        return accepted > 0;
     }
     
     public void TryRemoveRandomNutrition(Random rand, int amount)

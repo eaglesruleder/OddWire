@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Vintagestory.API.Common;
 
 namespace OddWire.GameContent;
@@ -64,9 +65,7 @@ public sealed class CompostpileIngredient
     public int MaxInput { get; }
     public int InPerCompostPortion { get; }
 
-    public string RequiredItemCode { get; }
-    public int InPerSourAdded { get; }
-    public int InPerRotAdded { get; }
+    public Dictionary<string, float> AddItemCodeRatios { get; }
 
     public CompostpileIngredient
         (string name
@@ -75,9 +74,7 @@ public sealed class CompostpileIngredient
         ,int maxQty
         ,int maxInput
         ,int inPerCompostPortion
-        ,int inPerSourAdded = 1
-        ,int inPerRotAdded = 1
-        ,string requiredItemCode = ""
+        ,Dictionary<string, float>? requiredItemCodes = null
         )
     {
         Name = name;
@@ -86,10 +83,7 @@ public sealed class CompostpileIngredient
         MaxQty = maxQty;
         MaxInput = maxInput;
         InPerCompostPortion = inPerCompostPortion;
-
-        InPerSourAdded = Math.Max(1, inPerSourAdded);
-        InPerRotAdded = Math.Max(1, inPerRotAdded);
-        RequiredItemCode = requiredItemCode ?? "";
+        AddItemCodeRatios = requiredItemCodes ?? new Dictionary<string, float>();
     }
 
     public static int GetStackNormalizationRatio(CollectibleObject? collectible)
@@ -105,27 +99,30 @@ public sealed class CompostpileIngredient
         return 1;
     }
 
-    public bool TryAddSimpleRequired(ItemSlot slot, ref int currentQty, out int accepted)
+    public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty)
     {
         accepted = 0;
-        if (string.IsNullOrEmpty(RequiredItemCode)) return false;
+        if (AddItemCodeRatios is null
+        ||  AddItemCodeRatios.Count == 0
+            )
+            return false
 
         int room = MaxQty - currentQty;
         if (room < 1)
             return false;
 
-        if ((slot.Itemstack?.Item?.Code.ToString() ?? "") != RequiredItemCode)
+        string code = slot.Itemstack?.Item?.Code.ToString() ?? "";
+        if(!AddItemCodeRatios.TryGetValue(code, out float ratio)
+        ||  ratio <= 0f
+        ||  slot.StackSize < ratio
+            )
             return false;
 
-        accepted = Math.Min(slot.StackSize > room ? room : slot.StackSize, MaxInput);
-        currentQty += accepted;
+        int adjustedStackSize = (int)(slot.StackSize / ratio);
+        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, MaxInput);
+
+        currentQty += adjustedAccept;
+        accepted = (int)(adjustedAccept * ratio);
         return accepted > 0;
     }
-
-    public int GetInoculumAddRatio(string itemCode) => itemCode switch
-        {"game:compost" => 1
-        ,"oddwire:sourcompost" => InPerSourAdded
-        ,"game:rot" => InPerRotAdded
-        ,_ => 0
-        };
 }
