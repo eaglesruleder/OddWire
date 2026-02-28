@@ -103,9 +103,9 @@ public sealed class CompostpileIngredient
     {
         accepted = 0;
         if (AddItemCodeRatios is null
-        ||  AddItemCodeRatios.Count == 0
-            )
-            return false
+            || AddItemCodeRatios.Count == 0
+           )
+            return false;
 
         int room = MaxQty - currentQty;
         if (room < 1)
