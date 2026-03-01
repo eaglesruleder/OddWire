@@ -9,7 +9,7 @@ using Vintagestory.API.MathTools;
 
 namespace OddWire.GameContent;
 
-public class BlockEntityCompostPile : BlockEntity
+public class BlockEntityCompostpile : BlockEntity
 {
     private readonly CompostpileInventory _inventory = new();
 
@@ -29,8 +29,8 @@ public class BlockEntityCompostPile : BlockEntity
         Block = block;
     }
 
-    public bool CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
-        => _inventory.CanHarvest(out compostPileQty, out sourCompostQty, out compostQty);
+    public bool CanHarvest(out int CompostpileQty, out int sourCompostQty, out int compostQty)
+        => _inventory.CanHarvest(out CompostpileQty, out sourCompostQty, out compostQty);
 
     public bool TryAdd(ItemSlot slot, out int accepted)
     {
@@ -44,9 +44,9 @@ public class BlockEntityCompostPile : BlockEntity
         return true;
     }
 
-    public void HarvestCompostPile(int qty, float dropQuantityMultiplier)
+    public void HarvestCompostpile(int qty, float dropQuantityMultiplier)
     {
-        Block spawnBlock = Api.World.GetBlock(new AssetLocation("oddwire:compostpile-#1"));
+        Block spawnBlock = Api.World.GetBlock(new AssetLocation("oddwire:Compostpile-#1"));
 
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
@@ -184,7 +184,7 @@ public class BlockEntityCompostPile : BlockEntity
 
         dsc.AppendLine(Lang.Get("Compost time: {0:0.00}hr", 1f / ratePerHour));
 
-        float nutr = _inventory.GetNutritionFactor01(Block);
+        float nutr = _inventory.GetNutritionFactor(Block);
         dsc.AppendLine(Lang.Get(
             "Factors: Inoculum {0:0}% × Temp {1:0}% × Moisture {2:0}% × Nutrition {3:0}%",
             100f * _inventory.GetInoculumFactor01(),

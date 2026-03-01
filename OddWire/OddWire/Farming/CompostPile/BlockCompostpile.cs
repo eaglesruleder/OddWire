@@ -2,13 +2,13 @@
 using Vintagestory.API.MathTools;
 
 namespace OddWire.GameContent;
-public class BlockCompostPile : Block
+public class BlockCompostpile : Block
 {
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
         if (world.Side != EnumAppSide.Server
         ||  blockSel is null
-        ||  world.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityCompostPile be
+        ||  world.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityCompostpile be
             )
             return false;
 
@@ -28,14 +28,14 @@ public class BlockCompostPile : Block
 
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
-        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostPile be
-        &&  be.CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
+        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostpile be
+        &&  be.CanHarvest(out int CompostpileQty, out int sourCompostQty, out int compostQty)
             )
         {
             if (world.Side == EnumAppSide.Server)
             {
-                if(compostPileQty > 0)
-                    be.HarvestCompostPile(world.Rand.Next(compostPileQty)+1, dropQuantityMultiplier);
+                if(CompostpileQty > 0)
+                    be.HarvestCompostpile(world.Rand.Next(CompostpileQty)+1, dropQuantityMultiplier);
                 
                 if(sourCompostQty > 0)
                     be.HarvestSourCompost(world.Rand.Next(sourCompostQty)+1, dropQuantityMultiplier);

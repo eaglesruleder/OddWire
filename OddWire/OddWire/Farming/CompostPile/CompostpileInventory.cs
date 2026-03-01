@@ -91,7 +91,7 @@ public sealed class CompostpileInventory
         *   GetInoculumFactor01()
         *   GetTemperatureFactor01(envTemp)
         *   GetMoistureFactor01(Moisture01)
-        *   GetNutritionFactor01(block);
+        *   GetNutritionFactor(block);
     }
 
     public float GetSpoilRate01(ICoreAPI api, Block block, BlockPos pos, double totalHours)
@@ -158,7 +158,7 @@ public sealed class CompostpileInventory
         return Math.Clamp(factor, 0.05f, 1.0f);
     }
     
-    public float GetNutritionFactor01(Block block)
+    public float GetNutritionFactor(Block block)
     {
         if (NutritionStacks.Count < 1)
             return 0f;
@@ -225,7 +225,7 @@ public sealed class CompostpileInventory
 
         AssetLocation blockCode = slot.Itemstack?.Block?.Code;
         if (string.IsNullOrEmpty(blockCode)
-        || !blockCode.BeginsWith("oddwire","compmpostpile")
+        || !blockCode.BeginsWith("oddwire","compostpile")
         || !int.TryParse(blockCode.EndVariant().Substring(1), out int stackBonus)
            )
             return false;
@@ -243,7 +243,8 @@ public sealed class CompostpileInventory
             return false;
 
         BrownsQty += brownsAdd;
-        NutritionStacks[EnumFoodCategory.Unknown] += nutritionAdd;
+        NutritionStacks.TryGetValue(EnumFoodCategory.Unknown, out var cur);
+        NutritionStacks[EnumFoodCategory.Unknown] = cur + nutritionAdd;
         InoculumQty += inoculumAdd;
 
         accepted = 1;

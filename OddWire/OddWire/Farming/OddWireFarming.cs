@@ -7,8 +7,8 @@ namespace OddWire
     {
         public override void Start(ICoreAPI api)
         {
-            api.RegisterBlockClass($"{Mod.Info.ModID}farming.compostpile.block", typeof(BlockCompostPile));
-            api.RegisterBlockEntityClass($"{Mod.Info.ModID}farming.compostpile.blockentity", typeof(BlockEntityCompostPile));
+            api.RegisterBlockClass($"{Mod.Info.ModID}farming.compostpile.block", typeof(BlockCompostpile));
+            api.RegisterBlockEntityClass($"{Mod.Info.ModID}farming.compostpile.blockentity", typeof(BlockEntityCompostpile));
             
             base.Start(api);
         }
