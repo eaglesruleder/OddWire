@@ -4,7 +4,7 @@ using Vintagestory.API.Common;
 
 namespace OddWire.GameContent;
 
-public sealed class CompostpileProcess
+public sealed class CompostpileSettings
 {
     public float BaseCompostRatePerHour { get; }
     public float DefaultMoisture01 { get; }
@@ -13,13 +13,25 @@ public sealed class CompostpileProcess
     public float DryoutPerDayAt20C { get; }
     public float GreenhouseTempBonusC { get; }
 
-    public CompostpileProcess
+    public int OutputMaxQty { get; }
+    public int OutputOutPerCompostPortion { get; }
+    public int InoculumOutPerSourPortion { get; }
+    
+    public int HarvestMaxPerStack { get; }
+    
+    public CompostpileSettings
         (float baseCompostRatePerHour
         ,float defaultMoisture01
         ,float optimalMoisture01
         ,float rainToMoisturePerDay
         ,float dryoutPerDayAt20C
         ,float greenhouseTempBonusC
+        
+        ,int outputMaxQty
+        ,int outputOutPerCompostPortion
+        ,int inoculumOutPerSourPortion
+        
+        ,int harvestMaxPerStack
         )
     {
         BaseCompostRatePerHour = baseCompostRatePerHour;
@@ -28,32 +40,13 @@ public sealed class CompostpileProcess
         RainToMoisturePerDay = rainToMoisturePerDay;
         DryoutPerDayAt20C = dryoutPerDayAt20C;
         GreenhouseTempBonusC = greenhouseTempBonusC;
-    }
-}
-
-public sealed class CompostpileOutput
-{
-    public int OutputMaxQty { get; }
-    public int OutputOutPerCompostPortion { get; }
-    public int InoculumOutPerSourPortion { get; }
-
-    public CompostpileOutput
-        (int outputMaxQty
-        ,int outputOutPerCompostPortion
-        ,int inoculumOutPerSourPortion
-        )
-    {
+        
         OutputMaxQty = outputMaxQty;
         OutputOutPerCompostPortion = outputOutPerCompostPortion;
         InoculumOutPerSourPortion = inoculumOutPerSourPortion;
-    }
-}
-
-public sealed class CompostpileHarvest
-{
-    public int HarvestMaxPerStack { get; }
-    public CompostpileHarvest(int harvestMaxPerStack) =>
+        
         HarvestMaxPerStack = harvestMaxPerStack;
+    }
 }
 
 public sealed class CompostpileIngredient

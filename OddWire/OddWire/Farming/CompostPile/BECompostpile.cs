@@ -51,7 +51,7 @@ public class BlockEntityCompostPile : BlockEntity
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, _inventory.Harvest.HarvestMaxPerStack)) + 1;
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, _inventory.Settings.HarvestMaxPerStack)) + 1;
             ItemStack stack = new ItemStack(spawnBlock, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
@@ -71,7 +71,7 @@ public class BlockEntityCompostPile : BlockEntity
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, _inventory.Harvest.HarvestMaxPerStack)) + 1;
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, _inventory.Settings.HarvestMaxPerStack)) + 1;
             ItemStack stack = new ItemStack(spawnBlock, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
@@ -88,7 +88,7 @@ public class BlockEntityCompostPile : BlockEntity
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, _inventory.Harvest.HarvestMaxPerStack)) + 1;
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, _inventory.Settings.HarvestMaxPerStack)) + 1;
             ItemStack stack = new ItemStack(spawnItem, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
@@ -105,7 +105,7 @@ public class BlockEntityCompostPile : BlockEntity
         if (_inventory.Moisture01 <= 0f
         &&  _inventory.PrevTimeMoistureUpdated < 0
             )
-            _inventory.Moisture01 = _inventory.Process.DefaultMoisture01;
+            _inventory.Moisture01 = _inventory.Settings.DefaultMoisture01;
 
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery12Seconds, 12000);
@@ -141,7 +141,7 @@ public class BlockEntityCompostPile : BlockEntity
         float envTemp = 0;
         bool inGreenhouse = false;
         if (Api?.World is not null)
-            envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, skyExposed, _inventory.Process.GreenhouseTempBonusC, out inGreenhouse);
+            envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, skyExposed, _inventory.Settings.GreenhouseTempBonusC, out inGreenhouse);
 
         dsc.AppendLine(Lang.Get("Temperature: {0:0.#}°C", envTemp));
         if (inGreenhouse)
@@ -156,7 +156,7 @@ public class BlockEntityCompostPile : BlockEntity
         dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _inventory.BrownsQty, _inventory.Browns.MaxQty));
         dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _inventory.NutritionQty, _inventory.Nutrition.MaxQty));
         dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inventory.InoculumQty, _inventory.Inoculum.MaxQty));
-        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _inventory.OutputQty, _inventory.Output.OutputMaxQty));
+        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _inventory.OutputQty, _inventory.Settings.OutputMaxQty));
 
         if (_inventory.NutritionStacks.Count > 0)
         {
