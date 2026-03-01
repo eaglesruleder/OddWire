@@ -456,6 +456,7 @@ public sealed class CompostpileInventory
         InoculumQty = tree.GetInt($"{key}.InoculumQty");
         OutputQty = tree.GetInt($"{key}.OutputQty");
 
+        NutritionStacks.Clear();
         int nutritionLength = tree.GetInt($"{key}.NutritionStacks.Count");
         for (int i = 0; i < nutritionLength; i++)
             NutritionStacks[(EnumFoodCategory)tree.GetInt($"{key}.NutritionStacks<{i}>")] = tree.GetInt($"{key}.NutritionStacks[{i}]");
