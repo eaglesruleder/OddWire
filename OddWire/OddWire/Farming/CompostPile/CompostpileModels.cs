@@ -71,43 +71,30 @@ public sealed class CompostpileIngredient
 
     public CompostpileIngredient
         (string name
-        ,int initQty
-        ,int placedBonusQty
-        ,int maxQty
-        ,int maxInput
-        ,int inPerCompostPortion
-        ,int inPerSourPortion
-        ,Dictionary<string, float>? requiredItemCodes = null
+        ,int initQty, int placedBonusQty
+        ,int maxQty, int maxInput
+        ,int inPerCompostPortion, int inPerSourPortion
+        ,Dictionary<string, float>? addItemCodeRatios = null
         )
     {
         Name = name;
-        InitQty = initQty;
-        PlacedBonusQty = placedBonusQty;
-        MaxQty = maxQty;
-        MaxInput = maxInput;
-        InPerCompostPortion = inPerCompostPortion;
-        InPerSourPortion = inPerSourPortion;
-        AddItemCodeRatios = requiredItemCodes ?? new Dictionary<string, float>();
+        InitQty = initQty; PlacedBonusQty = placedBonusQty;
+        MaxQty = maxQty; MaxInput = maxInput;
+        InPerCompostPortion = inPerCompostPortion; InPerSourPortion = inPerSourPortion;
+        AddItemCodeRatios = addItemCodeRatios ?? new Dictionary<string, float>();
     }
 
-    public static int GetStackNormalizationRatio(CollectibleObject? collectible)
-    {
-        if (collectible == null)
-            return 1;
-        
-        if (collectible.MaxStackSize != 64
-        &&  collectible.MaxStackSize > 0
-            )
-            return Math.Max(64 / collectible.MaxStackSize, 1);
-        
-        return 1;
-    }
+    public static int GetStackNormalizedRatio(CollectibleObject? collectible) =>
+        collectible?.MaxStackSize > 0
+    &&  collectible .MaxStackSize != 64
+    ?   Math.Max(64 / collectible.MaxStackSize, 1)
+    :   1;
 
     public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty)
     {
         accepted = 0;
         if (AddItemCodeRatios is null
-            || AddItemCodeRatios.Count == 0
+        || AddItemCodeRatios.Count == 0
            )
             return false;
 

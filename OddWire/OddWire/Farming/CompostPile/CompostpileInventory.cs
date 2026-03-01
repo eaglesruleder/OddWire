@@ -174,7 +174,7 @@ public sealed class CompostpileInventory
             ,maxInput: 16
             ,inPerCompostPortion: 16
             ,inPerSourPortion: 8
-            ,requiredItemCodes: new Dictionary<string, float>
+            ,addItemCodeRatios: new Dictionary<string, float>
                 {{"game:drygrass", 1f}
                 }
             ),
@@ -195,7 +195,7 @@ public sealed class CompostpileInventory
             ,maxInput: 4
             ,inPerCompostPortion: 1
             ,inPerSourPortion: 0
-            ,requiredItemCodes: new Dictionary<string, float>
+            ,addItemCodeRatios: new Dictionary<string, float>
                 {{"game:compost", 1f}
                 ,{"game:rot", 2}
                 ,{"oddwire:sourcompost", 4}
@@ -264,7 +264,7 @@ public sealed class CompostpileInventory
         if (room < 1)
             return false;
 
-        int ratio = CompostpileIngredient.GetStackNormalizationRatio(collectible);
+        int ratio = CompostpileIngredient.GetStackNormalizedRatio(collectible);
         if (slot.StackSize < ratio)
             return false;
 
