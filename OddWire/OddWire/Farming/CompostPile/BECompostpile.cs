@@ -57,9 +57,9 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _inventory.BrownsQty = Math.Max(_inventory.BrownsQty - _inventory.Browns.InitQty * qty, 0);
-        _inventory.TryRemoveRandomNutrition(Api.World.Rand, _inventory.Nutrition.InitQty * qty);
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - _inventory.Inoculum.InitQty * qty, 0);
+        _inventory.BrownsQty = Math.Max(_inventory.BrownsQty - _inventory.Settings.Browns.InitQty * qty, 0);
+        _inventory.TryRemoveRandomNutrition(Api.World.Rand, _inventory.Settings.Nutrition.InitQty * qty);
+        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - _inventory.Settings.Inoculum.InitQty * qty, 0);
 
         MarkDirty();
     }
@@ -77,7 +77,7 @@ public class BlockEntityCompostPile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - _inventory.Inoculum.InPerSourPortion * qty, 0);
+        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - _inventory.Settings.Inoculum.InPerSourPortion * qty, 0);
         MarkDirty();
     }
 
@@ -153,9 +153,9 @@ public class BlockEntityCompostPile : BlockEntity
 
         dsc.AppendLine();
 
-        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _inventory.BrownsQty, _inventory.Browns.MaxQty));
-        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _inventory.NutritionQty, _inventory.Nutrition.MaxQty));
-        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inventory.InoculumQty, _inventory.Inoculum.MaxQty));
+        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _inventory.BrownsQty, _inventory.Settings.Browns.MaxQty));
+        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _inventory.NutritionQty, _inventory.Settings.Nutrition.MaxQty));
+        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inventory.InoculumQty, _inventory.Settings.Inoculum.MaxQty));
         dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _inventory.OutputQty, _inventory.Settings.OutputMaxQty));
 
         if (_inventory.NutritionStacks.Count > 0)
@@ -171,8 +171,8 @@ public class BlockEntityCompostPile : BlockEntity
         }
 
         int possibleMax = Math.Min(
-            _inventory.BrownsQty / _inventory.Browns.InPerCompostPortion,
-            _inventory.NutritionQty / _inventory.Nutrition.InPerCompostPortion
+            _inventory.BrownsQty / _inventory.Settings.Browns.InPerCompostPortion,
+            _inventory.NutritionQty / _inventory.Settings.Nutrition.InPerCompostPortion
         );
         dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
 

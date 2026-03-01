@@ -6,6 +6,10 @@ namespace OddWire.GameContent;
 
 public sealed class CompostpileSettings
 {
+    public CompostpileIngredientSettings Browns { get; }
+    public CompostpileIngredientSettings Nutrition { get; }
+    public CompostpileIngredientSettings Inoculum { get; }
+    
     public float BaseCompostRatePerHour { get; }
     public float DefaultMoisture01 { get; }
     public float OptimalMoisture01 { get; }
@@ -20,7 +24,10 @@ public sealed class CompostpileSettings
     public int HarvestMaxPerStack { get; }
     
     public CompostpileSettings
-        (float baseCompostRatePerHour
+        (CompostpileIngredientSettings browns
+        ,CompostpileIngredientSettings nutrition
+        ,CompostpileIngredientSettings inoculum
+        ,float baseCompostRatePerHour
         ,float defaultMoisture01
         ,float optimalMoisture01
         ,float rainToMoisturePerDay
@@ -34,6 +41,10 @@ public sealed class CompostpileSettings
         ,int harvestMaxPerStack
         )
     {
+        Browns = browns;
+        Nutrition = nutrition;
+        Inoculum = inoculum;
+        
         BaseCompostRatePerHour = baseCompostRatePerHour;
         DefaultMoisture01 = defaultMoisture01;
         OptimalMoisture01 = optimalMoisture01;
@@ -49,7 +60,7 @@ public sealed class CompostpileSettings
     }
 }
 
-public sealed class CompostpileIngredient
+public sealed class CompostpileIngredientSettings
 {
     public string Name { get; }
     public int InitQty { get; }
@@ -62,7 +73,7 @@ public sealed class CompostpileIngredient
 
     public Dictionary<string, float> AddItemCodeRatios { get; }
 
-    public CompostpileIngredient
+    public CompostpileIngredientSettings
         (string name
         ,int initQty, int placedBonusQty
         ,int maxQty, int maxInput

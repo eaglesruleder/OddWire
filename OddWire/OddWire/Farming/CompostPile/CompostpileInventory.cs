@@ -8,12 +8,7 @@ namespace OddWire.GameContent;
 
 public sealed class CompostpileInventory
 {
-    public CompostpileIngredient Browns { get; }
-    public CompostpileIngredient Nutrition { get; }
-    public CompostpileIngredient Inoculum { get; }
-
     public CompostpileSettings Settings { get; }
-    
     
     public double PrevTimeMoistureUpdated = -1;
     public float Moisture01;
@@ -90,7 +85,7 @@ public sealed class CompostpileInventory
     
     
     public float GetInoculumFactor01() =>
-        Math.Clamp((float)(InoculumQty + OutputQty) / (Inoculum.MaxQty + Settings.OutputMaxQty), 0.1f, 1f);
+        Math.Clamp((float)(InoculumQty + OutputQty) / (Settings.Inoculum.MaxQty + Settings.OutputMaxQty), 0.1f, 1f);
     
     public float GetTemperatureFactor01(float tempC)
     {
@@ -129,73 +124,61 @@ public sealed class CompostpileInventory
             weighted += mult * kvp.Value;
         }
 
-        return weighted / Nutrition.MaxQty;
+        return weighted / Settings.Nutrition.MaxQty;
     }
     #endregion
     
     public bool CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
     {
-        int bulkPortions = Math.Min(BrownsQty / Browns.InitQty, NutritionQty / Nutrition.InitQty);
-        compostPileQty = Math.Min(bulkPortions, InoculumQty / Inoculum.InitQty);
-        sourCompostQty = Math.Max(InoculumQty - bulkPortions * Inoculum.InitQty, 0);
+        int bulkPortions = Math.Min(BrownsQty / Settings.Browns.InitQty, NutritionQty / Settings.Nutrition.InitQty);
+        compostPileQty = Math.Min(bulkPortions, InoculumQty / Settings.Inoculum.InitQty);
+        sourCompostQty = Math.Max(InoculumQty - bulkPortions * Settings.Inoculum.InitQty, 0);
         compostQty = OutputQty;
 
         return compostPileQty > 0 || sourCompostQty > 0 || compostQty > 0;
     }
     
     
-    public CompostpileInventory
-        (CompostpileIngredient browns
-        ,CompostpileIngredient nutrition
-        ,CompostpileIngredient inoculum
-        ,CompostpileSettings settings
-        )
-    {
-        Browns = browns;
-        Nutrition = nutrition;
-        Inoculum = inoculum;
-
-        Settings = settings;
-    }
+    public CompostpileInventory(CompostpileSettings settings) => Settings = settings;
 
     public static readonly CompostpileInventory Default = new
-        (browns: new CompostpileIngredient
-            (name: "browns"
-            ,initQty: 16
-            ,placedBonusQty: 44
-            ,maxQty: 64 * 3
-            ,maxInput: 16
-            ,inPerCompostPortion: 16
-            ,inPerSourPortion: 8
-            ,addItemCodeRatios: new Dictionary<string, float>
-                {{"game:drygrass", 1f}
-                }
-            ),
-        nutrition: new CompostpileIngredient
-            (name: "nutrition"
-            ,initQty: 16
-            ,placedBonusQty: 12
-            ,maxQty: 64
-            ,maxInput: 8
-            ,inPerCompostPortion: 8
-            ,inPerSourPortion: 4
-            ),
-        inoculum: new CompostpileIngredient
-            (name: "inoculum"
-            ,initQty: 2
-            ,placedBonusQty: 8
-            ,maxQty: 16
-            ,maxInput: 4
-            ,inPerCompostPortion: 1
-            ,inPerSourPortion: 0
-            ,addItemCodeRatios: new Dictionary<string, float>
-                {{"game:compost", 1f}
-                ,{"game:rot", 2}
-                ,{"oddwire:sourcompost", 4}
-                }
-            ),
-        settings: new CompostpileSettings
-            (baseCompostRatePerHour: 0.33f
+        (settings: new CompostpileSettings
+            (browns: new CompostpileIngredientSettings
+                (name: "browns"
+                ,initQty: 16
+                ,placedBonusQty: 44
+                ,maxQty: 64 * 3
+                ,maxInput: 16
+                ,inPerCompostPortion: 16
+                ,inPerSourPortion: 8
+                ,addItemCodeRatios: new Dictionary<string, float>
+                    {{"game:drygrass", 1f}
+                    }
+                ),
+            nutrition: new CompostpileIngredientSettings
+                (name: "nutrition"
+                ,initQty: 16
+                ,placedBonusQty: 12
+                ,maxQty: 64
+                ,maxInput: 8
+                ,inPerCompostPortion: 8
+                ,inPerSourPortion: 4
+                ),
+            inoculum: new CompostpileIngredientSettings
+                (name: "inoculum"
+                ,initQty: 2
+                ,placedBonusQty: 8
+                ,maxQty: 16
+                ,maxInput: 4
+                ,inPerCompostPortion: 1
+                ,inPerSourPortion: 0
+                ,addItemCodeRatios: new Dictionary<string, float>
+                    {{"game:compost", 1f}
+                    ,{"game:rot", 2}
+                    ,{"oddwire:sourcompost", 4}
+                    }
+                )
+            ,baseCompostRatePerHour: 0.33f
             ,defaultMoisture01: 0.55f
             ,optimalMoisture01: 0.60f
             ,rainToMoisturePerDay: 0.40f
@@ -215,12 +198,12 @@ public sealed class CompostpileInventory
         int.TryParse(block.LastCodePart().Substring(1), out int stackBonus);
         stackBonus = Math.Max(0, stackBonus - 1);
 
-        BrownsQty = Browns.InitQty + stackBonus * Browns.PlacedBonusQty;
+        BrownsQty = Settings.Browns.InitQty + stackBonus * Settings.Browns.PlacedBonusQty;
 
         NutritionStacks.Clear();
-        NutritionStacks[EnumFoodCategory.Unknown] = Nutrition.InitQty + stackBonus * Nutrition.PlacedBonusQty;
+        NutritionStacks[EnumFoodCategory.Unknown] = Settings.Nutrition.InitQty + stackBonus * Settings.Nutrition.PlacedBonusQty;
 
-        InoculumQty = Inoculum.InitQty + stackBonus * Inoculum.PlacedBonusQty;
+        InoculumQty = Settings.Inoculum.InitQty + stackBonus * Settings.Inoculum.PlacedBonusQty;
         OutputQty = 0;
 
         if (Moisture01 <= 0f && PrevTimeMoistureUpdated < 0)
@@ -234,8 +217,8 @@ public sealed class CompostpileInventory
             return false;
 
         if (TryAddNutrition(slot, out accepted)
-        ||  Browns.TryAddRef(slot, out accepted, ref BrownsQty)
-        ||  Inoculum.TryAddRef(slot, out accepted, ref InoculumQty)
+        ||  Settings.Browns.TryAddRef(slot, out accepted, ref BrownsQty)
+        ||  Settings.Inoculum.TryAddRef(slot, out accepted, ref InoculumQty)
             )
             return accepted > 0;
 
@@ -251,16 +234,16 @@ public sealed class CompostpileInventory
         if (nutritionProps is null)
             return false;
 
-        int room = Nutrition.MaxQty - NutritionQty;
+        int room = Settings.Nutrition.MaxQty - NutritionQty;
         if (room < 1)
             return false;
 
-        int ratio = CompostpileIngredient.GetStackNormalizedRatio(collectible);
+        int ratio = CompostpileIngredientSettings.GetStackNormalizedRatio(collectible);
         if (slot.StackSize < ratio)
             return false;
 
         int adjustedStackSize = slot.StackSize / ratio;
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, Nutrition.MaxInput);
+        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, Settings.Nutrition.MaxInput);
 
         NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
         NutritionStacks[nutritionProps.FoodCategory] = cur + adjustedAccept;
@@ -343,7 +326,7 @@ public sealed class CompostpileInventory
     public bool ProcessCompost(ICoreAPI api, Block block, BlockPos pos, double totalHours)
     {
         if (PrevTimeComposted < 0
-        || (InoculumQty >= Inoculum.MaxQty
+        || (InoculumQty >= Settings.Inoculum.MaxQty
         &&  OutputQty >= Settings.OutputMaxQty
            ))
         {
@@ -351,8 +334,8 @@ public sealed class CompostpileInventory
             return false;
         }
 
-        float brownsPortions = (float)BrownsQty / Browns.InPerCompostPortion;
-        float nutritionPortions = (float)NutritionQty / Nutrition.InPerCompostPortion;
+        float brownsPortions = (float)BrownsQty / Settings.Browns.InPerCompostPortion;
+        float nutritionPortions = (float)NutritionQty / Settings.Nutrition.InPerCompostPortion;
         float bulkPortions = brownsPortions + nutritionPortions;
 
         if (bulkPortions < 1f)
@@ -372,7 +355,7 @@ public sealed class CompostpileInventory
         int compostOutputPortions = transitions - sourOutputPortions;
 
         // clamp(sour){compost+=overflow}
-        int sourOutputRoomPortions = (Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerSourPortion;
+        int sourOutputRoomPortions = (Settings.Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerSourPortion;
         if (sourOutputPortions > sourOutputRoomPortions)
         {
             int sourOverflowPortions = sourOutputPortions - sourOutputRoomPortions;
@@ -392,14 +375,14 @@ public sealed class CompostpileInventory
 
         // bootstrap(compost with sour)
         int inoculumAfterSourQty = InoculumQty + sourOutputPortions * Settings.InoculumOutPerSourPortion;
-        int compostPossibleByInoculumPortions = inoculumAfterSourQty / Inoculum.InPerCompostPortion;
+        int compostPossibleByInoculumPortions = inoculumAfterSourQty / Settings.Inoculum.InPerCompostPortion;
         if (compostOutputPortions > compostPossibleByInoculumPortions)
         {
             int overflowByInoculumLimitsPortions = compostOutputPortions - compostPossibleByInoculumPortions;
 
             int compostSubsidizedBySourPortions = Math.Min
                 (overflowByInoculumLimitsPortions * Settings.InoculumOutPerSourPortion
-            /   (Settings.InoculumOutPerSourPortion + Inoculum.InPerCompostPortion)
+            /   (Settings.InoculumOutPerSourPortion + Settings.Inoculum.InPerCompostPortion)
                 ,compostOutputRoomPortions
                 );
 
@@ -425,14 +408,14 @@ public sealed class CompostpileInventory
             brownsRatio = minBrowns;
         float nutritionRatio = actualTransitions - brownsRatio;
         
-        BrownsQty -= (int)Math.Min(brownsRatio * Browns.InPerCompostPortion, BrownsQty);
-        TryRemoveRandomNutrition(api.World.Rand, (int)(nutritionRatio * Nutrition.InPerCompostPortion));
+        BrownsQty -= (int)Math.Min(brownsRatio * Settings.Browns.InPerCompostPortion, BrownsQty);
+        TryRemoveRandomNutrition(api.World.Rand, (int)(nutritionRatio * Settings.Nutrition.InPerCompostPortion));
 
         InoculumQty = Math.Clamp
            (InoculumQty
         +   sourOutputPortions * Settings.InoculumOutPerSourPortion
-        -   compostOutputPortions * Inoculum.InPerCompostPortion
-           ,0,Inoculum.MaxQty
+        -   compostOutputPortions * Settings.Inoculum.InPerCompostPortion
+           ,0,Settings.Inoculum.MaxQty
             );
 
         OutputQty = Math.Clamp
