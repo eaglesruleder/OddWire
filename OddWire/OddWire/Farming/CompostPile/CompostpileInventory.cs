@@ -415,6 +415,17 @@ public sealed class CompostpileInventory
             sourOutputPortions += overflowByInoculumLimitsPortions - compostSubsidizedBySourPortions;
         }
 
+        // clamp(sour, room)
+        int inoculumChangeQty = 
+            sourOutputPortions * Settings.InoculumOutPerSourPortion
+        -   compostOutputPortions * Settings.Inoculum.InPerCompostPortion;
+        int inoculumRoomQty = Settings.Inoculum.MaxQty - InoculumQty;
+        if (inoculumChangeQty > inoculumRoomQty)
+        {
+            int inoculumExcessPortions = (inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerSourPortion;
+            sourOutputPortions = Math.Max(sourOutputPortions - inoculumExcessPortions, 0);
+        }
+        
         int actualTransitions = compostOutputPortions + sourOutputPortions;
         if (actualTransitions < 1)
             return false;
