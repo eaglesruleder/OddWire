@@ -20,8 +20,8 @@ public sealed class CompostpileInventory
                 ,addItemCodeRatios: new Dictionary<string, float>
                 {{"game:drygrass", 1f}
                 }
-            ),
-            nutrition: new CompostpileIngredientSettings
+            )
+        ,nutrition: new CompostpileIngredientSettings
             (name: "nutrition"
                 ,initQty: 16
                 ,placedBonusQty: 12
@@ -29,19 +29,19 @@ public sealed class CompostpileInventory
                 ,maxInput: 8
                 ,inPerCompostPortion: 8
                 ,inPerSourPortion: 4
-            ),
-            inoculum: new CompostpileIngredientSettings
+            )
+        ,inoculum: new CompostpileIngredientSettings
             (name: "inoculum"
                 ,initQty: 2
                 ,placedBonusQty: 8
                 ,maxQty: 16
                 ,maxInput: 4
                 ,inPerCompostPortion: 1
-                ,inPerSourPortion: 0
+                ,inPerSourPortion: 1
                 ,addItemCodeRatios: new Dictionary<string, float>
                 {{"game:compost", 1f}
-                    ,{"game:rot", 2}
-                    ,{"oddwire:sourcompost", 4}
+                ,{"game:rot", 2}
+                ,{"oddwire:sourcompost", 4}
                 }
             )
             ,baseCompostRatePerHour: 0.33f
