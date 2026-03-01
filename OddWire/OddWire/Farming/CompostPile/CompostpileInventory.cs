@@ -206,11 +206,12 @@ public sealed class CompostpileInventory
     public bool TryAdd(ICoreAPI api, ItemSlot slot, out int accepted)
     {
         accepted = 0;
-        if (slot?.StackSize < 1)
+        if (slot.StackSize < 1)
             return false;
 
-        if (TryAddNutrition(slot, out accepted)
+        if (TryAddCompostPile(slot, out accepted)
         ||  Settings.Browns.TryAddRef(slot, out accepted, ref BrownsQty)
+        ||  TryAddNutrition(slot, out accepted)
         ||  Settings.Inoculum.TryAddRef(slot, out accepted, ref InoculumQty)
             )
             return accepted > 0;
@@ -218,6 +219,37 @@ public sealed class CompostpileInventory
         return false;
     }
 
+    private bool TryAddCompostPile(ItemSlot slot, out int accepted)
+    {
+        accepted = 0;
+
+        AssetLocation blockCode = slot.Itemstack?.Block?.Code;
+        if (string.IsNullOrEmpty(blockCode)
+        || !blockCode.BeginsWith("oddwire","compmpostpile")
+        || !int.TryParse(blockCode.EndVariant().Substring(1), out int stackBonus)
+           )
+            return false;
+
+        stackBonus = Math.Max(stackBonus - 1, 0);
+        
+        int brownsAdd = Settings.Browns.InitQty + stackBonus * Settings.Browns.PlacedBonusQty;
+        int nutritionAdd = Settings.Nutrition.InitQty + stackBonus * Settings.Nutrition.PlacedBonusQty;
+        int inoculumAdd = Settings.Inoculum.InitQty + stackBonus * Settings.Inoculum.PlacedBonusQty;
+
+        if (brownsAdd > Settings.Browns.MaxQty - BrownsQty
+        ||  nutritionAdd > Settings.Nutrition.MaxQty - NutritionQty
+        ||  inoculumAdd > Settings.Inoculum.MaxQty - InoculumQty
+            )
+            return false;
+
+        BrownsQty += brownsAdd;
+        NutritionStacks[EnumFoodCategory.Unknown] += nutritionAdd;
+        InoculumQty += inoculumAdd;
+
+        accepted = 1;
+        return true;
+    }
+    
     private bool TryAddNutrition(ItemSlot slot, out int accepted)
     {
         accepted = 0;
