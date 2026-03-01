@@ -4,10 +4,10 @@ using Vintagestory.API.MathTools;
 namespace OddWire.GameContent;
 public class BlockCompostPile : Block
 {
-    // ToDo: Runs client and server side. Fix?
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        if (blockSel is null
+        if (world.Side != EnumAppSide.Server
+        ||  blockSel is null
         ||  world.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityCompostPile be
             )
             return false;

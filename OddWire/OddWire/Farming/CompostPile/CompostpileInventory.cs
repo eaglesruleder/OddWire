@@ -8,8 +8,56 @@ namespace OddWire.GameContent;
 
 public sealed class CompostpileInventory
 {
-    public CompostpileSettings Settings { get; }
-    
+    public static CompostpileSettings Settings { get; } = new
+        (browns: new CompostpileIngredientSettings
+            (name: "browns"
+                ,initQty: 16
+                ,placedBonusQty: 44
+                ,maxQty: 64 * 3
+                ,maxInput: 16
+                ,inPerCompostPortion: 16
+                ,inPerSourPortion: 8
+                ,addItemCodeRatios: new Dictionary<string, float>
+                {{"game:drygrass", 1f}
+                }
+            ),
+            nutrition: new CompostpileIngredientSettings
+            (name: "nutrition"
+                ,initQty: 16
+                ,placedBonusQty: 12
+                ,maxQty: 64
+                ,maxInput: 8
+                ,inPerCompostPortion: 8
+                ,inPerSourPortion: 4
+            ),
+            inoculum: new CompostpileIngredientSettings
+            (name: "inoculum"
+                ,initQty: 2
+                ,placedBonusQty: 8
+                ,maxQty: 16
+                ,maxInput: 4
+                ,inPerCompostPortion: 1
+                ,inPerSourPortion: 0
+                ,addItemCodeRatios: new Dictionary<string, float>
+                {{"game:compost", 1f}
+                    ,{"game:rot", 2}
+                    ,{"oddwire:sourcompost", 4}
+                }
+            )
+            ,baseCompostRatePerHour: 0.33f
+            ,defaultMoisture01: 0.55f
+            ,optimalMoisture01: 0.60f
+            ,rainToMoisturePerDay: 0.40f
+            ,dryoutPerDayAt20C: 0.25f
+            ,greenhouseTempBonusC: 5f
+                
+            ,outputMaxQty: 48
+            ,outputOutPerCompostPortion: 1
+            ,inoculumOutPerSourPortion: 1
+                
+            ,harvestMaxPerStack: 8
+        );
+
     public double PrevTimeMoistureUpdated = -1;
     public float Moisture01;
 
@@ -130,68 +178,13 @@ public sealed class CompostpileInventory
     
     public bool CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
     {
-        int bulkPortions = Math.Min(BrownsQty / Settings.Browns.InitQty, NutritionQty / Settings.Nutrition.InitQty);
+        int bulkPortions = (int)((float)BrownsQty / Settings.Browns.InitQty + (float)NutritionQty / Settings.Nutrition.InitQty);
         compostPileQty = Math.Min(bulkPortions, InoculumQty / Settings.Inoculum.InitQty);
         sourCompostQty = Math.Max(InoculumQty - bulkPortions * Settings.Inoculum.InitQty, 0);
         compostQty = OutputQty;
 
         return compostPileQty > 0 || sourCompostQty > 0 || compostQty > 0;
     }
-    
-    
-    public CompostpileInventory(CompostpileSettings settings) => Settings = settings;
-
-    public static readonly CompostpileInventory Default = new
-        (settings: new CompostpileSettings
-            (browns: new CompostpileIngredientSettings
-                (name: "browns"
-                ,initQty: 16
-                ,placedBonusQty: 44
-                ,maxQty: 64 * 3
-                ,maxInput: 16
-                ,inPerCompostPortion: 16
-                ,inPerSourPortion: 8
-                ,addItemCodeRatios: new Dictionary<string, float>
-                    {{"game:drygrass", 1f}
-                    }
-                ),
-            nutrition: new CompostpileIngredientSettings
-                (name: "nutrition"
-                ,initQty: 16
-                ,placedBonusQty: 12
-                ,maxQty: 64
-                ,maxInput: 8
-                ,inPerCompostPortion: 8
-                ,inPerSourPortion: 4
-                ),
-            inoculum: new CompostpileIngredientSettings
-                (name: "inoculum"
-                ,initQty: 2
-                ,placedBonusQty: 8
-                ,maxQty: 16
-                ,maxInput: 4
-                ,inPerCompostPortion: 1
-                ,inPerSourPortion: 0
-                ,addItemCodeRatios: new Dictionary<string, float>
-                    {{"game:compost", 1f}
-                    ,{"game:rot", 2}
-                    ,{"oddwire:sourcompost", 4}
-                    }
-                )
-            ,baseCompostRatePerHour: 0.33f
-            ,defaultMoisture01: 0.55f
-            ,optimalMoisture01: 0.60f
-            ,rainToMoisturePerDay: 0.40f
-            ,dryoutPerDayAt20C: 0.25f
-            ,greenhouseTempBonusC: 5f
-            
-            ,outputMaxQty: 48
-            ,outputOutPerCompostPortion: 1
-            ,inoculumOutPerSourPortion: 1
-            
-            ,harvestMaxPerStack: 8
-            )
-        );
     
     public void ResetQuantitiesOnPlaced(Block block)
     {
@@ -439,9 +432,17 @@ public sealed class CompostpileInventory
         tree.SetInt($"{key}.InoculumQty", InoculumQty);
         tree.SetInt($"{key}.OutputQty", OutputQty);
 
-        int nutritionLength = tree.GetInt($"{key}.NutritionStacks.Count");
-        for (int i = 0; i < nutritionLength; i++)
-            NutritionStacks[(EnumFoodCategory)tree.GetInt($"{key}.NutritionStacks<{i}>")] = tree.GetInt($"{key}.NutritionStacks[{i}]");
+        tree.SetInt($"{key}.NutritionStacks.Count", NutritionStacks?.Count ?? 0);
+        if (NutritionStacks is not null)
+        {
+            int i = 0;
+            foreach (var stack in NutritionStacks)
+            {
+                tree.SetInt($"{key}.NutritionStacks<{i}>", (int)stack.Key);
+                tree.SetInt($"{key}.NutritionStacks[{i}]", stack.Value);
+                i++;
+            }
+        }
     }
 
     public void FromTreeAttributes(ITreeAttribute tree, string? key = null)
@@ -455,16 +456,8 @@ public sealed class CompostpileInventory
         InoculumQty = tree.GetInt($"{key}.InoculumQty");
         OutputQty = tree.GetInt($"{key}.OutputQty");
 
-        tree.SetInt($"{key}.NutritionStacks.Count", NutritionStacks?.Count ?? 0);
-        if (NutritionStacks is not null)
-        {
-            int i = 0;
-            foreach (var stack in NutritionStacks)
-            {
-                tree.SetInt($"{key}.NutritionStacks<{i}>", (int)stack.Key);
-                tree.SetInt($"{key}.NutritionStacks[{i}]", stack.Value);
-                i++;
-            }
-        }
+        int nutritionLength = tree.GetInt($"{key}.NutritionStacks.Count");
+        for (int i = 0; i < nutritionLength; i++)
+            NutritionStacks[(EnumFoodCategory)tree.GetInt($"{key}.NutritionStacks<{i}>")] = tree.GetInt($"{key}.NutritionStacks[{i}]");
     }
 }

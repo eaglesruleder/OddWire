@@ -98,7 +98,7 @@ public sealed class CompostpileIngredientSettings
     {
         accepted = 0;
         if (AddItemCodeRatios is null
-        || AddItemCodeRatios.Count == 0
+        ||  AddItemCodeRatios.Count == 0
            )
             return false;
 
@@ -106,7 +106,10 @@ public sealed class CompostpileIngredientSettings
         if (room < 1)
             return false;
 
-        string code = slot.Itemstack?.Item?.Code.ToString() ?? "";
+        string code =
+            slot.Itemstack?.Item?.Code.ToString()
+        ??  slot.Itemstack?.Block?.Code.ToString()
+        ??  "";
         if(!AddItemCodeRatios.TryGetValue(code, out float ratio)
         ||  ratio <= 0f
         ||  slot.StackSize < ratio
