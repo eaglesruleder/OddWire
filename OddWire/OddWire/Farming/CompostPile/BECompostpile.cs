@@ -115,7 +115,7 @@ public class BlockEntityCompostpile : BlockEntity
     {
         base.OnBlockPlaced(byItemStack);
 
-        _inventory.ResetQuantitiesOnPlaced(Block);
+        _inventory.ResetOnPlaced(Block);
         _inventory.PrevTimeComposted = Api.World.Calendar.TotalHours;
         
         UpdateShapeStackSize();
@@ -123,12 +123,9 @@ public class BlockEntityCompostpile : BlockEntity
 
     private void OnEvery12Seconds(float dt)
     {
-        if (Api?.Side != EnumAppSide.Server)
-            return;
-
-        double totalHours = Api.World.Calendar.TotalHours;
-        _inventory.UpdateMoisture(Api, Pos, totalHours);
-        if (_inventory.ProcessCompost(Api, Block, Pos, totalHours))
+        if (Api?.Side == EnumAppSide.Server
+        &&  _inventory.Update(this, Api.World.Calendar.TotalHours)
+            )
             MarkDirty(true);
     }
 
