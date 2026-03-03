@@ -19,7 +19,7 @@ public sealed class CompostpileSettings
     
     public float NutritionTolerance { get; }
     public float MoistureTolerance { get; }
-    public float AerationDecayPerHour { get; }
+    public float AerationDecayPerDay { get; }
     public float PassiveHeating { get; }
     public float PassiveCooling { get; }
     
@@ -42,7 +42,7 @@ public sealed class CompostpileSettings
         
         ,float nutritionTolerance
         ,float moistureTolerance
-        ,float aerationDecayPerHour
+        ,float aerationDecayPerDay
         ,float passiveHeating
         ,float passiveCooling
         
@@ -66,7 +66,7 @@ public sealed class CompostpileSettings
 
         NutritionTolerance = nutritionTolerance;
         MoistureTolerance = moistureTolerance;
-        AerationDecayPerHour = aerationDecayPerHour;
+        AerationDecayPerDay = aerationDecayPerDay;
         PassiveHeating = passiveHeating;
         PassiveCooling = passiveCooling;
         

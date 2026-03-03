@@ -175,7 +175,7 @@ public class BlockEntityCompostpile : BlockEntity
 
         dsc.AppendLine();
 
-        float ratePerHour = Api?.World != null ? _inventory.GetCompostRatePerHour(Api, Block, Pos, totalHours) : 0f;
+        float ratePerHour = Api?.World != null ? _inventory.GetCompostRatePerHour(Block) : 0f;
         if (ratePerHour <= 0)
             ratePerHour = 0.00001f;
 
