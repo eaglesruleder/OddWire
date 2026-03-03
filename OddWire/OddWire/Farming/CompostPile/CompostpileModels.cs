@@ -16,7 +16,13 @@ public sealed class CompostpileSettings
     public float RainToMoisturePerDay { get; }
     public float DryoutPerDayAt20C { get; }
     public float GreenhouseTempBonusC { get; }
-
+    
+    public float NutritionTolerance { get; }
+    public float MoistureTolerance { get; }
+    public float AerationDecayPerHour { get; }
+    public float PassiveHeating { get; }
+    public float PassiveCooling { get; }
+    
     public int OutputMaxQty { get; }
     public int OutputOutPerCompostPortion { get; }
     public int InoculumOutPerSourPortion { get; }
@@ -33,6 +39,12 @@ public sealed class CompostpileSettings
         ,float rainToMoisturePerDay
         ,float dryoutPerDayAt20C
         ,float greenhouseTempBonusC
+        
+        ,float nutritionTolerance
+        ,float moistureTolerance
+        ,float aerationDecayPerHour
+        ,float passiveHeating
+        ,float passiveCooling
         
         ,int outputMaxQty
         ,int outputOutPerCompostPortion
@@ -51,6 +63,12 @@ public sealed class CompostpileSettings
         RainToMoisturePerDay = rainToMoisturePerDay;
         DryoutPerDayAt20C = dryoutPerDayAt20C;
         GreenhouseTempBonusC = greenhouseTempBonusC;
+
+        NutritionTolerance = nutritionTolerance;
+        MoistureTolerance = moistureTolerance;
+        AerationDecayPerHour = aerationDecayPerHour;
+        PassiveHeating = passiveHeating;
+        PassiveCooling = passiveCooling;
         
         OutputMaxQty = outputMaxQty;
         OutputOutPerCompostPortion = outputOutPerCompostPortion;

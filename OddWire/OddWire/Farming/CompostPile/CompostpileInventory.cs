@@ -51,6 +51,12 @@ public sealed class CompostpileInventory
             ,dryoutPerDayAt20C: 0.25f
             ,greenhouseTempBonusC: 5f
                 
+            ,nutritionTolerance: 0.35f
+            ,moistureTolerance: 0.35f
+            ,aerationDecayPerHour: 0.04f
+            ,passiveHeating: 45
+            ,passiveCooling: 0.18f
+        
             ,outputMaxQty: 48
             ,outputOutPerCompostPortion: 1
             ,inoculumOutPerSourPortion: 1
@@ -358,19 +364,16 @@ public sealed class CompostpileInventory
         float nutritionFullness = (float)NutritionQty / Settings.Nutrition.MaxQty;
         float nutritionRatio = nutritionFullness / (brownsFullness + nutritionFullness);
         float nutritionOptimal = (float)Settings.Nutrition.MaxQty / (Settings.Browns.MaxQty + Settings.Nutrition.MaxQty);
-        float nutritionTolerance = block.Attributes?["nutritionTolerance"]?.AsFloat() ?? 0.35f;
-        float nutritionQuality01 = 1f - Math.Clamp(Math.Abs(nutritionRatio - nutritionOptimal) / nutritionTolerance, 0, 1);
+        float nutritionQuality01 = 1f - Math.Clamp(Math.Abs(nutritionRatio - nutritionOptimal) / Settings.NutritionTolerance, 0, 1);
         
-        float moistureTolerance = block.Attributes?["moistureTolerance"]?.AsFloat() ?? 0.35f;
-        float moistureQuality01 = 1f - Math.Clamp(Math.Abs(Moisture01 - Settings.OptimalMoisture01) / moistureTolerance, 0, 1);
+        float moistureQuality01 = 1f - Math.Clamp(Math.Abs(Moisture01 - Settings.OptimalMoisture01) / Settings.MoistureTolerance, 0, 1);
 
         
         if (_prevTimeAerationUpdated < 0)
             _prevTimeAerationUpdated = totalHours;
         
         float aerationActivity01 = Math.Clamp(fullness01 * nutritionQuality01 * moistureQuality01, 0f, 1f);
-        float aerationDecayPerHour = block.Attributes?["aerationDecayPerHour"]?.AsFloat() ?? 0.04f;
-        _aeration01 = Math.Clamp(_aeration01 - dtHours * aerationDecayPerHour * (0.25f + 0.75f * aerationActivity01), 0f, 1f);
+        _aeration01 = Math.Clamp(_aeration01 - dtHours * Settings.AerationDecayPerHour * (0.25f + 0.75f * aerationActivity01), 0f, 1f);
         _prevTimeAerationUpdated = totalHours;
 
         
@@ -393,15 +396,13 @@ public sealed class CompostpileInventory
         insulation01 = Math.Clamp(insulation01, 0, 1);
         
         
-        float passiveHeating = block.Attributes?["passiveHeating"]?.AsFloat() ?? 45f;
         float targetTemp =
             _updateEnvTemp
-        +  (passiveHeating * insulation01 + nutritionHeat)
+        +  (Settings.PassiveHeating * insulation01 + nutritionHeat)
         *   Math.Clamp(fullness01 * nutritionQuality01 * _aeration01 * moistureQuality01, 0f, 1f);
         
-        float passiveCooling = block.Attributes?["passiveCooling"]?.AsFloat() ?? 0.18f;
         float coolingInsulation = GameMath.Lerp(1.6f, 0.7f, insulation01);
-        float coolingRate = Math.Clamp(passiveCooling / coolingInsulation, 0.01f, 0.5f);
+        float coolingRate = Math.Clamp(Settings.PassiveCooling / coolingInsulation, 0.01f, 0.5f);
 
         
         _temperature += (targetTemp - _temperature) * (1f - (float)Math.Exp(-coolingRate * dtHours));
