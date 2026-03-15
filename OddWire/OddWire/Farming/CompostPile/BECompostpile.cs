@@ -175,18 +175,18 @@ public class BlockEntityCompostpile : BlockEntity
 
         dsc.AppendLine();
 
-        float ratePerHour = Api?.World != null ? _inventory.GetCompostRatePerHour(Block) : 0f;
+        float ratePerHour = Api?.World != null ? _inventory.GetCompostRatePerHour() : 0f;
         if (ratePerHour <= 0)
             ratePerHour = 0.00001f;
 
         dsc.AppendLine(Lang.Get("Compost time: {0:0.00}hr", 1f / ratePerHour));
 
-        float nutr = _inventory.GetNutritionFactor(Block);
+        float nutr = _inventory.GetNutritionFactor();
         dsc.AppendLine(Lang.Get(
             "Factors: Inoculum {0:0}% × Temp {1:0}% × Moisture {2:0}% × Nutrition {3:0}%",
             100f * _inventory.GetInoculumFactor01(),
-            100f * _inventory.GetTemperatureFactor01(envTemp),
-            100f * _inventory.GetMoistureFactor01(_inventory.Moisture01),
+            100f * _inventory.GetTemperatureFactor01(),
+            100f * _inventory.GetMoistureFactor01(),
             100f * nutr
         ));
     }

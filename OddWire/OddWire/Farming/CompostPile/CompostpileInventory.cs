@@ -57,6 +57,29 @@ public sealed class CompostpileInventory
             ,passiveHeating: 45
             ,passiveCooling: 0.18f
         
+            ,overheatTemperature: 65
+            ,overheatTolerance: 12
+        
+            ,drowningMoisture: 0.8f
+            ,drowningTolerance: 0.2f
+        
+            ,hypoxicTolerance: 0.15f
+        
+            ,nutritionSpeed: new Dictionary<string, float>
+                {{"Fruit", 1.5f}
+                ,{"Vegetable", 2.0f}
+                ,{"Dairy", 2.2f}
+                ,{"Grain", 2.3f}
+                ,{"Protein", 2.7f}
+                }
+            ,nutritionHeat: new Dictionary<string, float>()
+                {{"Fruit", 1.5f}
+                ,{"Vegetable", 2.0f}
+                ,{"Dairy", 2.2f}
+                ,{"Grain", 2.3f}
+                ,{"Protein", 2.7f}
+                }
+        
             ,outputMaxQty: 48
             ,outputOutPerCompostPortion: 1
             ,inoculumOutPerSourPortion: 1
@@ -90,94 +113,105 @@ public sealed class CompostpileInventory
     
     
     #region RateHelpers
-    public float GetCompostRatePerHour(Block block)
+    public float GetCompostRatePerHour()
     {
-        if (InoculumQty < 1 && OutputQty < 1)
+        if ((InoculumQty < 1 && OutputQty < 1)
+        ||  (BrownsQty < 1 && NutritionQty < 1)
+            )
             return 0f;
         
         return
             Settings.BaseCompostRatePerHour
+        *   GetNutritionFactor()
         *   GetInoculumFactor01()
-        *   GetTemperatureFactor01(_temperature)
-        *   GetMoistureFactor01(Moisture01)
-        *   GetNutritionFactor(block);
+        *   GetTemperatureFactor01()
+        *   GetMoistureFactor01();
     }
-
-    public float GetSpoilRate01(Block block) => Math.Clamp(GetSpoilRate(block), 0f, 1f);
-    private float GetSpoilRate(Block block)
-    {
-        JsonObject? spoilTemps = block.Attributes?["spoilTempByCategory"];
-        if (spoilTemps is null
-        ||  NutritionStacks.Count == 0
-           )
-            return 0f;
-
-        float tempRisk01 = 0f;
-        foreach (var nutritionStack in NutritionStacks)
-        {
-            string nutritionKey = nutritionStack.Key.ToString();
-            float thresh = spoilTemps[nutritionKey]?.AsFloat(float.NaN) ?? float.NaN;
-            if (float.IsNaN(thresh))
-                continue;
-
-            if (_temperature > thresh)
-            {
-                float risk = Math.Clamp((_temperature - thresh) / 15f, 0f, 1f);
-                if (risk > tempRisk01)
-                    tempRisk01 = risk;
-            }
-        }
-
-        float moistureRisk01 = 0f;
-        if (Moisture01 < 0.05f)
-            moistureRisk01 = Math.Max(moistureRisk01, 0.6f * Math.Clamp((0.05f - Moisture01) / 0.05f, 0f, 1f));
-        else if (Moisture01 > 0.85f)
-            moistureRisk01 = Math.Clamp((Moisture01 - 0.85f) / 0.15f, 0f, 1f);
-
-        return 1f - (1f - tempRisk01) * (1f - moistureRisk01);
-    }
+    
+    private float GetSpoilRate01() =>
+        1f
+    -   GetAerationRisk01()
+    *   GetTemperatureRisk01()
+    *   GetMoistureRisk01();
     
     
     public float GetInoculumFactor01() =>
         Math.Clamp((float)(InoculumQty + OutputQty) / (Settings.Inoculum.MaxQty + Settings.OutputMaxQty), 0.1f, 1f);
     
-    public float GetTemperatureFactor01(float tempC)
+    public float GetTemperatureFactor01()
     {
-        if (tempC <  0) return 0.05f;
-        if (tempC < 20) return GameMath.Lerp(0.05f, 1.0f, (tempC - 0f) / 20f);
-        if (tempC < 55) return 1.0f;
-        if (tempC < 70) return GameMath.Lerp(1.0f, 0.35f, (tempC - 55f) / 15f);
+        if (_temperature <  0) return 0.05f;
+        if (_temperature < 20) return GameMath.Lerp(0.05f, 1.0f, (_temperature - 0f) / 20f);
+        if (_temperature < 55) return 1.0f;
+        if (_temperature < 70) return GameMath.Lerp(1.0f, 0.35f, (_temperature - 55f) / 15f);
         return 0.10f;
     }
-    
-    public float GetMoistureFactor01(float moisture01)
+
+    public float GetTemperatureRisk01()
     {
-        if (moisture01 <= 0.05f)
+        if (_temperature < Settings.OverheatTemperature)
+            return 1f - Math.Clamp((_temperature - Settings.OverheatTemperature) / Settings.OverheatTolerance, 0,1);
+        return 1;
+    }
+    
+    public float GetMoistureFactor01()
+    {
+        if (Moisture01 <= 0.05f)
             return 0.05f;
 
-        float factor = moisture01 <= Settings.OptimalMoisture01
-        ?   GameMath.Lerp(0.1f, 1.0f, (moisture01 - 0.05f) / (Settings.OptimalMoisture01 - 0.05f))
-        :   GameMath.Lerp(1.0f, 0.25f, (moisture01 - Settings.OptimalMoisture01) / (1f - Settings.OptimalMoisture01));
+        float factor = Moisture01 <= Settings.OptimalMoisture01
+        ?   GameMath.Lerp(0.1f, 1.0f, (Moisture01 - 0.05f) / (Settings.OptimalMoisture01 - 0.05f))
+        :   GameMath.Lerp(1.0f, 0.25f, (Moisture01 - Settings.OptimalMoisture01) / (1f - Settings.OptimalMoisture01));
         
-        if (moisture01 > 0.9f)
+        if (Moisture01 > 0.9f)
             factor *= 0.6f;
+        
         return Math.Clamp(factor, 0.05f, 1.0f);
     }
     
-    public float GetNutritionFactor(Block block)
+    public float GetMoistureRisk01()
+    {
+        float moistureRisk01 = 0f;
+        
+        if (Moisture01 < 0.05f)
+            moistureRisk01 = 0.6f * (0.05f - Moisture01) / 0.05f;
+        
+        if (Moisture01 > Settings.DrowningMoisture)
+        {
+            float drowningRisk = (Moisture01 - Settings.DrowningMoisture) / Settings.DrowningTolerance;
+            float anaerobic01 = 1f - _aeration01;
+            moistureRisk01 = drowningRisk * anaerobic01 * anaerobic01;
+        }
+        
+        return 1f-Math.Clamp(moistureRisk01,0,1);
+    }
+    
+    
+    public float GetNutritionFactor()
     {
         if (NutritionStacks.Count < 1)
             return 0f;
-
-        JsonObject? speedByCat = block.Attributes?["nutritionSpeedByCategory"];
         
         float weighted = 0f;
         foreach (var nutritionStack in NutritionStacks)
-            weighted +=
-                nutritionStack.Value
-            *  (speedByCat?[nutritionStack.Key.ToString()]?.AsFloat(1f) ?? 1f);
+        {
+            if (Settings.NutritionSpeed?.TryGetValue(nutritionStack.Key.ToString(), out float speed) != true)
+                speed = 1;
+            
+            weighted += nutritionStack.Value * speed;
+        }
 
         return weighted / Settings.Nutrition.MaxQty;
+    }
+
+    public float GetAerationRisk01()
+    {
+        float aerationRisk01 = 0f;
+        
+        if (_aeration01 < Settings.HypoxicTolerance)
+            aerationRisk01 = (Settings.HypoxicTolerance - _aeration01) / Math.Max(0.01f, Settings.HypoxicTolerance) * 0.35f;
+        
+        return 1f-Math.Clamp(aerationRisk01, 0,1);
     }
     #endregion
     
@@ -378,13 +412,11 @@ public sealed class CompostpileInventory
         float nutritionQuality01 = 1f - Math.Clamp(Math.Abs(nutritionRatio - nutritionOptimal) / Settings.NutritionTolerance, 0, 1);
         
         float nutritionHeat = 0f;
-        JsonObject? nutritionHeatCategories = be.Block.Attributes?["nutritionHeat"];
-        if (nutritionHeatCategories is not null)
+        if (Settings.NutritionHeat is not null)
             foreach (var kvp in NutritionStacks)
             {
                 string key = kvp.Key.ToString();
-                float heatC = nutritionHeatCategories[key]?.AsFloat() ?? 0f;
-                if (heatC > 0f)
+                if (Settings.NutritionHeat.TryGetValue(key, out float heatC))
                     nutritionHeat += heatC * kvp.Value / Math.Max(1f, Settings.Nutrition.MaxQty);
             }
         
@@ -459,13 +491,13 @@ public sealed class CompostpileInventory
         }
 
         int transitions = (int)Math.Min
-           ((totalHours - PrevTimeComposted) * GetCompostRatePerHour(be.Block)
+           ((totalHours - PrevTimeComposted) * GetCompostRatePerHour()
             ,bulkPortions
             );
         if (transitions < 1)
             return false; // keep accruing progress
 
-        int sourOutputPortions = (int)(transitions * GetSpoilRate01(be.Block));
+        int sourOutputPortions = (int)(transitions * GetSpoilRate01());
         int compostOutputPortions = transitions - sourOutputPortions;
 
         // clamp(sour){compost+=overflow}

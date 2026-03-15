@@ -23,6 +23,17 @@ public sealed class CompostpileSettings
     public float PassiveHeating { get; }
     public float PassiveCooling { get; }
     
+    public float OverheatTemperature { get; }
+    public float OverheatTolerance { get; }
+    
+    public float DrowningMoisture { get; }
+    public float DrowningTolerance { get; }
+    
+    public float HypoxicTolerance { get; }
+
+    public Dictionary<string, float>? NutritionSpeed;
+    public Dictionary<string, float>? NutritionHeat;
+    
     public int OutputMaxQty { get; }
     public int OutputOutPerCompostPortion { get; }
     public int InoculumOutPerSourPortion { get; }
@@ -45,6 +56,17 @@ public sealed class CompostpileSettings
         ,float aerationDecayPerDay
         ,float passiveHeating
         ,float passiveCooling
+        
+        ,float overheatTemperature
+        ,float overheatTolerance
+        
+        ,float drowningMoisture
+        ,float drowningTolerance
+        
+        ,float hypoxicTolerance
+        
+        ,Dictionary<string, float> nutritionSpeed
+        ,Dictionary<string, float> nutritionHeat
         
         ,int outputMaxQty
         ,int outputOutPerCompostPortion
@@ -69,6 +91,17 @@ public sealed class CompostpileSettings
         AerationDecayPerDay = aerationDecayPerDay;
         PassiveHeating = passiveHeating;
         PassiveCooling = passiveCooling;
+        
+        OverheatTemperature = overheatTemperature;
+        OverheatTolerance = overheatTolerance;
+        
+        DrowningMoisture = drowningMoisture;
+        DrowningTolerance = drowningTolerance;
+        
+        HypoxicTolerance = hypoxicTolerance;
+        
+        NutritionSpeed = nutritionSpeed;
+        NutritionHeat = nutritionHeat;
         
         OutputMaxQty = outputMaxQty;
         OutputOutPerCompostPortion = outputOutPerCompostPortion;

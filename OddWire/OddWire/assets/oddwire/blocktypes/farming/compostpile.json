@@ -3,19 +3,6 @@
 	class: "oddwirefarming.compostpile.block",
 	entityClass: "oddwirefarming.compostpile.blockentity",
 	behaviors: [ { name: "UnstableFalling" } ],
-	"attributes": {
-		"nutritionSpeedByCategory": {
-			"Fruit": 1.5,
-			"Vegetable": 2.0,
-			"Dairy": 2.2,
-			"Grain": 2.3,
-			"Protein": 2.7
-		},
-		"spoilTempByCategory": {
-			"Dairy": 34,
-			"Protein": 32,
-		}
-	},
 	shape: { base: "farming/compostpile/compostpile-{size}" },
 	"variantgroups": [
 		{ code:"size", states: ["#1", "#2", "#3", "#4", "#5"] }
