@@ -4,11 +4,31 @@ using Vintagestory.API.Common;
 
 namespace OddWire.GameContent;
 
-public sealed class CompostpileSettings
+public class CompostpileSettings
 {
-    public CompostpileIngredientSettings Browns { get; private set; }
-    public CompostpileIngredientSettings Nutrition { get; private set; }
-    public CompostpileIngredientSettings Inoculum { get; private set; }
+    public class Ingredient
+    {
+        public string Name { get; internal set; }
+        public int InitQty { get; internal set; }
+        public int PlacedBonusQty { get; internal set; }
+        public int MaxQty { get; internal set; }
+        public int MaxInput { get; internal set; }
+    
+        public int InPerCompostPortion { get; internal set; }
+        public int InPerSourPortion { get; internal set; }
+
+        public Dictionary<string, float> AddItemCodeRatios { get; internal set; }
+
+        public static int GetStackNormalizedRatio(CollectibleObject? collectible) =>
+            collectible?.MaxStackSize > 0
+        &&  collectible .MaxStackSize != 64
+        ?   Math.Max(64 / collectible.MaxStackSize, 1)
+        :   1;
+    }
+    
+    public Ingredient Browns { get; private set; }
+    public Ingredient Nutrition { get; private set; }
+    public Ingredient Inoculum { get; private set; }
     
     public float BaseCompostRatePerHour { get; private set; }
     public float DefaultMoisture01 { get; private set; }
@@ -41,41 +61,41 @@ public sealed class CompostpileSettings
     public int HarvestMaxPerStack { get; private set; }
     
     public static CompostpileSettings Default = new()
-        {Browns = new CompostpileIngredientSettings
-            (name: "browns"
-                ,initQty: 16
-                ,placedBonusQty: 44
-                ,maxQty: 64 * 3
-                ,maxInput: 16
-                ,inPerCompostPortion: 16
-                ,inPerSourPortion: 8
-                ,addItemCodeRatios: new Dictionary<string, float>
-                    {{"game:drygrass", 1f}
-                    }
-            )
-        ,Nutrition = new CompostpileIngredientSettings
-            (name: "nutrition"
-                ,initQty: 16
-                ,placedBonusQty: 12
-                ,maxQty: 64
-                ,maxInput: 8
-                ,inPerCompostPortion: 8
-                ,inPerSourPortion: 4
-            )
-        ,Inoculum = new CompostpileIngredientSettings
-            (name: "inoculum"
-                ,initQty: 2
-                ,placedBonusQty: 8
-                ,maxQty: 16
-                ,maxInput: 4
-                ,inPerCompostPortion: 1
-                ,inPerSourPortion: 1
-                ,addItemCodeRatios: new Dictionary<string, float>
-                    {{"game:compost", 1f}
-                    ,{"game:rot", 2}
-                    ,{"oddwire:sourcompost", 4}
-                    }
-            )
+        {Browns = new()
+            {Name = "browns"
+            ,InitQty = 16
+            ,PlacedBonusQty = 44
+            ,MaxQty = 64 * 3
+            ,MaxInput = 16
+            ,InPerCompostPortion = 16
+            ,InPerSourPortion = 8
+            ,AddItemCodeRatios = new Dictionary<string, float>
+                {{"game:drygrass", 1f}
+                }
+            }
+        ,Nutrition = new Ingredient
+            {Name = "nutrition"
+            ,InitQty = 16
+            ,PlacedBonusQty = 12
+            ,MaxQty = 64
+            ,MaxInput = 8
+            ,InPerCompostPortion = 8
+            ,InPerSourPortion = 4
+            }
+        ,Inoculum = new Ingredient
+            {Name = "inoculum"
+            ,InitQty = 2
+            ,PlacedBonusQty = 8
+            ,MaxQty = 16
+            ,MaxInput = 4
+            ,InPerCompostPortion = 1
+            ,InPerSourPortion = 1
+            ,AddItemCodeRatios = new Dictionary<string, float>
+                {{"game:compost", 1f}
+                ,{"game:rot", 2}
+                ,{"oddwire:sourcompost", 4}
+                }
+            }
         ,BaseCompostRatePerHour = 0.33f
         ,DefaultMoisture01 = 0.55f
         ,OptimalMoisture01 = 0.60f
@@ -118,69 +138,4 @@ public sealed class CompostpileSettings
             
         ,HarvestMaxPerStack = 8
         };
-}
-
-public sealed class CompostpileIngredientSettings
-{
-    public string Name { get; }
-    public int InitQty { get; }
-    public int PlacedBonusQty { get; }
-    public int MaxQty { get; }
-    public int MaxInput { get; }
-    
-    public int InPerCompostPortion { get; }
-    public int InPerSourPortion { get; }
-
-    public Dictionary<string, float> AddItemCodeRatios { get; }
-
-    public CompostpileIngredientSettings
-        (string name
-        ,int initQty, int placedBonusQty
-        ,int maxQty, int maxInput
-        ,int inPerCompostPortion, int inPerSourPortion
-        ,Dictionary<string, float>? addItemCodeRatios = null
-        )
-    {
-        Name = name;
-        InitQty = initQty; PlacedBonusQty = placedBonusQty;
-        MaxQty = maxQty; MaxInput = maxInput;
-        InPerCompostPortion = inPerCompostPortion; InPerSourPortion = inPerSourPortion;
-        AddItemCodeRatios = addItemCodeRatios ?? new Dictionary<string, float>();
-    }
-
-    public static int GetStackNormalizedRatio(CollectibleObject? collectible) =>
-        collectible?.MaxStackSize > 0
-    &&  collectible .MaxStackSize != 64
-    ?   Math.Max(64 / collectible.MaxStackSize, 1)
-    :   1;
-
-    public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty)
-    {
-        accepted = 0;
-        if (AddItemCodeRatios is null
-        ||  AddItemCodeRatios.Count == 0
-           )
-            return false;
-
-        int room = MaxQty - currentQty;
-        if (room < 1)
-            return false;
-
-        string code =
-            slot.Itemstack?.Item?.Code.ToString()
-        ??  slot.Itemstack?.Block?.Code.ToString()
-        ??  "";
-        if(!AddItemCodeRatios.TryGetValue(code, out float ratio)
-        ||  ratio <= 0f
-        ||  slot.StackSize < ratio
-            )
-            return false;
-
-        int adjustedStackSize = (int)(slot.StackSize / ratio);
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, MaxInput);
-
-        currentQty += adjustedAccept;
-        accepted = (int)(adjustedAccept * ratio);
-        return accepted > 0;
-    }
 }

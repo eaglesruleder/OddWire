@@ -176,13 +176,43 @@ public sealed class CompostpileInventory
             return false;
 
         if (TryAddCompostPile(slot, out accepted)
-        ||  Settings.Browns.TryAddRef(slot, out accepted, ref BrownsQty)
+        ||  TryAddRef(slot, out accepted, ref BrownsQty, Settings.Browns)
+        ||  TryAddRef(slot, out accepted, ref InoculumQty, Settings.Inoculum)
         ||  TryAddNutrition(slot, out accepted)
-        ||  Settings.Inoculum.TryAddRef(slot, out accepted, ref InoculumQty)
             )
             return accepted > 0;
 
         return false;
+    }
+    
+    public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient)
+    {
+        accepted = 0;
+        if (ingredient.AddItemCodeRatios is null
+        ||  ingredient.AddItemCodeRatios.Count == 0
+           )
+            return false;
+
+        int room = ingredient.MaxQty - currentQty;
+        if (room < 1)
+            return false;
+
+        string code =
+            slot.Itemstack?.Item?.Code.ToString()
+        ??  slot.Itemstack?.Block?.Code.ToString()
+        ??  "";
+        if(!ingredient.AddItemCodeRatios.TryGetValue(code, out float ratio)
+        ||  ratio <= 0f
+        ||  slot.StackSize < ratio
+            )
+            return false;
+
+        int adjustedStackSize = (int)(slot.StackSize / ratio);
+        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, ingredient.MaxInput);
+
+        currentQty += adjustedAccept;
+        accepted = (int)(adjustedAccept * ratio);
+        return accepted > 0;
     }
 
     private bool TryAddCompostPile(ItemSlot slot, out int accepted)
@@ -230,7 +260,7 @@ public sealed class CompostpileInventory
         if (room < 1)
             return false;
 
-        int ratio = CompostpileIngredientSettings.GetStackNormalizedRatio(collectible);
+        int ratio = CompostpileSettings.Ingredient.GetStackNormalizedRatio(collectible);
         if (slot.StackSize < ratio)
             return false;
 
