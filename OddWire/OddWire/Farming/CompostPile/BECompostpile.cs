@@ -11,6 +11,8 @@ namespace OddWire.GameContent;
 
 public class BlockEntityCompostpile : BlockEntity
 {
+    private CompostpileSettings Settings = CompostpileSettings.Default;
+    
     private readonly CompostpileInventory _inventory = new();
 
     public void UpdateShapeStackSize() => SetShapeStackSize(_inventory.BrownsQty + _inventory.NutritionQty + _inventory.InoculumQty + _inventory.OutputQty);
@@ -51,15 +53,15 @@ public class BlockEntityCompostpile : BlockEntity
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, CompostpileInventory.Settings.HarvestMaxPerStack)) + 1;
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
             ItemStack stack = new ItemStack(spawnBlock, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
         }
 
-        _inventory.BrownsQty = Math.Max(_inventory.BrownsQty - CompostpileInventory.Settings.Browns.InitQty * qty, 0);
-        _inventory.TryRemoveRandomNutrition(Api.World.Rand, CompostpileInventory.Settings.Nutrition.InitQty * qty);
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - CompostpileInventory.Settings.Inoculum.InitQty * qty, 0);
+        _inventory.BrownsQty = Math.Max(_inventory.BrownsQty - Settings.Browns.InitQty * qty, 0);
+        _inventory.TryRemoveRandomNutrition(Api.World.Rand, Settings.Nutrition.InitQty * qty);
+        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - Settings.Inoculum.InitQty * qty, 0);
 
         MarkDirty();
     }
@@ -71,13 +73,13 @@ public class BlockEntityCompostpile : BlockEntity
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, CompostpileInventory.Settings.HarvestMaxPerStack)) + 1;
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
             ItemStack stack = new ItemStack(spawnBlock, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
         }
 
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - CompostpileInventory.Settings.Inoculum.InPerSourPortion * qty, 0);
+        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - Settings.Inoculum.InPerSourPortion * qty, 0);
         MarkDirty();
     }
 
@@ -88,7 +90,7 @@ public class BlockEntityCompostpile : BlockEntity
         int remaining = (int)(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, CompostpileInventory.Settings.HarvestMaxPerStack)) + 1;
+            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
             ItemStack stack = new ItemStack(spawnItem, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
@@ -105,7 +107,7 @@ public class BlockEntityCompostpile : BlockEntity
         if (_inventory.Moisture01 <= 0f
         &&  _inventory.PrevTimeMoistureUpdated < 0
             )
-            _inventory.Moisture01 = CompostpileInventory.Settings.DefaultMoisture01;
+            _inventory.Moisture01 = Settings.DefaultMoisture01;
 
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery12Seconds, 12000);
@@ -138,7 +140,7 @@ public class BlockEntityCompostpile : BlockEntity
         float envTemp = 0;
         bool inGreenhouse = false;
         if (Api?.World is not null)
-            envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, skyExposed, CompostpileInventory.Settings.GreenhouseTempBonusC, out inGreenhouse);
+            envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, skyExposed, Settings.GreenhouseTempBonusC, out inGreenhouse);
 
         dsc.AppendLine(Lang.Get("Temperature: {0:0.#}°C", envTemp));
         if (inGreenhouse)
@@ -150,10 +152,10 @@ public class BlockEntityCompostpile : BlockEntity
 
         dsc.AppendLine();
 
-        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _inventory.BrownsQty, CompostpileInventory.Settings.Browns.MaxQty));
-        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _inventory.NutritionQty, CompostpileInventory.Settings.Nutrition.MaxQty));
-        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inventory.InoculumQty, CompostpileInventory.Settings.Inoculum.MaxQty));
-        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _inventory.OutputQty, CompostpileInventory.Settings.OutputMaxQty));
+        dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _inventory.BrownsQty, Settings.Browns.MaxQty));
+        dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _inventory.NutritionQty, Settings.Nutrition.MaxQty));
+        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inventory.InoculumQty, Settings.Inoculum.MaxQty));
+        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _inventory.OutputQty, Settings.OutputMaxQty));
 
         if (_inventory.NutritionStacks.Count > 0)
         {
@@ -168,8 +170,8 @@ public class BlockEntityCompostpile : BlockEntity
         }
 
         int possibleMax = (int)(
-            (float)_inventory.BrownsQty / CompostpileInventory.Settings.Browns.InPerCompostPortion
-        +   (float)_inventory.NutritionQty / CompostpileInventory.Settings.Nutrition.InPerCompostPortion
+            (float)_inventory.BrownsQty / Settings.Browns.InPerCompostPortion
+        +   (float)_inventory.NutritionQty / Settings.Nutrition.InPerCompostPortion
             );
         dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
 

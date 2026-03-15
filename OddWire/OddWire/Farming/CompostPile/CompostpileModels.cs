@@ -6,109 +6,118 @@ namespace OddWire.GameContent;
 
 public sealed class CompostpileSettings
 {
-    public CompostpileIngredientSettings Browns { get; }
-    public CompostpileIngredientSettings Nutrition { get; }
-    public CompostpileIngredientSettings Inoculum { get; }
+    public CompostpileIngredientSettings Browns { get; private set; }
+    public CompostpileIngredientSettings Nutrition { get; private set; }
+    public CompostpileIngredientSettings Inoculum { get; private set; }
     
-    public float BaseCompostRatePerHour { get; }
-    public float DefaultMoisture01 { get; }
-    public float OptimalMoisture01 { get; }
-    public float RainToMoisturePerDay { get; }
-    public float DryoutPerDayAt20C { get; }
-    public float GreenhouseTempBonusC { get; }
+    public float BaseCompostRatePerHour { get; private set; }
+    public float DefaultMoisture01 { get; private set; }
+    public float OptimalMoisture01 { get; private set; }
+    public float RainToMoisturePerDay { get; private set; }
+    public float DryoutPerDayAt20C { get; private set; }
+    public float GreenhouseTempBonusC { get; private set; }
     
-    public float NutritionTolerance { get; }
-    public float MoistureTolerance { get; }
-    public float AerationDecayPerDay { get; }
-    public float PassiveHeating { get; }
-    public float PassiveCooling { get; }
+    public float NutritionTolerance { get; private set; }
+    public float MoistureTolerance { get; private set; }
+    public float AerationDecayPerDay { get; private set; }
+    public float PassiveHeating { get; private set; }
+    public float PassiveCooling { get; private set; }
     
-    public float OverheatTemperature { get; }
-    public float OverheatTolerance { get; }
+    public float OverheatTemperature { get; private set; }
+    public float OverheatTolerance { get; private set; }
     
-    public float DrowningMoisture { get; }
-    public float DrowningTolerance { get; }
+    public float DrowningMoisture { get; private set; }
+    public float DrowningTolerance { get; private set; }
     
-    public float HypoxicTolerance { get; }
+    public float HypoxicTolerance { get; private set; }
 
-    public Dictionary<string, float>? NutritionSpeed;
-    public Dictionary<string, float>? NutritionHeat;
+    public Dictionary<string, float>? NutritionSpeed { get; private set; }
+    public Dictionary<string, float>? NutritionHeat { get; private set; }
     
-    public int OutputMaxQty { get; }
-    public int OutputOutPerCompostPortion { get; }
-    public int InoculumOutPerSourPortion { get; }
+    public int OutputMaxQty { get; private set; }
+    public int OutputOutPerCompostPortion { get; private set; }
+    public int InoculumOutPerSourPortion { get; private set; }
     
-    public int HarvestMaxPerStack { get; }
+    public int HarvestMaxPerStack { get; private set; }
     
-    public CompostpileSettings
-        (CompostpileIngredientSettings browns
-        ,CompostpileIngredientSettings nutrition
-        ,CompostpileIngredientSettings inoculum
-        ,float baseCompostRatePerHour
-        ,float defaultMoisture01
-        ,float optimalMoisture01
-        ,float rainToMoisturePerDay
-        ,float dryoutPerDayAt20C
-        ,float greenhouseTempBonusC
-        
-        ,float nutritionTolerance
-        ,float moistureTolerance
-        ,float aerationDecayPerDay
-        ,float passiveHeating
-        ,float passiveCooling
-        
-        ,float overheatTemperature
-        ,float overheatTolerance
-        
-        ,float drowningMoisture
-        ,float drowningTolerance
-        
-        ,float hypoxicTolerance
-        
-        ,Dictionary<string, float> nutritionSpeed
-        ,Dictionary<string, float> nutritionHeat
-        
-        ,int outputMaxQty
-        ,int outputOutPerCompostPortion
-        ,int inoculumOutPerSourPortion
-        
-        ,int harvestMaxPerStack
-        )
-    {
-        Browns = browns;
-        Nutrition = nutrition;
-        Inoculum = inoculum;
-        
-        BaseCompostRatePerHour = baseCompostRatePerHour;
-        DefaultMoisture01 = defaultMoisture01;
-        OptimalMoisture01 = optimalMoisture01;
-        RainToMoisturePerDay = rainToMoisturePerDay;
-        DryoutPerDayAt20C = dryoutPerDayAt20C;
-        GreenhouseTempBonusC = greenhouseTempBonusC;
-
-        NutritionTolerance = nutritionTolerance;
-        MoistureTolerance = moistureTolerance;
-        AerationDecayPerDay = aerationDecayPerDay;
-        PassiveHeating = passiveHeating;
-        PassiveCooling = passiveCooling;
-        
-        OverheatTemperature = overheatTemperature;
-        OverheatTolerance = overheatTolerance;
-        
-        DrowningMoisture = drowningMoisture;
-        DrowningTolerance = drowningTolerance;
-        
-        HypoxicTolerance = hypoxicTolerance;
-        
-        NutritionSpeed = nutritionSpeed;
-        NutritionHeat = nutritionHeat;
-        
-        OutputMaxQty = outputMaxQty;
-        OutputOutPerCompostPortion = outputOutPerCompostPortion;
-        InoculumOutPerSourPortion = inoculumOutPerSourPortion;
-        
-        HarvestMaxPerStack = harvestMaxPerStack;
-    }
+    public static CompostpileSettings Default = new()
+        {Browns = new CompostpileIngredientSettings
+            (name: "browns"
+                ,initQty: 16
+                ,placedBonusQty: 44
+                ,maxQty: 64 * 3
+                ,maxInput: 16
+                ,inPerCompostPortion: 16
+                ,inPerSourPortion: 8
+                ,addItemCodeRatios: new Dictionary<string, float>
+                    {{"game:drygrass", 1f}
+                    }
+            )
+        ,Nutrition = new CompostpileIngredientSettings
+            (name: "nutrition"
+                ,initQty: 16
+                ,placedBonusQty: 12
+                ,maxQty: 64
+                ,maxInput: 8
+                ,inPerCompostPortion: 8
+                ,inPerSourPortion: 4
+            )
+        ,Inoculum = new CompostpileIngredientSettings
+            (name: "inoculum"
+                ,initQty: 2
+                ,placedBonusQty: 8
+                ,maxQty: 16
+                ,maxInput: 4
+                ,inPerCompostPortion: 1
+                ,inPerSourPortion: 1
+                ,addItemCodeRatios: new Dictionary<string, float>
+                    {{"game:compost", 1f}
+                    ,{"game:rot", 2}
+                    ,{"oddwire:sourcompost", 4}
+                    }
+            )
+        ,BaseCompostRatePerHour = 0.33f
+        ,DefaultMoisture01 = 0.55f
+        ,OptimalMoisture01 = 0.60f
+        ,RainToMoisturePerDay = 0.40f
+        ,DryoutPerDayAt20C = 0.25f
+        ,GreenhouseTempBonusC = 5f
+            
+        ,NutritionTolerance = 0.35f
+        ,MoistureTolerance = 0.35f
+        ,AerationDecayPerDay = 0.96f
+        ,PassiveHeating = 45
+        ,PassiveCooling = 0.18f
+    
+        ,OverheatTemperature = 65
+        ,OverheatTolerance = 12
+    
+        ,DrowningMoisture = 0.8f
+        ,DrowningTolerance = 0.2f
+    
+        ,HypoxicTolerance = 0.15f
+    
+        ,NutritionSpeed = new Dictionary<string, float>
+            {{"Fruit", 1.5f}
+            ,{"Vegetable", 2.0f}
+            ,{"Dairy", 2.2f}
+            ,{"Grain", 2.3f}
+            ,{"Protein", 2.7f}
+            }
+        ,NutritionHeat = new Dictionary<string, float>()
+            {{"Fruit", 1.5f}
+            ,{"Vegetable", 2.0f}
+            ,{"Dairy", 2.2f}
+            ,{"Grain", 2.3f}
+            ,{"Protein", 2.7f}
+            }
+    
+        ,OutputMaxQty = 48
+        ,OutputOutPerCompostPortion = 1
+        ,InoculumOutPerSourPortion = 1
+            
+        ,HarvestMaxPerStack = 8
+        };
 }
 
 public sealed class CompostpileIngredientSettings
