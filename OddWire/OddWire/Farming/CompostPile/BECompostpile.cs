@@ -15,7 +15,7 @@ public class BlockEntityCompostpile : BlockEntity
     
     private readonly CompostpileInventory _inventory = new();
 
-    public void UpdateShapeStackSize() => SetShapeStackSize(_inventory.BrownsQty + _inventory.NutritionQty + _inventory.InoculumQty + _inventory.OutputQty);
+    public void UpdateShapeStackSize() => SetShapeStackSize(_inventory.BrownsQty + _inventory.NutritionQty + _inventory.InoculumQty + _inventory.CompostQty);
     public void SetShapeStackSize(int stackSize)
     {
         if (Api.Side != EnumAppSide.Server)
@@ -59,9 +59,9 @@ public class BlockEntityCompostpile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _inventory.BrownsQty = Math.Max(_inventory.BrownsQty - Settings.Browns.InitQty * qty, 0);
-        _inventory.TryRemoveRandomNutrition(Api.World.Rand, Settings.Nutrition.InitQty * qty);
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - Settings.Inoculum.InitQty * qty, 0);
+        _inventory.BrownsQty = Math.Max(_inventory.BrownsQty - Settings.Browns.InitialQty * qty, 0);
+        _inventory.TryRemoveRandomNutrition(Api.World.Rand, Settings.Nutrition.InitialQty * qty);
+        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - Settings.Inoculum.InitialQty * qty, 0);
 
         MarkDirty();
     }
@@ -79,7 +79,7 @@ public class BlockEntityCompostpile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - Settings.Inoculum.InPerSourPortion * qty, 0);
+        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - Settings.InoculumPerSourDropped * qty, 0);
         MarkDirty();
     }
 
@@ -96,7 +96,7 @@ public class BlockEntityCompostpile : BlockEntity
             remaining -= spawnNow;
         }
 
-        _inventory.OutputQty = Math.Max(_inventory.OutputQty - qty, 0);
+        _inventory.CompostQty = Math.Max(_inventory.CompostQty - qty, 0);
         MarkDirty();
     }
 
@@ -107,7 +107,7 @@ public class BlockEntityCompostpile : BlockEntity
         if (_inventory.Moisture01 <= 0f
         &&  _inventory.PrevTimeMoistureUpdated < 0
             )
-            _inventory.Moisture01 = Settings.DefaultMoisture01;
+            _inventory.Moisture01 = Settings.Moisture01Initial;
 
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery12Seconds, 12000);
@@ -140,7 +140,7 @@ public class BlockEntityCompostpile : BlockEntity
         float envTemp = 0;
         bool inGreenhouse = false;
         if (Api?.World is not null)
-            envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, skyExposed, Settings.GreenhouseTempBonusC, out inGreenhouse);
+            envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, skyExposed, Settings.GreenhouseHeat, out inGreenhouse);
 
         dsc.AppendLine(Lang.Get("Temperature: {0:0.#}°C", envTemp));
         if (inGreenhouse)
@@ -155,7 +155,7 @@ public class BlockEntityCompostpile : BlockEntity
         dsc.AppendLine(Lang.Get("Browns: {0}/{1}", _inventory.BrownsQty, Settings.Browns.MaxQty));
         dsc.AppendLine(Lang.Get("Nutrition: {0}/{1}", _inventory.NutritionQty, Settings.Nutrition.MaxQty));
         dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inventory.InoculumQty, Settings.Inoculum.MaxQty));
-        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _inventory.OutputQty, Settings.OutputMaxQty));
+        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _inventory.CompostQty, Settings.CompostMaxQty));
 
         if (_inventory.NutritionStacks.Count > 0)
         {
@@ -170,8 +170,8 @@ public class BlockEntityCompostpile : BlockEntity
         }
 
         int possibleMax = (int)(
-            (float)_inventory.BrownsQty / Settings.Browns.InPerCompostPortion
-        +   (float)_inventory.NutritionQty / Settings.Nutrition.InPerCompostPortion
+            (float)_inventory.BrownsQty / Settings.Browns.ConsumePerTransition
+        +   (float)_inventory.NutritionQty / Settings.Nutrition.ConsumePerTransition
             );
         dsc.AppendLine(Lang.Get("Possible output right now: {0}", Math.Max(0, possibleMax)));
 

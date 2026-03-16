@@ -18,7 +18,7 @@ public sealed class CompostpileInventory
     public int BrownsQty;
     public readonly Dictionary<EnumFoodCategory, int> NutritionStacks = new();
     public int InoculumQty;
-    public int OutputQty;
+    public int CompostQty;
 
     public int NutritionQty
     { get {
@@ -40,7 +40,7 @@ public sealed class CompostpileInventory
     #region RateHelpers
     public float GetCompostRatePerHour()
     {
-        if ((InoculumQty < 1 && OutputQty < 1)
+        if ((InoculumQty < 1 && CompostQty < 1)
         ||  (BrownsQty < 1 && NutritionQty < 1)
             )
             return 0f;
@@ -55,13 +55,13 @@ public sealed class CompostpileInventory
     
     private float GetSpoilRate01() =>
         1f
-    -   GetAerationRisk01()
-    *   GetTemperatureRisk01()
-    *   GetMoistureRisk01();
+    -   GetAerationHealth01()
+    *   GetTemperatureHealth01()
+    *   GetMoistureHealth01();
     
     
     public float GetInoculumFactor01() =>
-        Math.Clamp((float)(InoculumQty + OutputQty) / (Settings.Inoculum.MaxQty + Settings.OutputMaxQty), 0.1f, 1f);
+        Math.Clamp((float)(InoculumQty + CompostQty) / (Settings.Inoculum.MaxQty + Settings.CompostMaxQty), 0.1f, 1f);
     
     public float GetTemperatureFactor01()
     {
@@ -72,11 +72,12 @@ public sealed class CompostpileInventory
         return 0.10f;
     }
 
+    public float GetTemperatureHealth01() => 1f - GetTemperatureRisk01();
     public float GetTemperatureRisk01()
     {
-        if (_temperature > Settings.OverheatTemperature)
-            return 1f - Math.Clamp((_temperature - Settings.OverheatTemperature) / Settings.OverheatTolerance, 0,1);
-        return 1;
+        if (_temperature > Settings.OverheatThreshold)
+            return Math.Clamp((_temperature - Settings.OverheatThreshold) / Settings.OverheatTolerance, 0,1);
+        return 0;
     }
     
     public float GetMoistureFactor01()
@@ -84,16 +85,17 @@ public sealed class CompostpileInventory
         if (Moisture01 <= 0.05f)
             return 0.05f;
 
-        float factor = Moisture01 <= Settings.OptimalMoisture01
-        ?   GameMath.Lerp(0.1f, 1.0f, (Moisture01 - 0.05f) / (Settings.OptimalMoisture01 - 0.05f))
-        :   GameMath.Lerp(1.0f, 0.25f, (Moisture01 - Settings.OptimalMoisture01) / (1f - Settings.OptimalMoisture01));
+        float factor = Moisture01 <= Settings.Moisture01Optimal
+        ?   GameMath.Lerp(0.1f, 1.0f, (Moisture01 - 0.05f) / (Settings.Moisture01Optimal - 0.05f))
+        :   GameMath.Lerp(1.0f, 0.25f, (Moisture01 - Settings.Moisture01Optimal) / (1f - Settings.Moisture01Optimal));
         
         if (Moisture01 > 0.9f)
             factor *= 0.6f;
         
         return Math.Clamp(factor, 0.05f, 1.0f);
     }
-    
+
+    public float GetMoistureHealth01() => 1f - GetMoistureRisk01();
     public float GetMoistureRisk01()
     {
         float moistureRisk01 = 0f;
@@ -101,14 +103,14 @@ public sealed class CompostpileInventory
         if (Moisture01 < 0.05f)
             moistureRisk01 = 0.6f * (0.05f - Moisture01) / 0.05f;
         
-        if (Moisture01 > Settings.DrowningMoisture)
+        if (Moisture01 > Settings.DrowningThreshold)
         {
-            float drowningRisk = (Moisture01 - Settings.DrowningMoisture) / Settings.DrowningTolerance;
+            float drowningRisk = (Moisture01 - Settings.DrowningThreshold) / Settings.DrowningTolerance;
             float anaerobic01 = 1f - _aeration01;
             moistureRisk01 = drowningRisk * anaerobic01 * anaerobic01;
         }
         
-        return 1f-Math.Clamp(moistureRisk01,0,1);
+        return Math.Clamp(moistureRisk01,0,1);
     }
     
     
@@ -129,28 +131,29 @@ public sealed class CompostpileInventory
         return weighted / Settings.Nutrition.MaxQty;
     }
 
+    public float GetAerationHealth01() => 1f - GetAerationRisk01();
     public float GetAerationRisk01()
     {
         float aerationRisk01 = 0f;
         
-        if (_aeration01 < Settings.HypoxicTolerance)
-            aerationRisk01 = (Settings.HypoxicTolerance - _aeration01) / Math.Max(0.01f, Settings.HypoxicTolerance) * 0.35f;
+        if (_aeration01 < Settings.HypoxicThreshold)
+            aerationRisk01 = (Settings.HypoxicThreshold - _aeration01) / Math.Max(0.01f, Settings.HypoxicTolerance) * 0.35f;
         
-        return 1f-Math.Clamp(aerationRisk01, 0,1);
+        return Math.Clamp(aerationRisk01, 0,1);
     }
     #endregion
     
     public bool CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
     {
-        int bulkPortions = (int)((float)BrownsQty / Settings.Browns.InitQty + (float)NutritionQty / Settings.Nutrition.InitQty);
+        int bulkPortions = (int)((float)BrownsQty / Settings.Browns.InitialQty + (float)NutritionQty / Settings.Nutrition.InitialQty);
         
-        compostPileQty = Math.Min(bulkPortions, InoculumQty / Settings.Inoculum.InitQty);
+        compostPileQty = Math.Min(bulkPortions, InoculumQty / Settings.Inoculum.InitialQty);
         compostPileQty = Math.Max(compostPileQty, 0);
         
-        sourCompostQty = (InoculumQty - compostPileQty * Settings.Inoculum.InitQty) / Settings.Inoculum.InPerSourPortion;
+        sourCompostQty = (InoculumQty - compostPileQty * Settings.Inoculum.InitialQty) / Settings.InoculumPerSourDropped;
         sourCompostQty = Math.Max(sourCompostQty, 0);
         
-        compostQty = OutputQty / Settings.OutputOutPerCompostPortion;
+        compostQty = CompostQty / Settings.CompostOutPerSuccess;
         compostQty = Math.Max(compostQty, 0);
 
         return compostPileQty > 0 || sourCompostQty > 0 || compostQty > 0;
@@ -162,15 +165,15 @@ public sealed class CompostpileInventory
         if (int.TryParse(block.LastCodePart().Substring(1), out int parsedStackBonus))
             stackBonus = Math.Max(0, parsedStackBonus - 1);
 
-        BrownsQty = Settings.Browns.InitQty + stackBonus * Settings.Browns.PlacedBonusQty;
+        BrownsQty = Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty;
 
         NutritionStacks.Clear();
-        NutritionStacks[EnumFoodCategory.Unknown] = Settings.Nutrition.InitQty + stackBonus * Settings.Nutrition.PlacedBonusQty;
+        NutritionStacks[EnumFoodCategory.Unknown] = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
 
-        InoculumQty = Settings.Inoculum.InitQty + stackBonus * Settings.Inoculum.PlacedBonusQty;
-        OutputQty = 0;
+        InoculumQty = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
+        CompostQty = 0;
 
-        Moisture01 = Settings.DefaultMoisture01;
+        Moisture01 = Settings.Moisture01Initial;
         PrevTimeMoistureUpdated = -1;
         PrevTimeComposted = -1;
 
@@ -200,8 +203,8 @@ public sealed class CompostpileInventory
     public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient)
     {
         accepted = 0;
-        if (ingredient.AddItemCodeRatios is null
-        ||  ingredient.AddItemCodeRatios.Count == 0
+        if (ingredient.ItemCodeAddRatios is null
+        ||  ingredient.ItemCodeAddRatios.Count == 0
            )
             return false;
 
@@ -213,14 +216,14 @@ public sealed class CompostpileInventory
             slot.Itemstack?.Item?.Code.ToString()
         ??  slot.Itemstack?.Block?.Code.ToString()
         ??  "";
-        if(!ingredient.AddItemCodeRatios.TryGetValue(code, out float ratio)
+        if(!ingredient.ItemCodeAddRatios.TryGetValue(code, out float ratio)
         ||  ratio <= 0f
         ||  slot.StackSize < ratio
             )
             return false;
 
         int adjustedStackSize = (int)(slot.StackSize / ratio);
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, ingredient.MaxInput);
+        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, ingredient.MaxInputPerAdd);
 
         currentQty += adjustedAccept;
         accepted = (int)(adjustedAccept * ratio);
@@ -240,9 +243,9 @@ public sealed class CompostpileInventory
 
         stackBonus = Math.Max(stackBonus - 1, 0);
         
-        int brownsAdd = Settings.Browns.InitQty + stackBonus * Settings.Browns.PlacedBonusQty;
-        int nutritionAdd = Settings.Nutrition.InitQty + stackBonus * Settings.Nutrition.PlacedBonusQty;
-        int inoculumAdd = Settings.Inoculum.InitQty + stackBonus * Settings.Inoculum.PlacedBonusQty;
+        int brownsAdd = Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty;
+        int nutritionAdd = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
+        int inoculumAdd = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
 
         if (brownsAdd > Settings.Browns.MaxQty - BrownsQty
         ||  nutritionAdd > Settings.Nutrition.MaxQty - NutritionQty
@@ -277,7 +280,7 @@ public sealed class CompostpileInventory
             return false;
 
         int adjustedStackSize = slot.StackSize / ratio;
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, Settings.Nutrition.MaxInput);
+        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, Settings.Nutrition.MaxInputPerAdd);
 
         NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
         NutritionStacks[nutritionProps.FoodCategory] = cur + adjustedAccept;
@@ -340,13 +343,13 @@ public sealed class CompostpileInventory
         bool dirty = false;
 
         bool skyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
-        float envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, skyExposed, Settings.GreenhouseTempBonusC, out bool isInGreenhouse);
+        float envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, skyExposed, Settings.GreenhouseHeat, out bool isInGreenhouse);
         float rainfall = skyExposed ? be.Api.World.GetClimateAtHours(be.Pos, totalHours).Rainfall : 0;
         
         
         // Calc Insulation
-        int totalQty = BrownsQty + NutritionQty + InoculumQty + OutputQty;
-        int totalMax = Settings.Browns.MaxQty + Settings.Nutrition.MaxQty + Settings.Inoculum.MaxQty + Settings.OutputMaxQty;
+        int totalQty = BrownsQty + NutritionQty + InoculumQty + CompostQty;
+        int totalMax = Settings.Browns.MaxQty + Settings.Nutrition.MaxQty + Settings.Inoculum.MaxQty + Settings.CompostMaxQty;
         float fullness01 = Math.Clamp((float)totalQty / totalMax, 0f, 1f);
         
         float insulation01 = 0.25f + 0.75f * fullness01;
@@ -364,7 +367,7 @@ public sealed class CompostpileInventory
         float nutritionOptimal = (float)Settings.Nutrition.MaxQty / (Settings.Browns.MaxQty + Settings.Nutrition.MaxQty);
         float nutritionQuality01 = 0f;
         if (bulkFullness > 0f)
-            nutritionQuality01 = 1f - Math.Clamp(Math.Abs(nutritionFullness / bulkFullness - nutritionOptimal) / Settings.NutritionTolerance, 0, 1);
+            nutritionQuality01 = 1f - Math.Clamp(Math.Abs(nutritionFullness / bulkFullness - nutritionOptimal) / Settings.NutritionSensitivity, 0, 1);
         
         float nutritionHeat = 0f;
         if (Settings.NutritionHeat is not null)
@@ -387,11 +390,11 @@ public sealed class CompostpileInventory
         if (dtMoistureDays > 0f)
         {
             if (rainfall > 0)
-                Moisture01 += dtMoistureDays * Settings.RainToMoisturePerDay * rainfall;
+                Moisture01 += dtMoistureDays * Settings.Moisture01GainPerRainyDay * rainfall;
 
             float surfaceTemp = GameMath.Lerp(envTemp, _temperature, insulation01);
             Moisture01 -=
-                dtMoistureDays * Settings.DryoutPerDayAt20C
+                dtMoistureDays * Settings.Moisture01LossPerDay
             *   Math.Clamp(0.5f + surfaceTemp / 40f, 0.2f, 2.0f)
             *  (skyExposed ? 1.0f : 0.75f)
             *  (isInGreenhouse ? 0.85f : 1.0f);
@@ -401,7 +404,7 @@ public sealed class CompostpileInventory
             dirty = true;
         }
 
-        float moistureQuality01 = 1f - Math.Clamp(Math.Abs(Moisture01 - Settings.OptimalMoisture01) / Settings.MoistureTolerance, 0, 1);
+        float moistureQuality01 = 1f - Math.Clamp(Math.Abs(Moisture01 - Settings.Moisture01Optimal) / Settings.Moisture01Sensitivity, 0, 1);
         float compostpileQuality = fullness01 * nutritionQuality01 * moistureQuality01;
         
         
@@ -417,7 +420,7 @@ public sealed class CompostpileInventory
         {
             _aeration01 = Math.Clamp
                (_aeration01
-            -   dtAerationDays * Settings.AerationDecayPerDay
+            -   dtAerationDays * Settings.AerationLossPerDay
             *   Math.Clamp(0.25f + 0.75f * compostpileQuality, 0,1)
                ,0,1);
             _prevTimeAerationUpdated = totalHours;
@@ -438,11 +441,11 @@ public sealed class CompostpileInventory
         {
             float targetTemp =
                 envTemp
-            +  (Settings.PassiveHeating * insulation01 + nutritionHeat)
+            +  (Settings.HeatingRatePerHour * insulation01 + nutritionHeat)
             *   Math.Clamp(compostpileQuality * _aeration01, 0f, 1f);
 
             float coolingInsulation = GameMath.Lerp(1.6f, 0.7f, insulation01);
-            float coolingRate = Math.Clamp(Settings.PassiveCooling / coolingInsulation, 0.01f, 0.5f);
+            float coolingRate = Math.Clamp(Settings.CoolingRatePerHour / coolingInsulation, 0.01f, 0.5f);
 
             _temperature += (targetTemp - _temperature) * (1f - (float)Math.Exp(-coolingRate * dtTemperatureHours));
             _prevTimeTemperatureUpdated = totalHours;
@@ -456,15 +459,15 @@ public sealed class CompostpileInventory
     {
         if (PrevTimeComposted < 0
         || (InoculumQty >= Settings.Inoculum.MaxQty
-        &&  OutputQty >= Settings.OutputMaxQty
+        &&  CompostQty >= Settings.CompostMaxQty
            ))
         {
             PrevTimeComposted = totalHours;
             return false;
         }
 
-        float brownsPortions = (float)BrownsQty / Settings.Browns.InPerCompostPortion;
-        float nutritionPortions = (float)NutritionQty / Settings.Nutrition.InPerCompostPortion;
+        float brownsPortions = (float)BrownsQty / Settings.Browns.ConsumePerTransition;
+        float nutritionPortions = (float)NutritionQty / Settings.Nutrition.ConsumePerTransition;
         float bulkPortions = brownsPortions + nutritionPortions;
 
         if (bulkPortions < 1f)
@@ -484,7 +487,7 @@ public sealed class CompostpileInventory
         int compostOutputPortions = transitions - sourOutputPortions;
 
         // clamp(sour){compost+=overflow}
-        int sourOutputRoomPortions = (Settings.Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerSourPortion;
+        int sourOutputRoomPortions = (Settings.Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerFail;
         if (sourOutputPortions > sourOutputRoomPortions)
         {
             int sourOverflowPortions = sourOutputPortions - sourOutputRoomPortions;
@@ -493,7 +496,7 @@ public sealed class CompostpileInventory
         }
 
         // clamp(compost){sour+=overflow}
-        int compostOutputRoomPortions = (Settings.OutputMaxQty - OutputQty) / Settings.OutputOutPerCompostPortion;
+        int compostOutputRoomPortions = (Settings.CompostMaxQty - CompostQty) / Settings.CompostOutPerSuccess;
         if (compostOutputPortions > compostOutputRoomPortions)
         {
             int compostOverflowPortions = compostOutputPortions - compostOutputRoomPortions;
@@ -503,15 +506,15 @@ public sealed class CompostpileInventory
         }
 
         // bootstrap(compost with sour)
-        int inoculumAfterSourQty = InoculumQty + sourOutputPortions * Settings.InoculumOutPerSourPortion;
-        int compostPossibleByInoculumPortions = inoculumAfterSourQty / Settings.Inoculum.InPerCompostPortion;
+        int inoculumAfterSourQty = InoculumQty + sourOutputPortions * Settings.InoculumOutPerFail;
+        int compostPossibleByInoculumPortions = inoculumAfterSourQty / Settings.Inoculum.ConsumePerTransition;
         if (compostOutputPortions > compostPossibleByInoculumPortions)
         {
             int overflowByInoculumLimitsPortions = compostOutputPortions - compostPossibleByInoculumPortions;
 
             int compostSubsidizedBySourPortions = Math.Min
-                (overflowByInoculumLimitsPortions * Settings.InoculumOutPerSourPortion
-            /   (Settings.InoculumOutPerSourPortion + Settings.Inoculum.InPerCompostPortion)
+                (overflowByInoculumLimitsPortions * Settings.InoculumOutPerFail
+            /   (Settings.InoculumOutPerFail + Settings.Inoculum.ConsumePerTransition)
                 ,compostOutputRoomPortions
                 );
 
@@ -521,12 +524,12 @@ public sealed class CompostpileInventory
 
         // clamp(sour, room)
         int inoculumChangeQty = 
-            sourOutputPortions * Settings.InoculumOutPerSourPortion
-        -   compostOutputPortions * Settings.Inoculum.InPerCompostPortion;
+            sourOutputPortions * Settings.InoculumOutPerFail
+        -   compostOutputPortions * Settings.Inoculum.ConsumePerTransition;
         int inoculumRoomQty = Settings.Inoculum.MaxQty - InoculumQty;
         if (inoculumChangeQty > inoculumRoomQty)
         {
-            int inoculumExcessPortions = (inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerSourPortion;
+            int inoculumExcessPortions = (inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerFail;
             sourOutputPortions = Math.Max(sourOutputPortions - inoculumExcessPortions, 0);
         }
         
@@ -548,19 +551,19 @@ public sealed class CompostpileInventory
             brownsRatio = minBrowns;
         float nutritionRatio = actualTransitions - brownsRatio;
         
-        BrownsQty -= (int)Math.Min(brownsRatio * Settings.Browns.InPerCompostPortion, BrownsQty);
-        TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionRatio * Settings.Nutrition.InPerCompostPortion));
+        BrownsQty -= (int)Math.Min(brownsRatio * Settings.Browns.ConsumePerTransition, BrownsQty);
+        TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionRatio * Settings.Nutrition.ConsumePerTransition));
 
         InoculumQty = Math.Clamp
            (InoculumQty
-        +   sourOutputPortions * Settings.InoculumOutPerSourPortion
-        -   compostOutputPortions * Settings.Inoculum.InPerCompostPortion
+        +   sourOutputPortions * Settings.InoculumOutPerFail
+        -   compostOutputPortions * Settings.Inoculum.ConsumePerTransition
            ,0,Settings.Inoculum.MaxQty
             );
 
-        OutputQty = Math.Clamp
-            (OutputQty + compostOutputPortions * Settings.OutputOutPerCompostPortion
-            ,0,Settings.OutputMaxQty
+        CompostQty = Math.Clamp
+            (CompostQty + compostOutputPortions * Settings.CompostOutPerSuccess
+            ,0,Settings.CompostMaxQty
             );
 
         PrevTimeComposted = totalHours;
@@ -577,7 +580,7 @@ public sealed class CompostpileInventory
 
         tree.SetInt($"{key}.BrownsQty", BrownsQty);
         tree.SetInt($"{key}.InoculumQty", InoculumQty);
-        tree.SetInt($"{key}.OutputQty", OutputQty);
+        tree.SetInt($"{key}.OutputQty", CompostQty);
 
         tree.SetInt($"{key}.NutritionStacks.Count", NutritionStacks?.Count ?? 0);
         if (NutritionStacks is not null)
@@ -607,7 +610,7 @@ public sealed class CompostpileInventory
 
         BrownsQty = tree.GetInt($"{key}.BrownsQty");
         InoculumQty = tree.GetInt($"{key}.InoculumQty");
-        OutputQty = tree.GetInt($"{key}.OutputQty");
+        CompostQty = tree.GetInt($"{key}.OutputQty");
 
         NutritionStacks.Clear();
         int nutritionLength = tree.GetInt($"{key}.NutritionStacks.Count");
