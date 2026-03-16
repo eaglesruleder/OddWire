@@ -30,9 +30,11 @@ public sealed class CompostpileInventory
 
     private double _prevTimeTemperatureUpdated = -1;
     private float _temperature;
+    public float Temperature => _temperature;
     
     private double _prevTimeAerationUpdated = -1;
     private float _aeration01 = 1f;
+    public float Aeration01 => _aeration01;
     
     
     #region RateHelpers
@@ -72,7 +74,7 @@ public sealed class CompostpileInventory
 
     public float GetTemperatureRisk01()
     {
-        if (_temperature < Settings.OverheatTemperature)
+        if (_temperature > Settings.OverheatTemperature)
             return 1f - Math.Clamp((_temperature - Settings.OverheatTemperature) / Settings.OverheatTolerance, 0,1);
         return 1;
     }
@@ -141,17 +143,24 @@ public sealed class CompostpileInventory
     public bool CanHarvest(out int compostPileQty, out int sourCompostQty, out int compostQty)
     {
         int bulkPortions = (int)((float)BrownsQty / Settings.Browns.InitQty + (float)NutritionQty / Settings.Nutrition.InitQty);
+        
         compostPileQty = Math.Min(bulkPortions, InoculumQty / Settings.Inoculum.InitQty);
-        sourCompostQty = Math.Max(InoculumQty - bulkPortions * Settings.Inoculum.InitQty, 0);
-        compostQty = OutputQty;
+        compostPileQty = Math.Max(compostPileQty, 0);
+        
+        sourCompostQty = (InoculumQty - compostPileQty * Settings.Inoculum.InitQty) / Settings.Inoculum.InPerSourPortion;
+        sourCompostQty = Math.Max(sourCompostQty, 0);
+        
+        compostQty = OutputQty / Settings.OutputOutPerCompostPortion;
+        compostQty = Math.Max(compostQty, 0);
 
         return compostPileQty > 0 || sourCompostQty > 0 || compostQty > 0;
     }
     
     public void ResetOnPlaced(Block block)
     {
-        if (int.TryParse(block.LastCodePart().Substring(1), out int stackBonus))
-            stackBonus = Math.Max(0, stackBonus - 1);
+        int stackBonus = 0;
+        if (int.TryParse(block.LastCodePart().Substring(1), out int parsedStackBonus))
+            stackBonus = Math.Max(0, parsedStackBonus - 1);
 
         BrownsQty = Settings.Browns.InitQty + stackBonus * Settings.Browns.PlacedBonusQty;
 
@@ -161,10 +170,13 @@ public sealed class CompostpileInventory
         InoculumQty = Settings.Inoculum.InitQty + stackBonus * Settings.Inoculum.PlacedBonusQty;
         OutputQty = 0;
 
-        if (Moisture01 <= 0f && PrevTimeMoistureUpdated < 0)
-            Moisture01 = Settings.DefaultMoisture01;
-        
+        Moisture01 = Settings.DefaultMoisture01;
+        PrevTimeMoistureUpdated = -1;
+        PrevTimeComposted = -1;
+
         _prevTimeTemperatureUpdated = -1;
+        _temperature = 0f;
+
         _prevTimeAerationUpdated = -1;
         _aeration01 = 1f;
     }
@@ -319,30 +331,18 @@ public sealed class CompostpileInventory
     }
     
     
-    public bool Update(BlockEntity be, double totalHours)
-    {
-        UpdateState(be, totalHours);
-        return ProcessCompost(be, totalHours);
-    }
+    public bool Update(BlockEntity be, double totalHours) =>
+        UpdateState(be, totalHours)
+    |   ProcessCompost(be, totalHours);
     
-    private void UpdateState(BlockEntity be, double totalHours)
+    private bool UpdateState(BlockEntity be, double totalHours)
     {
-        bool  skyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
+        bool dirty = false;
+
+        bool skyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
         float envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, skyExposed, Settings.GreenhouseTempBonusC, out bool isInGreenhouse);
         float rainfall = skyExposed ? be.Api.World.GetClimateAtHours(be.Pos, totalHours).Rainfall : 0;
         
-        if (_prevTimeTemperatureUpdated < 0)
-            _prevTimeTemperatureUpdated = totalHours;
-        
-        if (_temperature == 0f)
-            _temperature = envTemp;
-        
-        // Max 24hrs heating-cooling cycle
-        float dtHours = (float)Math.Min(totalHours - _prevTimeTemperatureUpdated, 24);
-        // Max 9d Moisture/Aeration
-        float dtDays = (float)Math.Min((totalHours - PrevTimeMoistureUpdated) / 24, 9);
-        if (dtHours <= 0f)
-            return;
         
         // Calc Insulation
         int totalQty = BrownsQty + NutritionQty + InoculumQty + OutputQty;
@@ -360,9 +360,11 @@ public sealed class CompostpileInventory
         // Calc Nutrition made heat
         float brownsFullness = (float)BrownsQty / Settings.Browns.MaxQty;
         float nutritionFullness = (float)NutritionQty / Settings.Nutrition.MaxQty;
-        float nutritionRatio = nutritionFullness / (brownsFullness + nutritionFullness);
+        float bulkFullness = brownsFullness + nutritionFullness;
         float nutritionOptimal = (float)Settings.Nutrition.MaxQty / (Settings.Browns.MaxQty + Settings.Nutrition.MaxQty);
-        float nutritionQuality01 = 1f - Math.Clamp(Math.Abs(nutritionRatio - nutritionOptimal) / Settings.NutritionTolerance, 0, 1);
+        float nutritionQuality01 = 0f;
+        if (bulkFullness > 0f)
+            nutritionQuality01 = 1f - Math.Clamp(Math.Abs(nutritionFullness / bulkFullness - nutritionOptimal) / Settings.NutritionTolerance, 0, 1);
         
         float nutritionHeat = 0f;
         if (Settings.NutritionHeat is not null)
@@ -376,50 +378,78 @@ public sealed class CompostpileInventory
         
         //  === Update Moisture ===   //
         if (PrevTimeMoistureUpdated < 0)
+        {
             PrevTimeMoistureUpdated = totalHours;
+            dirty = true;
+        }
         
-        if (rainfall > 0)
-            Moisture01 += dtDays * Settings.RainToMoisturePerDay * rainfall;
-        
-        float surfaceTemp = GameMath.Lerp(envTemp, _temperature, insulation01);
-        Moisture01 -= 
-            dtDays * Settings.DryoutPerDayAt20C
-        *   Math.Clamp(0.5f + surfaceTemp / 40f, 0.2f, 2.0f)
-        *  (skyExposed ? 1.0f : 0.75f)
-        *  (isInGreenhouse ? 0.85f : 1.0f);
-        
-        Moisture01 = Math.Clamp(Moisture01, 0f, 1f);
-        PrevTimeMoistureUpdated = totalHours;
-        
+        float dtMoistureDays = (float)Math.Clamp((totalHours - PrevTimeMoistureUpdated) / 24, 0, 9);
+        if (dtMoistureDays > 0f)
+        {
+            if (rainfall > 0)
+                Moisture01 += dtMoistureDays * Settings.RainToMoisturePerDay * rainfall;
+
+            float surfaceTemp = GameMath.Lerp(envTemp, _temperature, insulation01);
+            Moisture01 -=
+                dtMoistureDays * Settings.DryoutPerDayAt20C
+            *   Math.Clamp(0.5f + surfaceTemp / 40f, 0.2f, 2.0f)
+            *  (skyExposed ? 1.0f : 0.75f)
+            *  (isInGreenhouse ? 0.85f : 1.0f);
+
+            Moisture01 = Math.Clamp(Moisture01, 0f, 1f);
+            PrevTimeMoistureUpdated = totalHours;
+            dirty = true;
+        }
+
         float moistureQuality01 = 1f - Math.Clamp(Math.Abs(Moisture01 - Settings.OptimalMoisture01) / Settings.MoistureTolerance, 0, 1);
-
-
         float compostpileQuality = fullness01 * nutritionQuality01 * moistureQuality01;
+        
         
         //  === Update Aeration ===   //
         if (_prevTimeAerationUpdated < 0)
+        {
             _prevTimeAerationUpdated = totalHours;
+            dirty = true;
+        }
         
-        _aeration01 = Math.Clamp
-           (_aeration01
-        -   dtDays * Settings.AerationDecayPerDay
-        *   Math.Clamp(0.25f + 0.75f * compostpileQuality, 0,1)
-           ,0,1);
-        _prevTimeAerationUpdated = totalHours;
+        float dtAerationDays = (float)Math.Clamp((totalHours - _prevTimeAerationUpdated) / 24, 0, 9);
+        if (dtAerationDays > 0f)
+        {
+            _aeration01 = Math.Clamp
+               (_aeration01
+            -   dtAerationDays * Settings.AerationDecayPerDay
+            *   Math.Clamp(0.25f + 0.75f * compostpileQuality, 0,1)
+               ,0,1);
+            _prevTimeAerationUpdated = totalHours;
+            dirty = true;
+        }
         
         
-        //  Apply new temp
-        float targetTemp =
-            envTemp
-        +  (Settings.PassiveHeating * insulation01 + nutritionHeat)
-        *   Math.Clamp(compostpileQuality * _aeration01 , 0f, 1f);
+        //  === Update Temperature ===   //
+        if (_prevTimeTemperatureUpdated < 0)
+        {
+            _prevTimeTemperatureUpdated = totalHours;
+            _temperature = envTemp;
+            dirty = true;
+        }
         
-        float coolingInsulation = GameMath.Lerp(1.6f, 0.7f, insulation01);
-        float coolingRate = Math.Clamp(Settings.PassiveCooling / coolingInsulation, 0.01f, 0.5f);
+        float dtTemperatureHours = (float)Math.Clamp(totalHours - _prevTimeTemperatureUpdated, 0, 24);
+        if (dtTemperatureHours > 0f)
+        {
+            float targetTemp =
+                envTemp
+            +  (Settings.PassiveHeating * insulation01 + nutritionHeat)
+            *   Math.Clamp(compostpileQuality * _aeration01, 0f, 1f);
 
-        
-        _temperature += (targetTemp - _temperature) * (1f - (float)Math.Exp(-coolingRate * dtHours));
-        _prevTimeTemperatureUpdated = totalHours;
+            float coolingInsulation = GameMath.Lerp(1.6f, 0.7f, insulation01);
+            float coolingRate = Math.Clamp(Settings.PassiveCooling / coolingInsulation, 0.01f, 0.5f);
+
+            _temperature += (targetTemp - _temperature) * (1f - (float)Math.Exp(-coolingRate * dtTemperatureHours));
+            _prevTimeTemperatureUpdated = totalHours;
+            dirty = true;
+        }
+
+        return dirty;
     }
     
     private bool ProcessCompost(BlockEntity be, double totalHours)
