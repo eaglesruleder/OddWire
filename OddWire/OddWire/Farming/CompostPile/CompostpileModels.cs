@@ -14,6 +14,7 @@ public class CompostpileSettings
         public int SizeBonusQty { get; internal set; }
         public int MaxQty { get; internal set; }
         public int MaxInputPerAdd { get; internal set; }
+        public float Aeration01PerInput { get; internal set; }
 
         public Dictionary<string, float> ItemCodeAddRatios { get; internal set; }
     
@@ -29,6 +30,8 @@ public class CompostpileSettings
     public Ingredient Browns { get; private set; }
     public Ingredient Nutrition { get; private set; }
     public Ingredient Inoculum { get; private set; }
+    
+    public float Aeration01PerCompostpileInput { get; internal set; }
     
     public float BaseCompostRatePerHour { get; private set; }
     public Dictionary<string, float>? NutritionSpeed { get; private set; }
@@ -58,15 +61,18 @@ public class CompostpileSettings
     public int InoculumOutPerFail { get; private set; }
     
     public int HarvestMaxPerStack { get; private set; }
-    public int InoculumPerSourDropped { get; internal set; }
+    public int InoculumPerSourDropped { get; private set; }
     
-    public static CompostpileSettings Default = new()
+    public int TotalMaxQty => Browns.MaxQty + Nutrition.MaxQty + Inoculum.MaxQty + CompostMaxQty;
+    
+    public static readonly CompostpileSettings Default = new()
         {Browns = new()
             {Name = "browns"
             ,InitialQty = 16
             ,SizeBonusQty = 44
             ,MaxQty = 64 * 3
             ,MaxInputPerAdd = 16
+            ,Aeration01PerInput = 1f/(64*3)
             ,ItemCodeAddRatios = new Dictionary<string, float>
                 {{"game:drygrass", 1f}
                 }
@@ -78,6 +84,7 @@ public class CompostpileSettings
             ,SizeBonusQty = 12
             ,MaxQty = 64
             ,MaxInputPerAdd = 8
+            ,Aeration01PerInput = 1f/64
             ,ConsumePerTransition = 8
             }
         ,Inoculum = new Ingredient
@@ -86,6 +93,7 @@ public class CompostpileSettings
             ,SizeBonusQty = 8
             ,MaxQty = 16
             ,MaxInputPerAdd = 4
+            ,Aeration01PerInput = 1f/16
             ,ItemCodeAddRatios = new Dictionary<string, float>
                 {{"game:compost", 1f}
                 ,{"game:rot", 2}
@@ -93,6 +101,7 @@ public class CompostpileSettings
                 }
             ,ConsumePerTransition = 1
             }
+        ,Aeration01PerCompostpileInput = 1f/6
         
         ,BaseCompostRatePerHour = 0.33f
         ,NutritionSpeed = new Dictionary<string, float>

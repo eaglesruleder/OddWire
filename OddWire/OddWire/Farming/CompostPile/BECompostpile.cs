@@ -11,7 +11,7 @@ namespace OddWire.GameContent;
 
 public class BlockEntityCompostpile : BlockEntity
 {
-    private CompostpileSettings Settings = CompostpileSettings.Default;
+    private CompostpileSettings Settings => CompostpileSettings.Default;
     
     private readonly CompostpileInventory _inventory = new();
 
@@ -31,14 +31,13 @@ public class BlockEntityCompostpile : BlockEntity
         Block = block;
     }
 
-    public bool CanHarvest(out int CompostpileQty, out int sourCompostQty, out int compostQty)
-        => _inventory.CanHarvest(out CompostpileQty, out sourCompostQty, out compostQty);
+    public bool CanHarvest() => _inventory.CanHarvest();
 
     public bool TryAdd(ItemSlot slot, out int accepted)
     {
         accepted = 0;
 
-        if (!_inventory.TryAdd(Api, slot, out accepted) || accepted < 1)
+        if (!_inventory.TryAdd(this, slot, out accepted) || accepted < 1)
             return false;
 
         UpdateShapeStackSize();
@@ -46,58 +45,15 @@ public class BlockEntityCompostpile : BlockEntity
         return true;
     }
 
-    public void HarvestCompostpile(int qty, float dropQuantityMultiplier)
+    public void Harvest(float dropQuantityMultiplier)
     {
-        Block spawnBlock = Api.World.GetBlock(new AssetLocation("oddwire:Compostpile-#1"));
+        bool harvested = 
+            _inventory.HarvestCompostpile(this, dropQuantityMultiplier)
+        |   _inventory.HarvestSourCompost(this, dropQuantityMultiplier)
+        |   _inventory.HarvestCompost(this, dropQuantityMultiplier);
 
-        int remaining = (int)(qty * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
-            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
-            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-
-        _inventory.BrownsQty = Math.Max(_inventory.BrownsQty - Settings.Browns.InitialQty * qty, 0);
-        _inventory.TryRemoveRandomNutrition(Api.World.Rand, Settings.Nutrition.InitialQty * qty);
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - Settings.Inoculum.InitialQty * qty, 0);
-
-        MarkDirty();
-    }
-
-    public void HarvestSourCompost(int qty, float dropQuantityMultiplier)
-    {
-        Item spawnBlock = Api.World.GetItem(new AssetLocation("oddwire:sourcompost"));
-
-        int remaining = (int)(qty * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
-            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
-            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-
-        _inventory.InoculumQty = Math.Max(_inventory.InoculumQty - Settings.InoculumPerSourDropped * qty, 0);
-        MarkDirty();
-    }
-
-    public void HarvestCompost(int qty, float dropQuantityMultiplier)
-    {
-        Item spawnItem = Api.World.GetItem(new AssetLocation("game:compost"));
-
-        int remaining = (int)(qty * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
-            ItemStack stack = new ItemStack(spawnItem, spawnNow);
-            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-
-        _inventory.CompostQty = Math.Max(_inventory.CompostQty - qty, 0);
-        MarkDirty();
+        if (harvested)
+            MarkDirty(true);
     }
 
     public override void Initialize(ICoreAPI api)
@@ -118,7 +74,7 @@ public class BlockEntityCompostpile : BlockEntity
         base.OnBlockPlaced(byItemStack);
 
         _inventory.ResetOnPlaced(Block);
-        _inventory.PrevTimeComposted = Api.World.Calendar.TotalHours;
+        _inventory.PrevTimeProcessed = Api.World.Calendar.TotalHours;
         
         UpdateShapeStackSize();
     }
@@ -177,7 +133,7 @@ public class BlockEntityCompostpile : BlockEntity
 
         dsc.AppendLine();
 
-        float ratePerHour = Api?.World != null ? _inventory.GetCompostRatePerHour() : 0f;
+        float ratePerHour = Api?.World != null ? Settings.BaseCompostRatePerHour * _inventory.GetFactor() : 0f;
         if (ratePerHour <= 0)
             ratePerHour = 0.00001f;
 
