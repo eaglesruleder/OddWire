@@ -10,7 +10,7 @@ public sealed class CompostpileInventory
 {
     private CompostpileSettings Settings => CompostpileSettings.Default;
 
-    private int TotalQty => BrownsQty + NutritionQty + InoculumQty + CompostQty;
+    public int TotalQty => BrownsQty + NutritionQty + InoculumQty + CompostQty;
     private float GetFullness01() => Math.Clamp((float)TotalQty / Settings.TotalMaxQty, 0,1);
 
     public int BrownsQty;
@@ -44,7 +44,7 @@ public sealed class CompostpileInventory
         if (dtAerationDays <= 0f)
             return _aeration01;
 
-        float aerationlessQuality = GetQuality01() - GetAerationQuality01();
+        float aerationlessQuality = GetQuality01() / GetAerationQuality01();
         return Math.Clamp
            (_aeration01
         -   dtAerationDays * Settings.AerationLossPerDay
@@ -79,8 +79,8 @@ public sealed class CompostpileInventory
     }
     
     //  Risk/Health impacts Compost/SourCompost output ratio
-    private float GetRisk01() => 1f - GetHealth01();
-    private float GetHealth01() =>
+    public float GetRisk01() => 1f - GetHealth01();
+    public float GetHealth01() =>
         GetAerationHealth01()
     *   GetTemperatureHealth01()
     *   GetMoistureHealth01();
@@ -175,7 +175,7 @@ public sealed class CompostpileInventory
     }
 
 
-    private float GetAerationQuality01() => Aeration01;
+    private float GetAerationQuality01() => Math.Max(Aeration01, 0.0001f);
     
     public float GetAerationHealth01() => 1f - GetAerationRisk01();
     public float GetAerationRisk01()
@@ -213,7 +213,7 @@ public sealed class CompostpileInventory
         
         Block spawnBlock = be.Api.World.GetBlock(new AssetLocation("oddwire:Compostpile-#1"));
 
-        int remaining = (int)(qty * dropQuantityMultiplier);
+        int remaining = (int)Math.Ceiling(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
             int spawnNow = be.Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
@@ -240,7 +240,7 @@ public sealed class CompostpileInventory
         
         Item spawnBlock = be.Api.World.GetItem(new AssetLocation("oddwire:sourcompost"));
 
-        int remaining = (int)(qty * dropQuantityMultiplier);
+        int remaining = (int)Math.Ceiling(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
             int spawnNow = be.Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
@@ -264,7 +264,7 @@ public sealed class CompostpileInventory
 
         Item spawnItem = be.Api.World.GetItem(new AssetLocation("game:compost"));
 
-        int remaining = (int)(qty * dropQuantityMultiplier);
+        int remaining = (int)Math.Ceiling(qty * dropQuantityMultiplier);
         while (remaining > 0)
         {
             int spawnNow = be.Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
@@ -345,24 +345,37 @@ public sealed class CompostpileInventory
             return false;
 
         int room = ingredient.MaxQty - currentQty;
-        if (room < 1)
+        if (room < 1
+        ||  slot.StackSize < 1
+            )
             return false;
 
         string code =
             slot.Itemstack?.Item?.Code.ToString()
         ??  slot.Itemstack?.Block?.Code.ToString()
         ??  "";
+        
         if(!ingredient.ItemCodeAddRatios.TryGetValue(code, out float ratio)
         ||  ratio <= 0f
-        ||  slot.StackSize < ratio
+        ||  slot.StackSize < Math.Max(ratio, 1)
             )
             return false;
 
-        int adjustedStackSize = (int)(slot.StackSize / ratio);
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, ingredient.MaxInputPerAdd);
+        int adjustedLimit = 
+            ratio >= 1f
+        ?   (int)(Math.Min(ingredient.MaxInputPerAdd, room) * ratio)
+        :   (int)Math.Min(ingredient.MaxInputPerAdd, room * ratio);
+        
+        int adjustedInput = Math.Min(slot.StackSize, adjustedLimit);
+        if (ratio >= 1f)
+            adjustedInput = (int)(Math.Floor(adjustedInput / ratio) * ratio);
+        
+        int adjustedOutput = (int)Math.Min(adjustedInput / ratio, room);
 
-        currentQty += adjustedAccept;
-        accepted = (int)(adjustedAccept * ratio);
+        currentQty += adjustedOutput;
+        accepted = adjustedInput;
+
+        
         return accepted > 0;
     }
 
@@ -701,11 +714,11 @@ public sealed class CompostpileInventory
         tree.SetDouble($"{key}.PrevTimeMoistureUpdated", PrevTimeMoistureUpdated);
         tree.SetFloat($"{key}.Moisture01", Moisture01);
 
-        tree.SetDouble($"{key}.PrevTimeComposted", PrevTimeProcessed);
+        tree.SetDouble($"{key}.PrevTimeProcessed", PrevTimeProcessed);
 
         tree.SetInt($"{key}.BrownsQty", BrownsQty);
         tree.SetInt($"{key}.InoculumQty", InoculumQty);
-        tree.SetInt($"{key}.OutputQty", CompostQty);
+        tree.SetInt($"{key}.CompostQty", CompostQty);
 
         tree.SetInt($"{key}.NutritionStacks.Count", NutritionStacks?.Count ?? 0);
         if (NutritionStacks is not null)
@@ -731,11 +744,11 @@ public sealed class CompostpileInventory
         PrevTimeMoistureUpdated = tree.GetDouble($"{key}.PrevTimeMoistureUpdated", -1);
         Moisture01 = tree.GetFloat($"{key}.Moisture01");
 
-        PrevTimeProcessed = tree.GetDouble($"{key}.PrevTimeComposted", -1);
+        PrevTimeProcessed = tree.GetDouble($"{key}.PrevTimeProcessed", -1);
 
         BrownsQty = tree.GetInt($"{key}.BrownsQty");
         InoculumQty = tree.GetInt($"{key}.InoculumQty");
-        CompostQty = tree.GetInt($"{key}.OutputQty");
+        CompostQty = tree.GetInt($"{key}.CompostQty");
 
         NutritionStacks.Clear();
         int nutritionLength = tree.GetInt($"{key}.NutritionStacks.Count");

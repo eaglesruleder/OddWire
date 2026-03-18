@@ -33,11 +33,10 @@ public class BlockCompostpile : Block
             )
         {
             if (world.Side == EnumAppSide.Server)
-            {
                 be.Harvest(dropQuantityMultiplier);
-                be.UpdateShapeStackSize();
-            }
-            return;
+            
+            if(!be.IsEmpty())
+                return;
         }
         
         base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
