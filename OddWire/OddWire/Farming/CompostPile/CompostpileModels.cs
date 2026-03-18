@@ -35,6 +35,7 @@ public class CompostpileSettings
     
     public float BaseCompostRatePerHour { get; private set; }
     public Dictionary<string, float>? NutritionSpeed { get; private set; }
+    public float NutritionRatioOptimal { get; private set; }
     public float NutritionSensitivity { get; private set; }
     
     public float Moisture01Initial { get; private set; }
@@ -111,6 +112,7 @@ public class CompostpileSettings
             ,{"Grain", 2.3f}
             ,{"Protein", 2.7f}
             }
+        ,NutritionRatioOptimal = 0.5f
         ,NutritionSensitivity = 0.35f
         
         ,Moisture01Initial = 0.55f

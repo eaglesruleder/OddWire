@@ -146,15 +146,12 @@ public sealed class CompostpileInventory
     
     private float GetNutritionQuality01()
     {
-        float brownsFullness = (float)BrownsQty / Settings.Browns.MaxQty;
-        float nutritionFullness = (float)NutritionQty / Settings.Nutrition.MaxQty;
-        float bulkFullness = brownsFullness + nutritionFullness;
-        if (bulkFullness > 0)
-        {
-            float nutritionOptimal = (float)Settings.Nutrition.MaxQty / (Settings.Browns.MaxQty + Settings.Nutrition.MaxQty);
-            return 1f - Math.Clamp(Math.Abs(nutritionFullness / bulkFullness - nutritionOptimal) / Settings.NutritionSensitivity, 0,1);
-        }
-        return 0f;
+        float brownsPortions = (float)BrownsQty / Settings.Browns.ConsumePerTransition;
+        float nutritionPortions = (float)NutritionQty / Settings.Nutrition.ConsumePerTransition;
+        float bulkPortions = brownsPortions + nutritionPortions;
+        if (bulkPortions > 0)
+            return 1f - Math.Clamp(Math.Abs(nutritionPortions / bulkPortions - Settings.NutritionRatioOptimal) / Settings.NutritionSensitivity, 0,1);
+        return 0;
     }
     
     public float GetNutritionFactor()
@@ -180,14 +177,12 @@ public sealed class CompostpileInventory
     public float GetAerationHealth01() => 1f - GetAerationRisk01();
     public float GetAerationRisk01()
     {
-        float aerationRisk01 = 0f;
-        
         if (_aeration01 < Settings.HypoxicThreshold)
-            aerationRisk01 = (Settings.HypoxicThreshold - _aeration01) / Math.Max(0.01f, Settings.HypoxicTolerance) * 0.35f;
-        
-        return Math.Clamp(aerationRisk01, 0,1);
+            return Math.Clamp((Settings.HypoxicThreshold - _aeration01) / Settings.HypoxicTolerance, 0,1);
+        return 0;
     }
     #endregion
+    
     
     public bool CanHarvest() =>
         CompostQty >= Settings.CompostOutPerSuccess
@@ -284,12 +279,12 @@ public sealed class CompostpileInventory
         if (int.TryParse(block.LastCodePart().Substring(1), out int parsedStackBonus))
             stackBonus = Math.Max(0, parsedStackBonus - 1);
 
-        BrownsQty = Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty;
+        BrownsQty = Math.Min(Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty, Settings.Browns.MaxQty);
 
         NutritionStacks.Clear();
-        NutritionStacks[EnumFoodCategory.Unknown] = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
+        NutritionStacks[EnumFoodCategory.Unknown] = Math.Min(Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty, Settings.Nutrition.MaxQty);
 
-        InoculumQty = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
+        InoculumQty = Math.Min(Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty, Settings.Inoculum.MaxQty);
         CompostQty = 0;
 
         Moisture01 = Settings.Moisture01Initial;
@@ -678,19 +673,19 @@ public sealed class CompostpileInventory
         float minBrowns = Math.Max(actualTransitions - nutritionPortions, 0f);
         float maxBrowns = Math.Min(actualTransitions, brownsPortions);
 
-        float brownsRatio;
+        float brownsUsedPortions;
         if (maxBrowns > minBrowns)
         {
             float noise = 0.2f * (be.Api.World.Rand.NextSingle() - 0.5f) * (maxBrowns - minBrowns);
             float mean = actualTransitions * (brownsPortions / bulkPortions);
-            brownsRatio = Math.Clamp(mean + noise, minBrowns, maxBrowns);
+            brownsUsedPortions = Math.Clamp(mean + noise, minBrowns, maxBrowns);
         }
         else
-            brownsRatio = minBrowns;
-        float nutritionRatio = actualTransitions - brownsRatio;
+            brownsUsedPortions = minBrowns;
+        float nutritionUsedPortions = actualTransitions - brownsUsedPortions;
         
-        BrownsQty -= (int)Math.Min(brownsRatio * Settings.Browns.ConsumePerTransition, BrownsQty);
-        TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionRatio * Settings.Nutrition.ConsumePerTransition));
+        BrownsQty -= (int)Math.Min(brownsUsedPortions * Settings.Browns.ConsumePerTransition, BrownsQty);
+        TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionUsedPortions * Settings.Nutrition.ConsumePerTransition));
 
         InoculumQty = Math.Clamp
            (InoculumQty
