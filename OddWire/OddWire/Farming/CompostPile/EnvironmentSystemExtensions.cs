@@ -16,6 +16,29 @@ public static class EnvironmentSystemExtensions
             ,totalHours / world.Calendar.HoursPerDay
             );
 
+    public static float GetTotalRainfallSince(this WeatherSystemBase weather, BlockPos pos, double fromTotalHours, double toTotalHours)
+    {
+        if (toTotalHours <= fromTotalHours)
+            return 0f;
+
+        double hoursPerDay = weather.api.World.Calendar.HoursPerDay;
+        double totalDays = toTotalHours / hoursPerDay;
+        double hoursPassed = toTotalHours - fromTotalHours;
+
+        ClimateCondition? baseClimate = null;
+        if (hoursPassed > 0)
+            baseClimate = weather.api.World.BlockAccessor.GetClimateAt(pos, EnumGetClimateMode.WorldGenValues, totalDays - hoursPassed / hoursPerDay / 2);
+
+        float totalRainfall = 0f;
+        while (hoursPassed > 0)
+        {
+            totalRainfall += weather.GetPrecipitation(pos, totalDays - hoursPassed / hoursPerDay, baseClimate);
+            hoursPassed--;
+        }
+
+        return totalRainfall;
+    }
+
     public static float GetEnvironmentTemperatureC
         (this ICoreAPI api
         ,BlockPos pos

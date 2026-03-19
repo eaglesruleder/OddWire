@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
 
 public sealed class CompostpileInventory
 {
+    private WeatherSystemBase? _weather;
     private CompostpileSettings Settings => CompostpileSettings.Default;
 
     public int TotalQty => BrownsQty + NutritionQty + InoculumQty + CompostQty;
@@ -488,6 +490,22 @@ public sealed class CompostpileInventory
         _prevTimeAerationUpdated = totalHours;
     }
     
+    public bool RestoreMoisture01(BlockEntity be, float moisture)
+    {
+        if (moisture < 0)
+            return false;
+
+        // ToDo: Try avoid this as its not cheap
+        double totalHours = be.Api.World.Calendar.TotalHours;
+        bool dirty = UpdateState(be, totalHours);
+
+        float prevMoisture = Moisture01;
+        Moisture01 = Math.Clamp(Moisture01 + moisture, 0,1);
+        PrevTimeMoistureUpdated = totalHours;
+
+        return dirty || Moisture01 - prevMoisture > 0.01f;
+    }
+    
     
     public bool Update(BlockEntity be, double totalHours) =>
         UpdateState(be, totalHours)
@@ -499,7 +517,6 @@ public sealed class CompostpileInventory
 
         bool skyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
         float envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, skyExposed, Settings.GreenhouseHeat, out bool isInGreenhouse);
-        float rainfall = skyExposed ? be.Api.World.GetClimateAtHours(be.Pos, totalHours).Rainfall : 0;
         
         
         // Calc Insulation
@@ -521,8 +538,16 @@ public sealed class CompostpileInventory
         float dtMoistureDays = (float)Math.Clamp((totalHours - PrevTimeMoistureUpdated) / 24, 0, 9);
         if (dtMoistureDays > 0f)
         {
-            if (rainfall > 0)
-                Moisture01 += dtMoistureDays * Settings.Moisture01GainPerRainyDay * rainfall;
+            float rainfallHours = 0;
+
+            if (skyExposed)
+            {
+                _weather ??= be.Api.ModLoader.GetModSystem<WeatherSystemBase>();
+                rainfallHours = _weather.GetTotalRainfallSince(be.Pos, PrevTimeMoistureUpdated, totalHours);
+            }
+            
+            if (rainfallHours > 0f)
+                Moisture01 += rainfallHours / be.Api.World.Calendar.HoursPerDay * Settings.Moisture01GainPerRainyDay;
 
             float surfaceTemp = GameMath.Lerp(envTemp, _temperature, insulation01);
             Moisture01 -=

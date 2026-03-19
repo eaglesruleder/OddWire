@@ -6,6 +6,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
 
@@ -85,6 +86,14 @@ public class BlockEntityCompostpile : BlockEntity
     {
         if (Api?.Side == EnumAppSide.Server
         &&  _inventory.Update(this, Api.World.Calendar.TotalHours)
+            )
+            MarkDirty(true);
+    }
+
+    public void Water(float dt)
+    {
+        if (Api?.Side == EnumAppSide.Server
+        &&  _inventory.RestoreMoisture01(this, dt/2)
             )
             MarkDirty(true);
     }
