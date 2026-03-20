@@ -35,18 +35,15 @@ public class CompostpileSettings
     
     public float BaseCompostRatePerHour { get; private set; }
     public Dictionary<string, float>? NutritionSpeed { get; private set; }
-    public float NutritionRatioOptimal { get; private set; }
-    public float NutritionSensitivity { get; private set; }
     
     public float Moisture01Initial { get; private set; }
     public float Moisture01Optimal { get; private set; }
-    public float Moisture01Sensitivity { get; private set; }
     public float Moisture01GainPerRainyDay { get; private set; }
-    public float Moisture01LossPerDay { get; private set; }
+    public float MoistureRetentionDays { get; private set; }
     public float DrowningThreshold { get; private set; }
     public float DrowningTolerance { get; private set; }
     
-    public float AerationLossPerDay { get; private set; }
+    public float AerationRetentionDays { get; private set; }
     public float HypoxicThreshold { get; private set; }
     public float HypoxicTolerance { get; private set; }
     
@@ -56,6 +53,9 @@ public class CompostpileSettings
     public Dictionary<string, float>? NutritionHeat { get; private set; }
     public float OverheatThreshold { get; private set; }
     public float OverheatTolerance { get; private set; }
+    
+    public float StressGainDays { get; private set; }
+    public float StressRecoveryDays { get; private set; }
     
     public int CompostMaxQty { get; private set; }
     public int CompostOutPerSuccess { get; private set; }
@@ -112,18 +112,15 @@ public class CompostpileSettings
             ,{"Grain", 2.3f}
             ,{"Protein", 2.7f}
             }
-        ,NutritionRatioOptimal = 0.5f
-        ,NutritionSensitivity = 0.35f
         
         ,Moisture01Initial = 0.55f
         ,Moisture01Optimal = 0.60f
-        ,Moisture01Sensitivity = 0.35f
         ,Moisture01GainPerRainyDay = 0.40f
-        ,Moisture01LossPerDay = 0.25f
+        ,MoistureRetentionDays = 4f
         ,DrowningThreshold = 0.8f
         ,DrowningTolerance = 0.2f
         
-        ,AerationLossPerDay = 0.96f
+        ,AerationRetentionDays = 1.0416667f
         ,HypoxicThreshold = 0.15f
         ,HypoxicTolerance = 0.15f
         
@@ -139,6 +136,9 @@ public class CompostpileSettings
             }
         ,OverheatThreshold = 65
         ,OverheatTolerance = 12
+        
+        ,StressGainDays = 1.5f
+        ,StressRecoveryDays = 3f
     
         ,CompostMaxQty = 48
         ,CompostOutPerSuccess = 1
