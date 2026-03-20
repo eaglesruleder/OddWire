@@ -669,99 +669,115 @@ public sealed class CompostpileInventory
             PrevTimeProcessed = totalHours;
             return false;
         }
-
+        
         int transitions = (int)Math.Min
-           ((totalHours - PrevTimeProcessed) * Settings.BaseCompostRatePerHour * GetFactor()
+            ((totalHours - PrevTimeProcessed) * Settings.BaseCompostRatePerHour * GetFactor()
             ,bulkPortions
             );
         if (transitions < 1)
             return false; // keep accruing progress
-
-        int sourOutputPortions = (int)(transitions * Stress01);
-        int compostOutputPortions = transitions - sourOutputPortions;
-
-        // clamp(sour){compost+=overflow}
-        int sourOutputRoomPortions = (Settings.Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerFail;
-        if (sourOutputPortions > sourOutputRoomPortions)
-        {
-            int sourOverflowPortions = sourOutputPortions - sourOutputRoomPortions;
-            sourOutputPortions = sourOutputRoomPortions;
-            compostOutputPortions += sourOverflowPortions;
-        }
-
-        // clamp(compost){sour+=overflow}
-        int compostOutputRoomPortions = (Settings.CompostMaxQty - CompostQty) / Settings.CompostOutPerSuccess;
-        if (compostOutputPortions > compostOutputRoomPortions)
-        {
-            int compostOverflowPortions = compostOutputPortions - compostOutputRoomPortions;
-            compostOutputPortions = compostOutputRoomPortions;
-            sourOutputPortions += compostOverflowPortions;
-            compostOutputRoomPortions = 0;
-        }
-
-        // bootstrap(compost with sour)
-        int inoculumAfterSourQty = InoculumQty + sourOutputPortions * Settings.InoculumOutPerFail;
-        int compostPossibleByInoculumPortions = inoculumAfterSourQty / Settings.Inoculum.ConsumePerTransition;
-        if (compostOutputPortions > compostPossibleByInoculumPortions)
-        {
-            int overflowByInoculumLimitsPortions = compostOutputPortions - compostPossibleByInoculumPortions;
-
-            int compostSubsidizedBySourPortions = Math.Min
-                (overflowByInoculumLimitsPortions * Settings.InoculumOutPerFail
-            /   (Settings.InoculumOutPerFail + Settings.Inoculum.ConsumePerTransition)
-                ,compostOutputRoomPortions
-                );
-
-            compostOutputPortions = compostPossibleByInoculumPortions + compostSubsidizedBySourPortions;
-            sourOutputPortions += overflowByInoculumLimitsPortions - compostSubsidizedBySourPortions;
-        }
-
-        // clamp(sour, room)
-        int inoculumChangeQty = 
-            sourOutputPortions * Settings.InoculumOutPerFail
-        -   compostOutputPortions * Settings.Inoculum.ConsumePerTransition;
-        int inoculumRoomQty = Settings.Inoculum.MaxQty - InoculumQty;
-        if (inoculumChangeQty > inoculumRoomQty)
-        {
-            int inoculumExcessPortions = (inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerFail;
-            sourOutputPortions = Math.Max(sourOutputPortions - inoculumExcessPortions, 0);
-        }
         
-        int actualTransitions = compostOutputPortions + sourOutputPortions;
+        (int compostOutput, int sourOutput) = ResolveOutputTransitions(transitions);
+        int actualTransitions = compostOutput + sourOutput;
         if (actualTransitions < 1)
-            return false;
+            return false; // keep accruing progress
         
-        float minBrowns = Math.Max(actualTransitions - nutritionPortions, 0f);
-        float maxBrowns = Math.Min(actualTransitions, brownsPortions);
-
-        float brownsUsedPortions;
-        if (maxBrowns > minBrowns)
-        {
-            float noise = 0.2f * (be.Api.World.Rand.NextSingle() - 0.5f) * (maxBrowns - minBrowns);
-            float mean = actualTransitions * (brownsPortions / bulkPortions);
-            brownsUsedPortions = Math.Clamp(mean + noise, minBrowns, maxBrowns);
-        }
-        else
-            brownsUsedPortions = minBrowns;
-        float nutritionUsedPortions = actualTransitions - brownsUsedPortions;
+        (float brownsInputPortions, float nutritionInputPortions) = ResolveInputPortions(be.Api.World.Rand, actualTransitions, brownsPortions, nutritionPortions);
         
-        BrownsQty -= (int)Math.Min(brownsUsedPortions * Settings.Browns.ConsumePerTransition, BrownsQty);
-        TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionUsedPortions * Settings.Nutrition.ConsumePerTransition));
+        BrownsQty -= (int)Math.Min(brownsInputPortions * Settings.Browns.ConsumePerTransition, BrownsQty);
+        TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionInputPortions * Settings.Nutrition.ConsumePerTransition));
 
         InoculumQty = Math.Clamp
            (InoculumQty
-        +   sourOutputPortions * Settings.InoculumOutPerFail
-        -   compostOutputPortions * Settings.Inoculum.ConsumePerTransition
+        +   sourOutput * Settings.InoculumOutPerFail
+        -   compostOutput * Settings.Inoculum.ConsumePerTransition
            ,0,Settings.Inoculum.MaxQty
             );
 
         CompostQty = Math.Clamp
-            (CompostQty + compostOutputPortions * Settings.CompostOutPerSuccess
+            (CompostQty + compostOutput * Settings.CompostOutPerSuccess
             ,0,Settings.CompostMaxQty
             );
 
         PrevTimeProcessed = totalHours;
         return true;
+    }
+
+    private (int compostOutput, int sourOutput) ResolveOutputTransitions(int transitions)
+    {
+        int sourOutput = (int)(transitions * Stress01);
+        int compostOutput = transitions - sourOutput;
+
+        // clamp(sour){compost+=overflow}
+        int sourOutputRoom = (Settings.Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerFail;
+        if (sourOutput > sourOutputRoom)
+        {
+            int sourOverflow = sourOutput - sourOutputRoom;
+            sourOutput = sourOutputRoom;
+            compostOutput += sourOverflow;
+        }
+
+        // clamp(compost){sour+=overflow}
+        int compostOutputRoom = (Settings.CompostMaxQty - CompostQty) / Settings.CompostOutPerSuccess;
+        if (compostOutput > compostOutputRoom)
+        {
+            int compostOverflow = compostOutput - compostOutputRoom;
+            compostOutput = compostOutputRoom;
+            sourOutput += compostOverflow;
+            compostOutputRoom = 0;
+        }
+
+        // bootstrap(compost with sour)
+        int inoculumAfterSourQty = InoculumQty + sourOutput * Settings.InoculumOutPerFail;
+        int compostPossibleByInoculum = inoculumAfterSourQty / Settings.Inoculum.ConsumePerTransition;
+        if (compostOutput > compostPossibleByInoculum)
+        {
+            int overflowByInoculumLimit = compostOutput - compostPossibleByInoculum;
+
+            int compostSubsidizedBySour = Math.Min
+                (overflowByInoculumLimit * Settings.InoculumOutPerFail
+            /   (Settings.InoculumOutPerFail + Settings.Inoculum.ConsumePerTransition)
+                ,compostOutputRoom
+                );
+
+            compostOutput = compostPossibleByInoculum + compostSubsidizedBySour;
+            sourOutput += overflowByInoculumLimit - compostSubsidizedBySour;
+        }
+
+        // clamp(sour, room)
+        int inoculumChangeQty = 
+            sourOutput * Settings.InoculumOutPerFail
+        -   compostOutput * Settings.Inoculum.ConsumePerTransition;
+        int inoculumRoomQty = Settings.Inoculum.MaxQty - InoculumQty;
+        if (inoculumChangeQty > inoculumRoomQty)
+        {
+            int inoculumExcess = (int)Math.Ceiling((float)(inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerFail);
+            sourOutput = Math.Max(sourOutput - inoculumExcess, 0);
+        }
+        
+        return (compostOutput, sourOutput);
+    }
+
+    private (float brownsInputPortions, float nutritionInputPortions) ResolveInputPortions
+        (Random rand
+        ,int actualTransitions, float brownsPortions, float nutritionPortions
+        )
+    {
+        float minBrowns = Math.Max(actualTransitions - nutritionPortions, 0f);
+        float maxBrowns = Math.Min(actualTransitions, brownsPortions);
+
+        float brownsInputPortions;
+        if (maxBrowns > minBrowns)
+        {
+            float noise = 0.2f * (rand.NextSingle() - 0.5f) * (maxBrowns - minBrowns);
+            float mean = actualTransitions * (brownsPortions / (brownsPortions + nutritionPortions));
+            brownsInputPortions = Math.Clamp(mean + noise, minBrowns, maxBrowns);
+        }
+        else
+            brownsInputPortions = minBrowns;
+        float nutritionInputPortions = actualTransitions - brownsInputPortions;
+        
+        return (brownsInputPortions, nutritionInputPortions);
     }
     
     
