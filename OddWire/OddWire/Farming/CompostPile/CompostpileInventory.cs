@@ -638,11 +638,12 @@ public sealed class CompostpileInventory
             return false;
 
         float targetStress01 = GetStress01();
-        if (targetStress01 > Stress01)
-            Stress01 += dtStressDays / Settings.StressGainDays;
-        else
-            Stress01 -= dtStressDays / Settings.StressRecoveryDays;
+        float responseDays =
+            targetStress01 > Stress01
+        ?   Settings.StressGainDays
+        :   Settings.StressRecoveryDays;
 
+        Stress01 += (targetStress01 - Stress01) * Math.Clamp(dtStressDays / responseDays, 0,1);
         Stress01 = Math.Clamp(Stress01, 0,1);
         _prevTimeStressUpdated = totalHours;
 
