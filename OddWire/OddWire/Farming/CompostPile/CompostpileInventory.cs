@@ -708,56 +708,76 @@ public sealed class CompostpileInventory
         int sourOutput = (int)(transitions * Stress01);
         int compostOutput = transitions - sourOutput;
 
-        // clamp(sour){compost+=overflow}
-        int sourOutputRoom = (Settings.Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerFail;
-        if (sourOutput > sourOutputRoom)
-        {
-            int sourOverflow = sourOutput - sourOutputRoom;
-            sourOutput = sourOutputRoom;
-            compostOutput += sourOverflow;
-        }
+        ClampSourToOutputRoom(ref sourOutput, out int sourOverflow);
+        compostOutput += sourOverflow;
 
-        // clamp(compost){sour+=overflow}
-        int compostOutputRoom = (Settings.CompostMaxQty - CompostQty) / Settings.CompostOutPerSuccess;
-        if (compostOutput > compostOutputRoom)
-        {
-            int compostOverflow = compostOutput - compostOutputRoom;
-            compostOutput = compostOutputRoom;
-            sourOutput += compostOverflow;
-            compostOutputRoom = 0;
-        }
-
-        // bootstrap(compost with sour)
-        int inoculumAfterSourQty = InoculumQty + sourOutput * Settings.InoculumOutPerFail;
-        int compostPossibleByInoculum = inoculumAfterSourQty / Settings.Inoculum.ConsumePerTransition;
-        if (compostOutput > compostPossibleByInoculum)
-        {
-            int overflowByInoculumLimit = compostOutput - compostPossibleByInoculum;
-
-            int compostSubsidizedBySour = Math.Min
-                (overflowByInoculumLimit * Settings.InoculumOutPerFail
-            /   (Settings.InoculumOutPerFail + Settings.Inoculum.ConsumePerTransition)
-                ,compostOutputRoom
-                );
-
-            compostOutput = compostPossibleByInoculum + compostSubsidizedBySour;
-            sourOutput += overflowByInoculumLimit - compostSubsidizedBySour;
-        }
-
-        // clamp(sour, room)
-        int inoculumChangeQty = 
-            sourOutput * Settings.InoculumOutPerFail
-        -   compostOutput * Settings.Inoculum.ConsumePerTransition;
-        int inoculumRoomQty = Settings.Inoculum.MaxQty - InoculumQty;
-        if (inoculumChangeQty > inoculumRoomQty)
-        {
-            int inoculumExcess = (int)Math.Ceiling((float)(inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerFail);
-            sourOutput = Math.Max(sourOutput - inoculumExcess, 0);
-        }
+        ClampCompostToOutputRoom(ref compostOutput, out int compostOverflow);
+        sourOutput += compostOverflow;
+        
+        BootstrapCompostWithSour(ref compostOutput, ref sourOutput);
+        
+        ClampSourToFinalRoom(ref compostOutput, ref sourOutput);
         
         return (compostOutput, sourOutput);
     }
 
+    private void ClampSourToOutputRoom(ref int sourOutput, out int transitionsOverflow)
+    {
+        int sourOutputRoom = (Settings.Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerFail;
+        if (sourOutput <= sourOutputRoom)
+        {
+            transitionsOverflow = 0;
+            return;
+        }
+        
+        transitionsOverflow = sourOutput - sourOutputRoom;
+        sourOutput = sourOutputRoom;
+    }
+
+    private void ClampCompostToOutputRoom(ref int compostOutput, out int transitionsOverflow)
+    {
+        int compostOutputRoom = (Settings.CompostMaxQty - CompostQty) / Settings.CompostOutPerSuccess;
+
+        if (compostOutput <= compostOutputRoom)
+        {
+            transitionsOverflow = 0;
+            return;
+        }
+        
+        int compostOverflow = compostOutput - compostOutputRoom;
+        compostOutput = compostOutputRoom;
+        transitionsOverflow = compostOverflow;
+    }
+
+    private void BootstrapCompostWithSour(ref int compostOutput, ref int sourOutput)
+    {
+        int inoculumAfterSourQty = InoculumQty + sourOutput * Settings.InoculumOutPerFail;
+        int compostPossibleByInoculum = inoculumAfterSourQty / Settings.Inoculum.ConsumePerTransition;
+        if (compostOutput <= compostPossibleByInoculum)
+            return;
+        
+        int overflowByInoculumLimit = compostOutput - compostPossibleByInoculum;
+        int compostSubsidizedBySour = 
+            overflowByInoculumLimit * Settings.InoculumOutPerFail
+        /  (Settings.InoculumOutPerFail + Settings.Inoculum.ConsumePerTransition);
+
+        compostOutput = compostPossibleByInoculum + compostSubsidizedBySour;
+        sourOutput += overflowByInoculumLimit - compostSubsidizedBySour;
+    }
+    
+    private void ClampSourToFinalRoom(ref int compostOutput, ref int sourOutput)
+    {
+        int inoculumChangeQty = 
+            sourOutput * Settings.InoculumOutPerFail
+        -   compostOutput * Settings.Inoculum.ConsumePerTransition;
+        int inoculumRoomQty = Settings.Inoculum.MaxQty - InoculumQty;
+        if (inoculumChangeQty <= inoculumRoomQty)
+            return;
+        
+        int inoculumExcess = (int)Math.Ceiling((float)(inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerFail);
+        sourOutput = Math.Max(sourOutput - inoculumExcess, 0);
+    }
+    
     private (float brownsInputPortions, float nutritionInputPortions) ResolveInputPortions
         (Random rand
         ,int actualTransitions, float brownsPortions, float nutritionPortions
