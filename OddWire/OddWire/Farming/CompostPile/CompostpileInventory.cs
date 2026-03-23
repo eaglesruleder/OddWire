@@ -615,8 +615,9 @@ public sealed class CompostpileInventory
 
         float coolingInsulation = GameMath.Lerp(1.6f, 0.7f, _insulation01);
         float coolingRate = Math.Clamp(Settings.CoolingRatePerHour / coolingInsulation, 0.01f, 0.5f);
-
-        _temperature += (targetTemp - _temperature) * (1f - (float)Math.Exp(-coolingRate * dtTemperatureHours));
+        float coolingAmount = coolingRate * dtTemperatureHours;
+        
+        _temperature += (targetTemp - _temperature) * coolingAmount / (1f + coolingAmount);
         _prevTimeTemperatureUpdated = totalHours;
 
         return true;
