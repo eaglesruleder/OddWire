@@ -170,7 +170,7 @@ public class BlockEntityCompostpile : BlockEntity
             _inventory.GetMoistureHealth01() * 100,
             _inventory.GetHealth01() * 100
         ));
-        dsc.AppendLine(Lang.Get("- Risk: {0:0}%", _inventory.GetStress01()));
+        dsc.AppendLine(Lang.Get("- Stress: {0:0}%", _inventory.Stress01));
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)

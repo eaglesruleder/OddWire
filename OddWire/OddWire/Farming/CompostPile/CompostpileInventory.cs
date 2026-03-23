@@ -643,7 +643,7 @@ public sealed class CompostpileInventory
         else
             Stress01 -= dtStressDays / Settings.StressRecoveryDays;
 
-        Stress01 = Math.Clamp(Math.Max(Stress01, targetStress01), 0,1);
+        Stress01 = Math.Clamp(Stress01, 0,1);
         _prevTimeStressUpdated = totalHours;
 
         return true;
