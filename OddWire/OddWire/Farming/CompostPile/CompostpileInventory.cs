@@ -682,7 +682,7 @@ public sealed class CompostpileInventory
         if (actualTransitions < 1)
             return false; // keep accruing progress
         
-        (float brownsInputPortions, float nutritionInputPortions) = ResolveInputPortions(be.Api.World.Rand, actualTransitions, brownsPortions, nutritionPortions);
+        (float brownsInputPortions, float nutritionInputPortions) = ResolveInputPortions(actualTransitions, brownsPortions, nutritionPortions);
         
         BrownsQty -= (int)Math.Min(brownsInputPortions * Settings.Browns.ConsumePerTransition, BrownsQty);
         TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionInputPortions * Settings.Nutrition.ConsumePerTransition));
@@ -778,10 +778,7 @@ public sealed class CompostpileInventory
         sourOutput = Math.Max(sourOutput - inoculumExcess, 0);
     }
     
-    private (float brownsInputPortions, float nutritionInputPortions) ResolveInputPortions
-        (Random rand
-        ,int actualTransitions, float brownsPortions, float nutritionPortions
-        )
+    private (float brownsInputPortions, float nutritionInputPortions) ResolveInputPortions(int actualTransitions, float brownsPortions, float nutritionPortions)
     {
         float minBrowns = Math.Max(actualTransitions - nutritionPortions, 0f);
         float maxBrowns = Math.Min(actualTransitions, brownsPortions);
@@ -789,9 +786,8 @@ public sealed class CompostpileInventory
         float brownsInputPortions;
         if (maxBrowns > minBrowns)
         {
-            float noise = 0.2f * (rand.NextSingle() - 0.5f) * (maxBrowns - minBrowns);
             float mean = actualTransitions * (brownsPortions / (brownsPortions + nutritionPortions));
-            brownsInputPortions = Math.Clamp(mean + noise, minBrowns, maxBrowns);
+            brownsInputPortions = Math.Clamp(mean, minBrowns, maxBrowns);
         }
         else
             brownsInputPortions = minBrowns;
