@@ -139,19 +139,6 @@ public sealed class CompostpileInventory
         return weighted / Settings.Nutrition.MaxQty;
     }
     
-    private float GetNutritionHeat()
-    {
-        float nutritionHeat = 0f;
-        if (Settings.NutritionHeat is null)
-            return 0f;
-
-        foreach (var kvp in NutritionStacks)
-            if (Settings.NutritionHeat.TryGetValue(kvp.Key.ToString(), out float heatC))
-                nutritionHeat += heatC * kvp.Value / Math.Max(1f, Settings.Nutrition.MaxQty);
-
-        return nutritionHeat;
-    }
-    
     
     public float GetAerationHealth01() => 1f - GetAerationStress01();
     public float GetAerationStress01()
@@ -592,6 +579,23 @@ public sealed class CompostpileInventory
         return true;
     }
 
+    private float GetInternalHeat()
+    {
+        float nutritionHeat = 0f;
+        if (Settings.NutritionHeat is not null)
+            foreach (var kvp in NutritionStacks)
+                if (Settings.NutritionHeat.TryGetValue(kvp.Key.ToString(), out float heatC))
+                    nutritionHeat += heatC * kvp.Value / Math.Max(1f, Settings.Nutrition.MaxQty);
+        
+        return
+           (Settings.HeatingRatePerHour + nutritionHeat)
+        *   GetMoistureFactor01()
+        *   GetInoculumFactor01()
+        *   GetTemperatureFactor01()
+        *   GameMath.Lerp(0.05f, 1.0f, _aeration01)
+        *   GameMath.Lerp(0.85f, 1.0f, _insulation01);
+    }
+
     private bool UpdateTemperature(BlockEntity be, double totalHours)
     {
         if (_prevTimeTemperatureUpdated < 0
@@ -607,16 +611,19 @@ public sealed class CompostpileInventory
         if (dtTemperatureHours <= 0f)
             return false;
         
-        float nutrition01 = Math.Clamp((float)NutritionQty / Settings.Nutrition.MaxQty, 0f, 1f);
-        float targetTemp =
-            _envTemp
-        +   Settings.HeatingRatePerHour * _insulation01 * nutrition01
-        +   GetNutritionHeat();
+        float evaporativeCooling01 =
+            Moisture01 > Settings.Moisture01Optimal
+        ?   0.35f * (Moisture01 - Settings.Moisture01Optimal) / (1f - Settings.Moisture01Optimal)
+        :   0f;
 
         float coolingInsulation = GameMath.Lerp(1.6f, 0.7f, _insulation01);
-        float coolingRate = Math.Clamp(Settings.CoolingRatePerHour / coolingInsulation, 0.01f, 0.5f);
+        float coolingRate = Math.Clamp
+            (Settings.CoolingRatePerHour * (1f + evaporativeCooling01) / coolingInsulation
+            ,0.01f, 0.5f
+            );
         float coolingAmount = coolingRate * dtTemperatureHours;
         
+        float targetTemp = _envTemp + GetInternalHeat();
         _temperature += (targetTemp - _temperature) * coolingAmount / (1f + coolingAmount);
         _prevTimeTemperatureUpdated = totalHours;
 
