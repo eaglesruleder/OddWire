@@ -16,7 +16,10 @@ public class CompostpileSettings
         public int MaxInputPerAdd { get; internal set; }
         public float Aeration01PerInput { get; internal set; }
 
-        public Dictionary<string, float> ItemCodeAddRatios { get; internal set; }
+        public Dictionary<string, float> AddItemCodeRatios { get; internal set; }
+        public string HarvestItemPath { get; internal set; }
+        public int HarvestQty { get; internal set; }
+        public int HarvestStackQty { get; internal set; }
     
         public int ConsumePerTransition { get; internal set; }
 
@@ -60,8 +63,14 @@ public class CompostpileSettings
     public int CompostOutPerSuccess { get; private set; }
     public int InoculumOutPerFail { get; private set; }
     
-    public int HarvestMaxPerStack { get; private set; }
-    public int InoculumPerSourDropped { get; private set; }
+    
+    
+    public string HarvestCompostPath { get; private set; }
+    public int HarvestCompostQty { get; internal set; }
+    public int HarvestCompostStackQty { get; internal set; }
+    public string HarvestCompostpilePath { get; private set; }
+    public int HarvestCompostpileQty { get; internal set; }
+    public int HarvestCompostpileStackQty { get; internal set; }
     
     public int TotalMaxQty => Browns.MaxQty + Nutrition.MaxQty + Inoculum.MaxQty;
     
@@ -73,11 +82,15 @@ public class CompostpileSettings
             ,MaxQty = 64 * 3
             ,MaxInputPerAdd = 16
             ,Aeration01PerInput = 1f/(64*3)
-            ,ItemCodeAddRatios = new Dictionary<string, float>
+            ,AddItemCodeRatios = new Dictionary<string, float>
                 {{"game:drygrass", 1f}
                 }
+            ,HarvestItemPath = "game:drygrass"
+            ,HarvestQty = 64
+            ,HarvestStackQty = 64
             ,ConsumePerTransition = 16
             }
+            
         ,Nutrition = new Ingredient
             {Name = "nutrition"
             ,InitialQty = 16
@@ -94,11 +107,13 @@ public class CompostpileSettings
             ,MaxQty = 64
             ,MaxInputPerAdd = 4
             ,Aeration01PerInput = 1f/16
-            ,ItemCodeAddRatios = new Dictionary<string, float>
-                {{"game:compost", 1f}
-                ,{"game:rot", 2}
-                ,{"oddwire:sourcompost", 4}
+            ,AddItemCodeRatios = new Dictionary<string, float>
+                {{"game:rot", 1}
+                ,{"game:compost", 4f}
                 }
+            ,HarvestItemPath = "game:rot"
+            ,HarvestQty = 32
+            ,HarvestStackQty = 32
             ,ConsumePerTransition = 1
             }
         ,Aeration01PerCompostpileInput = 1f/6
@@ -142,7 +157,12 @@ public class CompostpileSettings
         ,CompostOutPerSuccess = 1
         ,InoculumOutPerFail = 1
             
-        ,HarvestMaxPerStack = 8
-        ,InoculumPerSourDropped = 1
+        ,HarvestCompostPath = "game:compost"
+        ,HarvestCompostQty = 8
+        ,HarvestCompostStackQty = 8
+        
+        ,HarvestCompostpilePath = "oddwire:Compostpile-#1"
+        ,HarvestCompostpileQty = 2
+        ,HarvestCompostpileStackQty = 2
         };
 }

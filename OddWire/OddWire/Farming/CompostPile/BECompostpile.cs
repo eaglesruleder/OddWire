@@ -31,9 +31,9 @@ public class BlockEntityCompostpile : BlockEntity
         Api.World.BlockAccessor.ExchangeBlock(block.Id, Pos);
         Block = block;
     }
-
+    
+    
     public bool CanHarvest() => _inventory.CanHarvest();
-    public bool IsEmpty() => _inventory.TotalQty < 1;
 
     public bool TryAdd(ItemSlot slot, out int accepted)
     {
@@ -49,10 +49,18 @@ public class BlockEntityCompostpile : BlockEntity
 
     public void Harvest(float dropQuantityMultiplier)
     {
-        if (_inventory.HarvestCompostpile(this, dropQuantityMultiplier)
-        |   _inventory.HarvestSourCompost(this, dropQuantityMultiplier)
-        |   _inventory.HarvestCompost(this, dropQuantityMultiplier)
-            )
+        bool dirty = false;
+        
+        dirty |= _inventory.HarvestCompost(this, dropQuantityMultiplier);
+        dirty |= _inventory.HarvestCompostpile(this, dropQuantityMultiplier);
+
+        if (!dirty)
+        {
+            dirty |= _inventory.HarvestBrowns(this, dropQuantityMultiplier);
+            dirty |= _inventory.HarvestInoculum(this, dropQuantityMultiplier);
+        }
+        
+        if(dirty)
         {
             UpdateShapeStackSize();
             MarkDirty(true);
@@ -136,10 +144,9 @@ public class BlockEntityCompostpile : BlockEntity
         
         dsc.AppendLine();
         dsc.AppendLine(Lang.Get(
-            "Harvestable: Pile {0}, Sour {1}, Compost {2}",
-            _inventory.GetHarvestableCompostpileQty(),
-            _inventory.GetHarvestableSourCompostQty(),
-            _inventory.GetHarvestableCompostQty()
+            "Harvestable: Compost {0}, Pile {1}",
+            _inventory.CompostQty,
+            _inventory.GetHarvestableCompostpileQty()
         ));
 
         

@@ -28,14 +28,12 @@ public class BlockCompostpile : Block
 
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
-        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostpile be
-        &&  be.CanHarvest()
-            )
+        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostpile be)
         {
             if (world.Side == EnumAppSide.Server)
                 be.Harvest(dropQuantityMultiplier);
             
-            if(!be.IsEmpty())
+            if(be.CanHarvest())
                 return;
         }
         

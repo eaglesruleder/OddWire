@@ -61,7 +61,7 @@ public sealed class CompostpileInventory
         *   GetMoistureFactor01();
     }
     
-    //  Stress impacts Compost/SourCompost output ratio
+    //  Stress impacts Compost/Inoculum output ratio
     public float GetStress01() => 1f - GetHealth01();
     public float GetHealth01() =>
         GetAerationHealth01()
@@ -151,93 +151,106 @@ public sealed class CompostpileInventory
         return 0;
     }
     #endregion
-    
-    
+
+
     public bool CanHarvest() =>
-        CompostQty >= Settings.CompostOutPerSuccess
-    ||  InoculumQty >= Settings.InoculumPerSourDropped
-    || (BrownsQty >= Settings.Browns.InitialQty
-    &&  NutritionQty >= Settings.Nutrition.InitialQty
-    &&  InoculumQty >= Settings.Inoculum.InitialQty
-        );
-
-    public int GetHarvestableCompostpileQty() =>
-        Math.Min(Math.Min
-            (BrownsQty / Settings.Browns.InitialQty
-            ,NutritionQty / Settings.Nutrition.InitialQty
-           ),InoculumQty / Settings.Inoculum.InitialQty
-            );
-    public bool HarvestCompostpile(BlockEntity be, float dropQuantityMultiplier)
-    {
-        int compostpileQty = GetHarvestableCompostpileQty();
-        if (compostpileQty < 1)
-            return false;
-
-        int qty = be.Api.World.Rand.Next(compostpileQty) + 1;
-        
-        Block spawnBlock = be.Api.World.GetBlock(new AssetLocation("oddwire:Compostpile-#1"));
-
-        int remaining = (int)Math.Ceiling(qty * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = be.Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
-            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
-            be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-
-        BrownsQty = Math.Max(BrownsQty - Settings.Browns.InitialQty * qty, 0);
-        TryRemoveRandomNutrition(be.Api.World.Rand, Settings.Nutrition.InitialQty * qty);
-        InoculumQty = Math.Max(InoculumQty - Settings.Inoculum.InitialQty * qty, 0);
-
-        return true;
-    }
+        CompostQty > 0
+    ||  InoculumQty > 0
+    ||  BrownsQty > 0;
     
-    public int GetHarvestableSourCompostQty() => InoculumQty / Settings.InoculumPerSourDropped;
-    public bool HarvestSourCompost(BlockEntity be, float dropQuantityMultiplier)
-    {
-        int sourQty = GetHarvestableSourCompostQty();
-        if (sourQty < 1)
-            return false;
-
-        int qty = be.Api.World.Rand.Next(sourQty) + 1;
-        
-        Item spawnBlock = be.Api.World.GetItem(new AssetLocation("oddwire:sourcompost"));
-
-        int remaining = (int)Math.Ceiling(qty * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = be.Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
-            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
-            be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-
-        InoculumQty = Math.Max(InoculumQty - Settings.InoculumPerSourDropped * qty, 0);
-        return true;
-    }
-    
-    public int GetHarvestableCompostQty() => CompostQty;
     public bool HarvestCompost(BlockEntity be, float dropQuantityMultiplier)
     {
-        int compostQty = GetHarvestableCompostQty();
-        if (compostQty < 1)
+        if (CompostQty < 1)
             return false;
+        
+        Item spawnItem = be.Api.World.GetItem(new AssetLocation(Settings.HarvestCompostPath));
 
-        int qty = be.Api.World.Rand.Next(compostQty) + 1;
-
-        Item spawnItem = be.Api.World.GetItem(new AssetLocation("game:compost"));
-
-        int remaining = (int)Math.Ceiling(qty * dropQuantityMultiplier);
+        int available = Math.Min(CompostQty, Settings.HarvestCompostQty);
+        int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = be.Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestMaxPerStack)) + 1;
+            int spawnNow = be.Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestCompostStackQty)) + 1;
             ItemStack stack = new ItemStack(spawnItem, spawnNow);
             be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
         }
 
-        CompostQty = Math.Max(CompostQty - qty, 0);
+        CompostQty = Math.Max(CompostQty - available, 0);
+        return true;
+    }
+    
+    
+    public int GetHarvestableCompostpileQty() => Math.Min(Math.Min
+        (BrownsQty / Settings.Browns.InitialQty
+        ,NutritionQty / Settings.Nutrition.InitialQty
+       ),InoculumQty / Settings.Inoculum.InitialQty
+        );
+    public bool HarvestCompostpile(BlockEntity be, float dropQuantityMultiplier)
+    {
+        int compostpileQty = GetHarvestableCompostpileQty();
+        if (compostpileQty < 1)
+            return false;
+        
+        Block spawnBlock = be.Api.World.GetBlock(new AssetLocation(Settings.HarvestCompostpilePath));
+
+        int available = Math.Min(compostpileQty, Settings.HarvestCompostpileQty);
+        int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
+        while (remaining > 0)
+        {
+            int spawnNow = Math.Min(remaining, be.Api.World.Rand.Next(Settings.HarvestCompostpileStackQty)+1);
+            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
+            be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
+            remaining -= spawnNow;
+        }
+
+        BrownsQty = Math.Max(BrownsQty - Settings.Browns.InitialQty * available, 0);
+        TryRemoveRandomNutrition(be.Api.World.Rand, Settings.Nutrition.InitialQty * available);
+        InoculumQty = Math.Max(InoculumQty - Settings.Inoculum.InitialQty * available, 0);
+
+        return true;
+    }
+    
+    
+    public bool HarvestInoculum(BlockEntity be, float dropQuantityMultiplier)
+    {
+        if (InoculumQty < 1)
+            return false;
+        
+        Item spawnBlock = be.Api.World.GetItem(new AssetLocation(Settings.Inoculum.HarvestItemPath));
+
+        int available = Math.Min(InoculumQty, Settings.Inoculum.HarvestQty);
+        int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
+        while (remaining > 0)
+        {
+            int spawnNow = Math.Min(remaining, be.Api.World.Rand.Next(Settings.Inoculum.HarvestStackQty)+1);
+            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
+            be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
+            remaining -= spawnNow;
+        }
+
+        InoculumQty = Math.Max(InoculumQty - available, 0);
+        return true;
+    }
+    
+    
+    public bool HarvestBrowns(BlockEntity be, float dropQuantityMultiplier)
+    {
+        if (BrownsQty < 1)
+            return false;
+        
+        Item spawnBlock = be.Api.World.GetItem(new AssetLocation(Settings.Browns.HarvestItemPath));
+
+        int available = Math.Min(BrownsQty, Settings.Browns.HarvestQty);
+        int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
+        while (remaining > 0)
+        {
+            int spawnNow = Math.Min(remaining, be.Api.World.Rand.Next(Settings.Browns.HarvestStackQty)+1);
+            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
+            be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
+            remaining -= spawnNow;
+        }
+
+        BrownsQty = Math.Max(BrownsQty - available, 0);
         return true;
     }
     
@@ -306,8 +319,8 @@ public sealed class CompostpileInventory
     public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient, int imposeQty = 0)
     {
         accepted = 0;
-        if (ingredient.ItemCodeAddRatios is null
-        ||  ingredient.ItemCodeAddRatios.Count == 0
+        if (ingredient.AddItemCodeRatios is null
+        ||  ingredient.AddItemCodeRatios.Count == 0
            )
             return false;
 
@@ -322,7 +335,7 @@ public sealed class CompostpileInventory
         ??  slot.Itemstack?.Block?.Code.ToString()
         ??  "";
         
-        if(!ingredient.ItemCodeAddRatios.TryGetValue(code, out float ratio)
+        if(!ingredient.AddItemCodeRatios.TryGetValue(code, out float ratio)
         ||  ratio <= 0f
         ||  slot.StackSize < Math.Max(ratio, 1)
             )
@@ -681,15 +694,15 @@ public sealed class CompostpileInventory
             PrevTimeProcessed = totalHours;
             return false;
         }
-
+        
         float transitionRate = Settings.BaseCompostRatePerHour * GetFactor();
         double durationTransitions = (totalHours - PrevTimeProcessed) * transitionRate;
         int transitions = (int)Math.Min(durationTransitions, bulkPortions);
         if (transitions < 1)
             return false; // keep accruing progress
         
-        (int compostOutput, int sourOutput) = ResolveOutputTransitions(transitions);
-        int actualTransitions = compostOutput + sourOutput;
+        (int compostOutput, int failedOutput) = ResolveOutputTransitions(transitions);
+        int actualTransitions = compostOutput + failedOutput;
         if (actualTransitions < 1)
             return false; // keep accruing progress
         
@@ -705,44 +718,44 @@ public sealed class CompostpileInventory
         
         InoculumQty = Math.Clamp
            (InoculumQty
-        +   sourOutput * Settings.InoculumOutPerFail
+        +   failedOutput * Settings.InoculumOutPerFail
         -   compostOutput * Settings.Inoculum.ConsumePerTransition
             ,0,Settings.Inoculum.MaxQty - CompostQty
             );
-        
+
         PrevTimeProcessed += Math.Floor(durationTransitions) / transitionRate;
         return true;
     }
 
-    private (int compostOutput, int sourOutput) ResolveOutputTransitions(int transitions)
+    private (int compostOutput, int failedOutput) ResolveOutputTransitions(int transitions)
     {
-        int sourOutput = (int)(transitions * Stress01);
-        int compostOutput = transitions - sourOutput;
+        int failedOutput = (int)(transitions * Stress01);
+        int compostOutput = transitions - failedOutput;
 
-        ClampSourToOutputRoom(ref sourOutput, out int sourOverflow);
-        compostOutput += sourOverflow;
+        ClampFailedToOutputRoom(ref failedOutput, out int failedOverflow);
+        compostOutput += failedOverflow;
 
         ClampCompostToOutputRoom(ref compostOutput, out int compostOverflow);
-        sourOutput += compostOverflow;
+        failedOutput += compostOverflow;
         
-        BootstrapCompostWithSour(ref compostOutput, ref sourOutput);
+        BootstrapCompostWithFailed(ref compostOutput, ref failedOutput);
         
-        ClampSourToFinalRoom(ref compostOutput, ref sourOutput);
+        ClampFailedToFinalRoom(ref compostOutput, ref failedOutput);
         
-        return (compostOutput, sourOutput);
+        return (compostOutput, failedOutput);
     }
 
-    private void ClampSourToOutputRoom(ref int sourOutput, out int transitionsOverflow)
+    private void ClampFailedToOutputRoom(ref int failedOutput, out int transitionsOverflow)
     {
-        int sourOutputRoom = GetInoculumRoomQty() / Settings.InoculumOutPerFail;
-        if (sourOutput <= sourOutputRoom)
+        int failedOutputRoom = GetInoculumRoomQty() / Settings.InoculumOutPerFail;
+        if (failedOutput <= failedOutputRoom)
         {
             transitionsOverflow = 0;
             return;
         }
         
-        transitionsOverflow = sourOutput - sourOutputRoom;
-        sourOutput = sourOutputRoom;
+        transitionsOverflow = failedOutput - failedOutputRoom;
+        failedOutput = failedOutputRoom;
     }
 
     private void ClampCompostToOutputRoom(ref int compostOutput, out int transitionsOverflow)
@@ -765,26 +778,26 @@ public sealed class CompostpileInventory
         compostOutput = compostOutputRoom;
     }
 
-    private void BootstrapCompostWithSour(ref int compostOutput, ref int sourOutput)
+    private void BootstrapCompostWithFailed(ref int compostOutput, ref int failedOutput)
     {
-        int inoculumAfterSourQty = InoculumQty + sourOutput * Settings.InoculumOutPerFail;
-        int compostPossibleByInoculum = inoculumAfterSourQty / Settings.Inoculum.ConsumePerTransition;
+        int inoculumAfterFailedQty = InoculumQty + failedOutput * Settings.InoculumOutPerFail;
+        int compostPossibleByInoculum = inoculumAfterFailedQty / Settings.Inoculum.ConsumePerTransition;
         if (compostOutput <= compostPossibleByInoculum)
             return;
         
         int overflowByInoculumLimit = compostOutput - compostPossibleByInoculum;
-        int compostSubsidizedBySour = 
+        int compostSubsidizedByFailed = 
             overflowByInoculumLimit * Settings.InoculumOutPerFail
         /  (Settings.InoculumOutPerFail + Settings.Inoculum.ConsumePerTransition);
 
-        compostOutput = compostPossibleByInoculum + compostSubsidizedBySour;
-        sourOutput += overflowByInoculumLimit - compostSubsidizedBySour;
+        compostOutput = compostPossibleByInoculum + compostSubsidizedByFailed;
+        failedOutput += overflowByInoculumLimit - compostSubsidizedByFailed;
     }
     
-    private void ClampSourToFinalRoom(ref int compostOutput, ref int sourOutput)
+    private void ClampFailedToFinalRoom(ref int compostOutput, ref int failedOutput)
     {
         int inoculumChangeQty = 
-            sourOutput * Settings.InoculumOutPerFail
+            failedOutput * Settings.InoculumOutPerFail
         +   compostOutput * (Settings.CompostOutPerSuccess - Settings.Inoculum.ConsumePerTransition);
         int inoculumRoomQty = GetInoculumRoomQty();
     
@@ -792,7 +805,7 @@ public sealed class CompostpileInventory
             return;
         
         int inoculumExcess = (int)Math.Ceiling((float)(inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerFail);
-        sourOutput = Math.Max(sourOutput - inoculumExcess, 0);
+        failedOutput = Math.Max(failedOutput - inoculumExcess, 0);
     }
     
     private (float brownsInputPortions, float nutritionInputPortions) ResolveInputPortions(int actualTransitions, float brownsPortions, float nutritionPortions)
