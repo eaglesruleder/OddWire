@@ -204,7 +204,7 @@ public sealed class CompostpileInventory
         }
 
         BrownsQty = Math.Max(BrownsQty - Settings.Browns.InitialQty * available, 0);
-        TryRemoveRandomNutrition(be.Api.World.Rand, Settings.Nutrition.InitialQty * available);
+        TryRemoveCheapestNutrition(Settings.Nutrition.InitialQty * available);
         InoculumQty = Math.Max(InoculumQty - Settings.Inoculum.InitialQty * available, 0);
 
         return true;
@@ -418,6 +418,66 @@ public sealed class CompostpileInventory
         return true;
     }
     
+    private bool TryGetCheapestNutritionCategory(out EnumFoodCategory result)
+    {
+        bool found = false;
+        float smallestVal = float.MaxValue;
+        result = default;
+        
+        foreach (var kvp in NutritionStacks)
+        {
+            if (kvp.Value <= 0)
+                continue;
+
+            float value = 1f;
+            if (Settings.NutritionSpeed?.TryGetValue(kvp.Key.ToString(), out float speed) == true)
+                value = speed;
+            
+            if (!found
+            ||  value < smallestVal
+               )
+            {
+                found = true;
+                smallestVal = value;
+                result = kvp.Key;
+            }
+        }
+        
+        return found;
+    }
+
+    public void TryRemoveCheapestNutrition(int amount)
+    {
+        if (amount <= 0
+        ||  NutritionStacks.Count == 0
+            )
+            return;
+
+        int remaining = amount;
+        while (remaining > 0)
+        {
+            if(!TryGetCheapestNutritionCategory(out EnumFoodCategory category))
+                break;
+
+            if(!NutritionStacks.TryGetValue(category, out int stackQty)
+            ||  stackQty < 1
+                )
+            {
+                NutritionStacks.Remove(category);
+                continue;
+            }
+
+            int removeQty = Math.Min(stackQty, remaining);
+            
+            if (stackQty > removeQty)
+                NutritionStacks[category] -= removeQty;
+            else
+                NutritionStacks.Remove(category);
+
+            remaining -= removeQty;
+        }
+    }
+    
     public void TryRemoveRandomNutrition(Random rand, int amount)
     {
         if (amount <= 0
@@ -429,7 +489,11 @@ public sealed class CompostpileInventory
         int nutritionRemaining = NutritionQty;
 
         int remaining = amount;
-        while (remaining > 0 && keys.Count > 0 && nutritionRemaining > 0)
+        while
+           (remaining > 0
+        &&  nutritionRemaining > 0
+        &&  keys.Count > 0
+            )
         {
             int index = rand.Next(keys.Count);
             var key = keys[index];
