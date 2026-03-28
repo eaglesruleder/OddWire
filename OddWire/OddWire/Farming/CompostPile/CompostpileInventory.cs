@@ -681,11 +681,10 @@ public sealed class CompostpileInventory
             PrevTimeProcessed = totalHours;
             return false;
         }
-        
-        int transitions = (int)Math.Min
-            ((totalHours - PrevTimeProcessed) * Settings.BaseCompostRatePerHour * GetFactor()
-            ,bulkPortions
-            );
+
+        float transitionRate = Settings.BaseCompostRatePerHour * GetFactor();
+        double durationTransitions = (totalHours - PrevTimeProcessed) * transitionRate;
+        int transitions = (int)Math.Min(durationTransitions, bulkPortions);
         if (transitions < 1)
             return false; // keep accruing progress
         
@@ -710,8 +709,8 @@ public sealed class CompostpileInventory
         -   compostOutput * Settings.Inoculum.ConsumePerTransition
             ,0,Settings.Inoculum.MaxQty - CompostQty
             );
-
-        PrevTimeProcessed = totalHours;
+        
+        PrevTimeProcessed += Math.Floor(durationTransitions) / transitionRate;
         return true;
     }
 
