@@ -57,14 +57,13 @@ public class CompostpileSettings
     public float StressGainDays { get; private set; }
     public float StressRecoveryDays { get; private set; }
     
-    public int CompostMaxQty { get; private set; }
     public int CompostOutPerSuccess { get; private set; }
     public int InoculumOutPerFail { get; private set; }
     
     public int HarvestMaxPerStack { get; private set; }
     public int InoculumPerSourDropped { get; private set; }
     
-    public int TotalMaxQty => Browns.MaxQty + Nutrition.MaxQty + Inoculum.MaxQty + CompostMaxQty;
+    public int TotalMaxQty => Browns.MaxQty + Nutrition.MaxQty + Inoculum.MaxQty;
     
     public static readonly CompostpileSettings Default = new()
         {Browns = new()
@@ -92,7 +91,7 @@ public class CompostpileSettings
             {Name = "inoculum"
             ,InitialQty = 2
             ,SizeBonusQty = 8
-            ,MaxQty = 16
+            ,MaxQty = 64
             ,MaxInputPerAdd = 4
             ,Aeration01PerInput = 1f/16
             ,ItemCodeAddRatios = new Dictionary<string, float>
@@ -139,8 +138,7 @@ public class CompostpileSettings
         
         ,StressGainDays = 1.5f
         ,StressRecoveryDays = 3f
-    
-        ,CompostMaxQty = 48
+        
         ,CompostOutPerSuccess = 1
         ,InoculumOutPerFail = 1
             

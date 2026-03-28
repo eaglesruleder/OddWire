@@ -131,8 +131,7 @@ public class BlockEntityCompostpile : BlockEntity
             if (parts.Length > 0)
                 dsc.AppendLine(Lang.Get("-> Mix: {0}", string.Join(", ", parts)));
         }
-        dsc.AppendLine(Lang.Get("Inoculum: {0}/{1}", _inventory.InoculumQty, Settings.Inoculum.MaxQty));
-        dsc.AppendLine(Lang.Get("Compost: {0}/{1}", _inventory.CompostQty, Settings.CompostMaxQty));
+        dsc.AppendLine(Lang.Get("Inoc: {0} & Comp: {1}/{2}", _inventory.InoculumQty, _inventory.CompostQty, Settings.Inoculum.MaxQty));
 
         
         dsc.AppendLine();

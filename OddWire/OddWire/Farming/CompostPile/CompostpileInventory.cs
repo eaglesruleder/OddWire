@@ -70,7 +70,10 @@ public sealed class CompostpileInventory
     
     
     public float GetInoculumFactor01() =>
-        Math.Clamp((float)(InoculumQty + CompostQty) / (Settings.Inoculum.MaxQty + Settings.CompostMaxQty), 0.1f, 1f);
+        Math.Clamp((float)(InoculumQty + CompostQty) / Settings.Inoculum.MaxQty, 0.1f, 1f);
+    
+    public int GetInoculumRoomQty() =>
+        Math.Max(Settings.Inoculum.MaxQty - (InoculumQty + CompostQty), 0);
     
     public float GetTemperatureFactor01()
     {
@@ -285,7 +288,7 @@ public sealed class CompostpileInventory
             return true;
         }
             
-        if (TryAddRef(slot, out accepted, ref InoculumQty, Settings.Inoculum))
+        if (TryAddRef(slot, out accepted, ref InoculumQty, Settings.Inoculum, CompostQty))
         {
             RestoreAeration01(be, accepted * Settings.Inoculum.Aeration01PerInput);
             return true;
@@ -300,7 +303,7 @@ public sealed class CompostpileInventory
         return false;
     }
     
-    public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient)
+    public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient, int imposeQty = 0)
     {
         accepted = 0;
         if (ingredient.ItemCodeAddRatios is null
@@ -308,8 +311,8 @@ public sealed class CompostpileInventory
            )
             return false;
 
-        int room = ingredient.MaxQty - currentQty;
-        if (room < 1
+        int roomQty = ingredient.MaxQty - (currentQty + imposeQty);
+        if (roomQty < 1
         ||  slot.StackSize < 1
             )
             return false;
@@ -327,14 +330,14 @@ public sealed class CompostpileInventory
 
         int adjustedLimit = 
             ratio >= 1f
-        ?   (int)(Math.Min(ingredient.MaxInputPerAdd, room) * ratio)
-        :   (int)Math.Min(ingredient.MaxInputPerAdd, room * ratio);
+        ?   (int)(Math.Min(ingredient.MaxInputPerAdd, roomQty) * ratio)
+        :   (int)Math.Min(ingredient.MaxInputPerAdd, roomQty * ratio);
         
         int adjustedInput = Math.Min(slot.StackSize, adjustedLimit);
         if (ratio >= 1f)
             adjustedInput = (int)(Math.Floor(adjustedInput / ratio) * ratio);
         
-        int adjustedOutput = (int)Math.Min(adjustedInput / ratio, room);
+        int adjustedOutput = (int)Math.Min(adjustedInput / ratio, roomQty);
 
         currentQty += adjustedOutput;
         accepted = adjustedInput;
@@ -362,7 +365,7 @@ public sealed class CompostpileInventory
 
         if (brownsAdd > Settings.Browns.MaxQty - BrownsQty
         ||  nutritionAdd > Settings.Nutrition.MaxQty - NutritionQty
-        ||  inoculumAdd > Settings.Inoculum.MaxQty - InoculumQty
+        ||  inoculumAdd > GetInoculumRoomQty()
             )
             return false;
 
@@ -661,8 +664,8 @@ public sealed class CompostpileInventory
     {
         if (PrevTimeProcessed < 0
         ||  PrevTimeProcessed > totalHours
-        || (InoculumQty >= Settings.Inoculum.MaxQty
-        &&  CompostQty >= Settings.CompostMaxQty
+        || (InoculumQty + CompostQty >= Settings.Inoculum.MaxQty
+        &&  Settings.Inoculum.ConsumePerTransition < Settings.CompostOutPerSuccess
            ))
         {
             PrevTimeProcessed = totalHours;
@@ -696,16 +699,16 @@ public sealed class CompostpileInventory
         BrownsQty -= (int)Math.Min(brownsInputPortions * Settings.Browns.ConsumePerTransition, BrownsQty);
         TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionInputPortions * Settings.Nutrition.ConsumePerTransition));
 
+        CompostQty = Math.Clamp
+            (CompostQty + compostOutput * Settings.CompostOutPerSuccess
+            ,0,Settings.Inoculum.MaxQty
+            );
+        
         InoculumQty = Math.Clamp
            (InoculumQty
         +   sourOutput * Settings.InoculumOutPerFail
         -   compostOutput * Settings.Inoculum.ConsumePerTransition
-           ,0,Settings.Inoculum.MaxQty
-            );
-
-        CompostQty = Math.Clamp
-            (CompostQty + compostOutput * Settings.CompostOutPerSuccess
-            ,0,Settings.CompostMaxQty
+            ,0,Settings.Inoculum.MaxQty - CompostQty
             );
 
         PrevTimeProcessed = totalHours;
@@ -732,7 +735,7 @@ public sealed class CompostpileInventory
 
     private void ClampSourToOutputRoom(ref int sourOutput, out int transitionsOverflow)
     {
-        int sourOutputRoom = (Settings.Inoculum.MaxQty - InoculumQty) / Settings.InoculumOutPerFail;
+        int sourOutputRoom = GetInoculumRoomQty() / Settings.InoculumOutPerFail;
         if (sourOutput <= sourOutputRoom)
         {
             transitionsOverflow = 0;
@@ -745,17 +748,22 @@ public sealed class CompostpileInventory
 
     private void ClampCompostToOutputRoom(ref int compostOutput, out int transitionsOverflow)
     {
-        int compostOutputRoom = (Settings.CompostMaxQty - CompostQty) / Settings.CompostOutPerSuccess;
-
+        int compostOutputNet = Settings.CompostOutPerSuccess - Settings.Inoculum.ConsumePerTransition;
+        if (compostOutputNet < 1)
+        {
+            transitionsOverflow = 0;
+            return;
+        }
+        
+        int compostOutputRoom = GetInoculumRoomQty() / compostOutputNet;
         if (compostOutput <= compostOutputRoom)
         {
             transitionsOverflow = 0;
             return;
         }
         
-        int compostOverflow = compostOutput - compostOutputRoom;
+        transitionsOverflow = compostOutput - compostOutputRoom;
         compostOutput = compostOutputRoom;
-        transitionsOverflow = compostOverflow;
     }
 
     private void BootstrapCompostWithSour(ref int compostOutput, ref int sourOutput)
@@ -778,8 +786,9 @@ public sealed class CompostpileInventory
     {
         int inoculumChangeQty = 
             sourOutput * Settings.InoculumOutPerFail
-        -   compostOutput * Settings.Inoculum.ConsumePerTransition;
-        int inoculumRoomQty = Settings.Inoculum.MaxQty - InoculumQty;
+        +   compostOutput * (Settings.CompostOutPerSuccess - Settings.Inoculum.ConsumePerTransition);
+        int inoculumRoomQty = GetInoculumRoomQty();
+    
         if (inoculumChangeQty <= inoculumRoomQty)
             return;
         
