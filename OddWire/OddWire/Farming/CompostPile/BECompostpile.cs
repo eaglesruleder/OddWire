@@ -89,9 +89,10 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
     }
 
     
+    //  Intent: CanHarvest treats Nutrition as lossy
     public bool CanHarvest() => _inventory.CanHarvest();
     
-    //  Objective: Harvest all Compost and Compostpile, then remaining Browns & Inoculum, then discard nutrition
+    //  Objective: Harvest all Compost and Compostpile, then remaining Browns & Inoculum, ignore nutrition
     public void Harvest(float dropQuantityMultiplier)
     {
         bool dirty = false;
