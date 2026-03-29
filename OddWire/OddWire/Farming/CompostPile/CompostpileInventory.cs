@@ -178,6 +178,8 @@ public sealed class CompostpileInventory
         }
 
         CompostQty = Math.Max(CompostQty - available, 0);
+        
+        PreUpdateInsulation01();
         return true;
     }
     
@@ -209,6 +211,7 @@ public sealed class CompostpileInventory
         TryRemoveCheapestNutrition(Settings.Nutrition.InitialQty * available);
         InoculumQty = Math.Max(InoculumQty - Settings.Inoculum.InitialQty * available, 0);
 
+        PreUpdateInsulation01();
         return true;
     }
     
@@ -231,6 +234,8 @@ public sealed class CompostpileInventory
         }
 
         InoculumQty = Math.Max(InoculumQty - available, 0);
+        
+        PreUpdateInsulation01();
         return true;
     }
     
@@ -253,6 +258,8 @@ public sealed class CompostpileInventory
         }
 
         BrownsQty = Math.Max(BrownsQty - available, 0);
+        
+        PreUpdateInsulation01();
         return true;
     }
     
@@ -291,31 +298,27 @@ public sealed class CompostpileInventory
         if (slot.StackSize < 1)
             return false;
 
-        if (TryAddCompostPile(slot, out accepted))
-        {
-            RestoreAeration01(be, accepted * Settings.Aeration01PerCompostpileInput);
-            return true;
-        }
-            
-        if (TryAddRef(slot, out accepted, ref BrownsQty, Settings.Browns))
-        {
-            RestoreAeration01(be, accepted * Settings.Browns.Aeration01PerInput);
-            return true;
-        }
-            
-        if (TryAddRef(slot, out accepted, ref InoculumQty, Settings.Inoculum, CompostQty))
-        {
-            RestoreAeration01(be, accepted * Settings.Inoculum.Aeration01PerInput);
-            return true;
-        }
-            
-        if (TryAddNutrition(slot, out accepted))
-        {
-            RestoreAeration01(be, accepted * Settings.Nutrition.Aeration01PerInput);
-            return true;
-        }
+        bool added = false;
+        float restoreAeration = 0;
 
-        return false;
+        if (TryAddCompostPile(slot, out accepted))
+            { restoreAeration = accepted * Settings.Aeration01PerCompostpileInput; added = true; }
+        else
+        if (TryAddRef(slot, out accepted, ref BrownsQty, Settings.Browns))
+            { restoreAeration = accepted * Settings.Browns.Aeration01PerInput; added = true; }
+        else
+        if (TryAddRef(slot, out accepted, ref InoculumQty, Settings.Inoculum, CompostQty))
+            { restoreAeration = accepted * Settings.Inoculum.Aeration01PerInput; added = true; }
+        else
+        if (TryAddNutrition(slot, out accepted))
+            { restoreAeration = accepted * Settings.Nutrition.Aeration01PerInput; added = true; }
+
+        if (!added)
+            return false;
+        
+        RestoreAeration01(be, restoreAeration);
+        PreUpdateInsulation01();
+        return true;
     }
     
     public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient, int imposeQty = 0)
@@ -573,23 +576,35 @@ public sealed class CompostpileInventory
     private double _lastPreUpdatedHours = -1;
     private bool _skyExposed;
     private float _envTemp;
+    private bool _inGreenhouse;
     private float _insulation01;
-    private void PreUpdateState(BlockEntity be, double totalHours)
+    private void PreUpdateState(BlockEntity be, double totalHours, bool forceRecalc = false)
     {
-        if (_lastPreUpdatedHours + 1 > totalHours)
+        if (_lastPreUpdatedHours + 1 > totalHours
+        ||  forceRecalc
+            )
             return;
+
+        PreUpdateEnv(be, totalHours);
+        PreUpdateInsulation01();
         
+        _lastPreUpdatedHours = totalHours;
+    }
+
+    private void PreUpdateEnv(BlockEntity be, double totalHours)
+    {
         _skyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
-        _envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, _skyExposed, Settings.GreenhouseHeat, out bool isInGreenhouse);
-        
+        _envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, _skyExposed, Settings.GreenhouseHeat, out _inGreenhouse);
+    }
+    
+    private void PreUpdateInsulation01()
+    {
         _insulation01 = 0.25f + 0.75f * GetFullness01();
         if (!_skyExposed)
             _insulation01 += 0.10f;
-        if (isInGreenhouse)
+        if (_inGreenhouse)
             _insulation01 += 0.05f;
         _insulation01 = Math.Clamp(_insulation01, 0, 1);
-
-        _lastPreUpdatedHours = totalHours;
     }
     
     private bool UpdateState(BlockEntity be, double totalHours)
@@ -689,7 +704,7 @@ public sealed class CompostpileInventory
             return true;
         }
         
-        float dtTemperatureHours = (float)Math.Clamp(totalHours - _prevTimeTemperatureUpdated, 0, 24);
+        double dtTemperatureHours = totalHours - _prevTimeTemperatureUpdated;
         if (dtTemperatureHours <= 0f)
             return false;
         
@@ -703,10 +718,11 @@ public sealed class CompostpileInventory
             (Settings.CoolingRatePerHour * (1f + evaporativeCooling01) / coolingInsulation
             ,0.01f, 0.5f
             );
-        float coolingAmount = coolingRate * dtTemperatureHours;
+        double coolingAmount = coolingRate * dtTemperatureHours;
+        float coolingFactor = (float)(coolingAmount / (1f + coolingAmount));
         
         float targetTemp = _envTemp + GetInternalHeat();
-        _temperature += (targetTemp - _temperature) * coolingAmount / (1f + coolingAmount);
+        _temperature += (targetTemp - _temperature) * coolingFactor;
         _prevTimeTemperatureUpdated = totalHours;
 
         return true;
