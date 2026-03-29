@@ -69,6 +69,7 @@ public sealed class CompostpileInventory
     *   GetMoistureHealth01();
     
     
+    //  Intent: Compost counts toward Factor so efficiency doesn't crash as inoculum converts
     public float GetInoculumFactor01() =>
         Math.Clamp((float)(InoculumQty + CompostQty) / Settings.Inoculum.MaxQty, 0.1f, 1f);
     
@@ -153,6 +154,7 @@ public sealed class CompostpileInventory
     #endregion
 
 
+    //  Intent: Nutrition is lossy
     public bool CanHarvest() =>
         CompostQty > 0
     ||  InoculumQty > 0
@@ -610,7 +612,7 @@ public sealed class CompostpileInventory
             return true;
         }
         
-        float dtMoistureDays = (float)Math.Clamp((totalHours - PrevTimeMoistureUpdated) / be.Api.World.Calendar.HoursPerDay, 0, 9);
+        float dtMoistureDays = (float)((totalHours - PrevTimeMoistureUpdated) / be.Api.World.Calendar.HoursPerDay);
         if (dtMoistureDays <= 0)
             return false;
         
@@ -645,7 +647,7 @@ public sealed class CompostpileInventory
             return true;
         }
         
-        float dtAerationDays = (float)Math.Clamp((totalHours - _prevTimeAerationUpdated) / be.Api.World.Calendar.HoursPerDay, 0, 9);
+        float dtAerationDays = (float)((totalHours - _prevTimeAerationUpdated) / be.Api.World.Calendar.HoursPerDay);
         if (dtAerationDays <= 0)
             return false;
 
@@ -720,7 +722,7 @@ public sealed class CompostpileInventory
             return true;
         }
 
-        float dtStressDays = (float)Math.Clamp((totalHours - _prevTimeStressUpdated) / be.Api.World.Calendar.HoursPerDay, 0, 9);
+        float dtStressDays = (float)((totalHours - _prevTimeStressUpdated) / be.Api.World.Calendar.HoursPerDay);
         if (dtStressDays <= 0f)
             return false;
 

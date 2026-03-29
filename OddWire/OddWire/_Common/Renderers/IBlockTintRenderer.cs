@@ -72,20 +72,28 @@ public class BlockTintRenderer : IRenderer
         rpi.GlDisableCullFace();
         rpi.GlToggleBlend(true);
 
-        IStandardShaderProgram prog = rpi.PreparedStandardShader(_pos.X, _pos.Y, _pos.Z);
+        IStandardShaderProgram prog = null;
+        try
+        {
+            prog = rpi.PreparedStandardShader(_pos.X, _pos.Y, _pos.Z);
 
-        prog.RgbaTint = tint.Rgba ?? ColorUtil.WhiteArgbVec;
-        prog.RgbaLightIn = _api.World.BlockAccessor.GetLightRGBs(_pos.X, _pos.Y, _pos.Z);
-        prog.ExtraGlow = GameMath.Clamp(tint.ExtraGlow, 0, 255);
-        prog.NormalShaded = tint.NormalShaded ? 1 : 0;
+            prog.RgbaTint = tint.Rgba ?? ColorUtil.WhiteArgbVec;
+            prog.RgbaLightIn = _api.World.BlockAccessor.GetLightRGBs(_pos.X, _pos.Y, _pos.Z);
+            prog.ExtraGlow = GameMath.Clamp(tint.ExtraGlow, 0, 255);
+            prog.NormalShaded = tint.NormalShaded ? 1 : 0;
 
-        prog.ModelMatrix = GetModelMatrix(camPos, tint);
-        prog.ViewMatrix = rpi.CameraMatrixOriginf;
-        prog.ProjectionMatrix = rpi.CurrentProjectionMatrix;
+            prog.ModelMatrix = GetModelMatrix(camPos, tint);
+            prog.ViewMatrix = rpi.CameraMatrixOriginf;
+            prog.ProjectionMatrix = rpi.CurrentProjectionMatrix;
 
-        rpi.RenderMultiTextureMesh(meshRef, "tex");
-
-        prog.Stop();
+            rpi.RenderMultiTextureMesh(meshRef, "tex");
+        }
+        finally
+        {
+            prog?.Stop();
+            rpi.GlToggleBlend(false);
+            rpi.GlEnableCullFace();
+        }
     }
 
     protected virtual float[] GetModelMatrix(Vec3d camPos, BlockTint tint)

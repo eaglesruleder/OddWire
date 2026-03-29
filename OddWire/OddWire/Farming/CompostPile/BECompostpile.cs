@@ -21,21 +21,17 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
     private MultiTextureMeshRef _tintMeshRef;
 
     private readonly BlockTint _blockTint = new()
-    {
-        NormalShaded = true,
-        RenderRange = 128
-    };
+        {NormalShaded = true
+        ,RenderRange = 128
+        };
 
     public BlockTint BlockTint
-    {
-        get
-        {
-            _blockTint.MeshRef = _tintMeshRef;
-            _blockTint.Rgba = _inventory.GetVisualTintRgba();
-            _blockTint.Enabled = _tintMeshRef != null && !_tintMeshRef.Disposed;
-            return _blockTint;
-        }
-    }
+    { get {
+        _blockTint.MeshRef = _tintMeshRef;
+        _blockTint.Rgba = _inventory.GetVisualTintRgba();
+        _blockTint.Enabled = _tintMeshRef?.Disposed != true;
+        return _blockTint;
+    } }
 
     private void RegenTintMesh()
     {
@@ -80,8 +76,6 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
     }
     
     
-    public bool CanHarvest() => _inventory.CanHarvest();
-
     public bool TryAdd(ItemSlot slot, out int accepted)
     {
         accepted = 0;
@@ -94,6 +88,10 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
         return true;
     }
 
+    
+    public bool CanHarvest() => _inventory.CanHarvest();
+    
+    //  Objective: Harvest all Compost and Compostpile, then remaining Browns & Inoculum, then discard nutrition
     public void Harvest(float dropQuantityMultiplier)
     {
         bool dirty = false;

@@ -1,3 +1,4 @@
+using System;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
@@ -28,14 +29,16 @@ public static class EnvironmentSystemExtensions
         ClimateCondition? baseClimate = null;
         if (hoursPassed > 0)
             baseClimate = weather.api.World.BlockAccessor.GetClimateAt(pos, EnumGetClimateMode.WorldGenValues, totalDays - hoursPassed / hoursPerDay / 2);
-
+        
         float totalRainfall = 0f;
-        while (hoursPassed > 0)
+        double remainingHours = hoursPassed;
+        while (remainingHours > 0)
         {
-            totalRainfall += weather.GetPrecipitation(pos, totalDays - hoursPassed / hoursPerDay, baseClimate);
-            hoursPassed--;
+            float sampleHours = (float)Math.Min(remainingHours, 1d);
+            totalRainfall += weather.GetPrecipitation(pos, totalDays - remainingHours / hoursPerDay, baseClimate) * sampleHours;
+            remainingHours -= sampleHours;
         }
-
+        
         return totalRainfall;
     }
 
