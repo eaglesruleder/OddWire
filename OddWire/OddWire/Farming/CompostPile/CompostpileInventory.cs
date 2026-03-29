@@ -623,15 +623,15 @@ public sealed class CompostpileInventory
         }
         
         if (rainfallHours > 0f)
-            Moisture01 += rainfallHours / be.Api.World.Calendar.HoursPerDay * Settings.Moisture01GainPerRainyDay;
-
-        float ambientDrying01 = Math.Clamp(0.6f + _envTemp / 35f, 0.25f, 1.75f);
-        float retention01 = GameMath.Lerp(1.15f, 0.75f, _insulation01);
-
-        Moisture01 -= dtMoistureDays / Settings.MoistureRetentionDays * ambientDrying01 * retention01;
-        Moisture01 = Math.Clamp(Moisture01, 0f, 1f);
+            Moisture01 += rainfallHours * Settings.Moisture01GainPerRainyDay / be.Api.World.Calendar.HoursPerDay;
+        
+        float ambientDrying01 = Math.Clamp(_envTemp / 20f, 0.05f, 1.75f);
+        Moisture01 -= ambientDrying01 * dtMoistureDays / Settings.MoistureAmbientRetentionDays;
+        
+        float retention01 = GameMath.Lerp(0.05f, 0.50f, _insulation01);
+        Moisture01 = Math.Clamp(Math.Max(Moisture01, retention01), 0f, 1f);
+        
         PrevTimeMoistureUpdated = totalHours;
-
         return true;
     }
 

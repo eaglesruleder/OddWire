@@ -42,7 +42,7 @@ public class CompostpileSettings
     public float Moisture01Initial { get; private set; }
     public float Moisture01Optimal { get; private set; }
     public float Moisture01GainPerRainyDay { get; private set; }
-    public float MoistureRetentionDays { get; private set; }
+    public float MoistureAmbientRetentionDays { get; private set; }
     public float DrowningThreshold { get; private set; }
     public float DrowningTolerance { get; private set; }
     
@@ -116,7 +116,7 @@ public class CompostpileSettings
             ,HarvestStackQty = 32
             ,ConsumePerTransition = 1
             }
-        ,Aeration01PerCompostpileInput = 1f/6
+        ,Aeration01PerCompostpileInput = 1.0f
         
         ,BaseCompostRatePerHour = 0.33f
         ,NutritionSpeed = new Dictionary<string, float>
@@ -127,20 +127,20 @@ public class CompostpileSettings
             ,{"Protein", 2.7f}
             }
         
-        ,Moisture01Initial = 0.55f
+        ,Moisture01Initial = 0.85f
         ,Moisture01Optimal = 0.60f
-        ,Moisture01GainPerRainyDay = 0.40f
-        ,MoistureRetentionDays = 4f
-        ,DrowningThreshold = 0.8f
-        ,DrowningTolerance = 0.2f
+        ,Moisture01GainPerRainyDay = 0.30f
+        ,MoistureAmbientRetentionDays = 16f
+        ,DrowningThreshold = 0.85f
+        ,DrowningTolerance = 0.15f
         
-        ,AerationRetentionDays = 1.0416667f
-        ,HypoxicThreshold = 0.15f
-        ,HypoxicTolerance = 0.15f
+        ,AerationRetentionDays = 10f
+        ,HypoxicThreshold = 0.35f
+        ,HypoxicTolerance = 0.20f
         
-        ,HeatingRatePerHour = 45
-        ,CoolingRatePerHour = 0.18f
-        ,GreenhouseHeat = 5f
+        ,HeatingRatePerHour = 42
+        ,CoolingRatePerHour = 0.16f
+        ,GreenhouseHeat = 3f
         ,NutritionHeat = new Dictionary<string, float>()
             {{"Fruit", 1.5f}
             ,{"Vegetable", 2.0f}
@@ -149,7 +149,7 @@ public class CompostpileSettings
             ,{"Protein", 2.7f}
             }
         ,OverheatThreshold = 65
-        ,OverheatTolerance = 12
+        ,OverheatTolerance = 10
         
         ,StressGainDays = 1.5f
         ,StressRecoveryDays = 3f
