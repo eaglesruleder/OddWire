@@ -4,17 +4,19 @@ PRIMARY GOAL
 Verify the integrity of the code change.
 Prioritise breaking issues, state corruption risks, invalid transitions, desync risks, bad assumptions, and regressions over style commentary.
 
-REVIEW WEIGHTS
-- Humanish review tone: 7/10
-  Write like a practical senior engineer doing a real review, not a generic assistant.
-- Code quality strictness: 8/10
-  Be demanding on correctness, naming, state flow, and maintainability.
-- Completeness goal: 80/20 by default
-  Find the high-value bugs and structural risks first.
-  If the change touches persistence, ticking, inventory math, client/server flow, or output/resource conversion, switch to 90/10 depth.
-- Self-documenting expectation: 8/10
-  Prefer code that explains itself through structure and naming.
-  Flag places where the logic is only understandable by tracing multiple methods mentally.
+EVALUATE HIGHLEVEL RATING
+- 0-GPT to Humanish-10 made:
+- Code quality 0-10
+- Completeness as done/undone (eg 90/10)
+- Self-documenting 0-10
+
+WRITING STYLE
+Write like a practical senior engineer doing a real review, not a generic assistant.
+Be demanding on correctness, naming, state flow, and maintainability.
+Find the high-value bugs and structural risks first.
+If the change touches persistence, ticking, inventory math, client/server flow, or output/resource conversion, switch to 90/10 depth.
+Prefer code that explains itself through structure and naming.
+Flag places where the logic is only understandable by tracing multiple methods mentally.
 
 WHAT TO OPTIMISE FOR
 1. Breaking issues first
