@@ -891,6 +891,29 @@ public sealed class CompostpileInventory
     }
     
     
+
+    public Vec4f GetVisualTintRgba()
+    {
+        float totalTintQty = BrownsQty + NutritionQty + InoculumQty + CompostQty;
+        if (totalTintQty <= 0f)
+            return new Vec4f(1f, 1f, 1f, 1f);
+
+        float red = BrownsQty / totalTintQty;
+        float green = NutritionQty / totalTintQty;
+        float blue = (InoculumQty + CompostQty) / totalTintQty;
+
+        float tintStrength = GameMath.Lerp(0.35f, 1f, GetFullness01());
+        red = GameMath.Lerp(1f, red, tintStrength);
+        green = GameMath.Lerp(1f, green, tintStrength);
+        blue = GameMath.Lerp(1f, blue, tintStrength);
+
+        float moistureDarken = GameMath.Lerp(1f, 0.65f, Math.Clamp(Moisture01, 0f, 1f));
+        float aerationDarken = GameMath.Lerp(0.45f, 1f, Math.Clamp(_aeration01, 0f, 1f));
+        float brightness = Math.Clamp(moistureDarken * aerationDarken, 0.20f, 1f);
+
+        return new Vec4f(red * brightness, green * brightness, blue * brightness, 1f);
+    }
+
     public void ToTreeAttributes(ITreeAttribute tree, string? key = null)
     {
         tree.SetDouble($"{key}.PrevTimeMoistureUpdated", PrevTimeMoistureUpdated);

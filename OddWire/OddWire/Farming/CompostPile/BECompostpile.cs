@@ -7,14 +7,61 @@ using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
+using OddWire.Renderers;
 
 namespace OddWire.GameContent;
 
-public class BlockEntityCompostpile : BlockEntity
+public class BlockEntityCompostpile : BlockEntity, IBlockTint
 {
     private CompostpileSettings Settings => CompostpileSettings.Default;
     
     private readonly CompostpileInventory _inventory = new();
+
+    private BlockTintRenderer _tintRenderer;
+    private MultiTextureMeshRef _tintMeshRef;
+
+    private readonly BlockTint _blockTint = new()
+    {
+        NormalShaded = true,
+        RenderRange = 128
+    };
+
+    public BlockTint BlockTint
+    {
+        get
+        {
+            _blockTint.MeshRef = _tintMeshRef;
+            _blockTint.Rgba = _inventory.GetVisualTintRgba();
+            _blockTint.Enabled = _tintMeshRef != null && !_tintMeshRef.Disposed;
+            return _blockTint;
+        }
+    }
+
+    private void RegenTintMesh()
+    {
+        if (Api is not ICoreClientAPI capi)
+            return;
+
+        _tintMeshRef?.Dispose();
+        _tintMeshRef = null;
+
+        if (Block == null)
+            return;
+
+        capi.Tesselator.TesselateBlock(Block, out MeshData mesh);
+        _tintMeshRef = capi.Render.UploadMultiTextureMesh(mesh);
+    }
+
+    private void DisposeTintRenderer()
+    {
+        _tintRenderer?.Dispose();
+        _tintRenderer = null;
+
+        _tintMeshRef?.Dispose();
+        _tintMeshRef = null;
+    }
+
+    public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tessThreadTesselator) => true;
 
     public void UpdateShapeStackSize() => SetShapeStackSize(_inventory.BrownsQty + _inventory.NutritionQty + _inventory.InoculumQty + _inventory.CompostQty);
     public void SetShapeStackSize(int stackSize)
@@ -76,6 +123,14 @@ public class BlockEntityCompostpile : BlockEntity
             )
             _inventory.Moisture01 = Settings.Moisture01Initial;
 
+        if (api.Side == EnumAppSide.Client
+        &&  api is ICoreClientAPI capi
+            )
+        {
+            RegenTintMesh();
+            _tintRenderer ??= new BlockTintRenderer(capi, this);
+        }
+
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery12Seconds, 12000);
     }
@@ -90,12 +145,32 @@ public class BlockEntityCompostpile : BlockEntity
         UpdateShapeStackSize();
     }
 
+    public override void OnExchanged(Block block)
+    {
+        base.OnExchanged(block);
+
+        if (Api?.Side == EnumAppSide.Client)
+            RegenTintMesh();
+    }
+
+    public override void OnBlockRemoved()
+    {
+        base.OnBlockRemoved();
+        DisposeTintRenderer();
+    }
+
+    public override void OnBlockUnloaded()
+    {
+        base.OnBlockUnloaded();
+        DisposeTintRenderer();
+    }
+
     private void OnEvery12Seconds(float dt)
     {
         if (Api?.Side == EnumAppSide.Server
         &&  _inventory.Update(this, Api.World.Calendar.TotalHours)
             )
-            MarkDirty(true);
+            MarkDirty();
     }
 
     public void Water(float dt)
@@ -103,7 +178,7 @@ public class BlockEntityCompostpile : BlockEntity
         if (Api?.Side == EnumAppSide.Server
         &&  _inventory.RestoreMoisture01(this, dt/2)
             )
-            MarkDirty(true);
+            MarkDirty();
     }
 
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
