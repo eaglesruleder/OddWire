@@ -6,32 +6,31 @@ STYLE GOAL
 - Use helper methods with precise names instead of relying on comments to explain logic.
 - Make the code feel hand-authored, practical, and maintainable.
 
+CONTROL FLOW
+- Prefer early returns / guard clauses.
+- Keep nesting shallow.
+
 FORMATTING
 - Use file-scoped namespaces.
 - Use PascalCase for types, methods, properties.
 - Use camelCase for locals/parameters.
 - Use _camelCase for private fields.
 - Use expression-bodied members only for trivial accessors or very small helpers.
-- Use blank lines to separate logical steps, not excessively.
+- Use blank lines to separate logical steps
+ -- Group immediately-adjacent steps without breaks
+ -- Space logical areas with double blank line
 
-CONTROL FLOW
-- Prefer early returns / guard clauses.
-- Keep nesting shallow.
-- For multiline conditions, format like this:
-
-if (a
-||  b
-||  c
-    )
-    return false;
+Example if() layouts
+if(a)
+    Foo();
 
 if (a
-&&  b
+|| (b
 &&  c
-    )
+   ))
 {
-    DoThing();
-    return true;
+    Foo();
+    Bar();
 }
 
 - For ternaries or chained expressions, break lines vertically when they become meaningfully dense.
@@ -43,7 +42,7 @@ return
 *   GetC();
 
 METHOD DESIGN
-- Split logic into narrow methods with explicit names:
+- Split logic into narrow methods with names that explain intent so comments become unnecessary:
   - UpdateState
   - PreUpdateState
   - ResolveOutputTransitions
@@ -56,7 +55,6 @@ METHOD DESIGN
   - convert
   - update state
   - serialize
-- Prefer names that explain intent so comments become unnecessary.
 
 COMMENTS
 - Minimise comments.
