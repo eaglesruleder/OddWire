@@ -581,7 +581,7 @@ public sealed class CompostpileInventory
     private void PreUpdateState(BlockEntity be, double totalHours, bool forceRecalc = false)
     {
         if (_lastPreUpdatedHours + 1 > totalHours
-        ||  forceRecalc
+        && !forceRecalc
             )
             return;
 
