@@ -23,22 +23,27 @@ public static class EnvironmentSystemExtensions
             return 0f;
 
         var calendar = weather.api.World.Calendar;
-
-        ClimateCondition? baseClimate = null;
+        float hourInDays = 1f / calendar.HoursPerDay;
+        double endDays = toTotalHours / calendar.HoursPerDay;
+        ClimateCondition? baseClimate;
         
         float totalRainfall = 0f;
         double remainingDays = (toTotalHours - fromTotalHours) / calendar.HoursPerDay;
-        while (remainingDays > 1)
+        while (remainingDays > 0)
         {
-            double stepDays = remainingDays / 2f;
-            double sampleDays = remainingDays + stepDays;
-
-            baseClimate = weather.api.World.BlockAccessor.GetClimateAt(pos, EnumGetClimateMode.WorldGenValues, sampleDays);
+            float sampleDuration =
+                remainingDays > calendar.DaysPerYear ? calendar.DaysPerYear
+            :   remainingDays > calendar.DaysPerMonth ? calendar.DaysPerMonth
+            :   remainingDays > 2 ? 1f
+            :   remainingDays > hourInDays ? hourInDays
+            :   (float)remainingDays;
             
-            totalRainfall += weather.GetPrecipitation(pos, sampleDays, baseClimate) * (float)stepDays;
-            remainingDays -= stepDays;
+            double sampleDays = endDays - remainingDays + sampleDuration;
+            baseClimate = weather.api.World.BlockAccessor.GetClimateAt(pos, EnumGetClimateMode.WorldGenValues, sampleDays);
+            totalRainfall += weather.GetPrecipitation(pos, sampleDays, baseClimate) * sampleDuration;
+            
+            remainingDays -= sampleDuration;
         }
-        totalRainfall += weather.GetPrecipitation(pos, toTotalHours, baseClimate) * calendar.HoursPerDay * (float)remainingDays;
         
         return totalRainfall;
     }

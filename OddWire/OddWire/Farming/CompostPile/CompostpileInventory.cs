@@ -271,8 +271,14 @@ public sealed class CompostpileInventory
     #region Input
     public void ResetOnPlaced(Block block)
     {
+        string stackVariant = block.Code?.EndVariant();
         int stackBonus = 0;
-        if (int.TryParse(block.LastCodePart().Substring(1), out int parsedStackBonus))
+        if(!(string.IsNullOrEmpty(stackVariant)
+        ||   stackVariant.Length < 2
+        ||   stackVariant[0] != '#'
+            )
+        &&  int.TryParse(stackVariant.Substring(1), out int parsedStackBonus)
+            )
             stackBonus = Math.Max(0, parsedStackBonus - 1);
 
         BrownsQty = Math.Min(Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty, Settings.Browns.MaxQty);
