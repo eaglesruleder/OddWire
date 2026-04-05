@@ -312,7 +312,7 @@ public sealed class CompostpileInventory
         bool added = false;
         float restoreAeration = 0;
 
-        if (TryAddCompostPile(slot, out accepted))
+        if (TryAddCompostPile(be, slot, out accepted))
             { restoreAeration = accepted * Settings.Aeration01PerCompostpileInput; added = true; }
         else
         if (TryAddRef(slot, out accepted, ref BrownsQty, Settings.Browns))
@@ -375,7 +375,7 @@ public sealed class CompostpileInventory
         return accepted > 0;
     }
 
-    private bool TryAddCompostPile(ItemSlot slot, out int accepted)
+    private bool TryAddCompostPile(BlockEntity be, ItemSlot slot, out int accepted)
     {
         accepted = 0;
 
@@ -396,19 +396,62 @@ public sealed class CompostpileInventory
         int nutritionAdd = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
         int inoculumAdd = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
 
-        if (brownsAdd > Settings.Browns.MaxQty - BrownsQty
-        ||  nutritionAdd > Settings.Nutrition.MaxQty - NutritionQty
-        ||  inoculumAdd > GetInoculumRoomQty()
+        int brownsRoom = Math.Max(Settings.Browns.MaxQty - BrownsQty, 0);
+        int nutritionRoom = Math.Max(Settings.Nutrition.MaxQty - NutritionQty, 0);
+        if (brownsRoom < 1
+        &&  nutritionRoom < 1
             )
             return false;
 
-        BrownsQty += brownsAdd;
-        NutritionStacks.TryGetValue(EnumFoodCategory.Unknown, out var cur);
-        NutritionStacks[EnumFoodCategory.Unknown] = cur + nutritionAdd;
-        InoculumQty += inoculumAdd;
+        int inoculumRoom = GetInoculumRoomQty();
+
+        int brownsAccepted = Math.Min(brownsAdd, brownsRoom);
+        int nutritionAccepted = Math.Min(nutritionAdd, nutritionRoom);
+        int inoculumAccepted = Math.Min(inoculumAdd, inoculumRoom);
+
+        if (brownsAccepted < 1
+        &&  nutritionAccepted < 1
+        &&  inoculumAccepted < 1
+            )
+            return false;
+
+        BrownsQty += brownsAccepted;
+
+        if (nutritionAccepted > 0)
+        {
+            NutritionStacks.TryGetValue(EnumFoodCategory.Unknown, out var cur);
+            NutritionStacks[EnumFoodCategory.Unknown] = cur + nutritionAccepted;
+        }
+
+        InoculumQty += inoculumAccepted;
+
+        DropIngredientOverflow(be, Settings.Browns, brownsAdd - brownsAccepted);
+
+        // Intentional: Nutrition overflow from bundled compostpile input stays lossy, matching harvest behaviour.
+        DropIngredientOverflow(be, Settings.Inoculum, inoculumAdd - inoculumAccepted);
 
         accepted = 1;
         return true;
+    }
+
+    private void DropIngredientOverflow(BlockEntity be, CompostpileSettings.Ingredient ingredient, int quantity)
+    {
+        if (quantity < 1
+        ||  be.Api?.Side != EnumAppSide.Server
+            )
+            return;
+
+        Item dropItem = be.Api.World.GetItem(new AssetLocation(ingredient.HarvestItemPath));
+        if (dropItem is null)
+            return;
+
+        while (quantity > 0)
+        {
+            int dropNow = Math.Min(quantity, ingredient.HarvestStackQty);
+            ItemStack stack = new ItemStack(dropItem, dropNow);
+            be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
+            quantity -= dropNow;
+        }
     }
     
     private bool TryAddNutrition(ItemSlot slot, out int accepted)
