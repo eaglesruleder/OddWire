@@ -22,22 +22,23 @@ public static class EnvironmentSystemExtensions
         if (toTotalHours <= fromTotalHours)
             return 0f;
 
-        double hoursPerDay = weather.api.World.Calendar.HoursPerDay;
-        double totalDays = toTotalHours / hoursPerDay;
-        double hoursPassed = toTotalHours - fromTotalHours;
+        var calendar = weather.api.World.Calendar;
 
         ClimateCondition? baseClimate = null;
-        if (hoursPassed > 0)
-            baseClimate = weather.api.World.BlockAccessor.GetClimateAt(pos, EnumGetClimateMode.WorldGenValues, totalDays - hoursPassed / hoursPerDay / 2);
         
         float totalRainfall = 0f;
-        double remainingHours = hoursPassed;
-        while (remainingHours > 0)
+        double remainingDays = (toTotalHours - fromTotalHours) / calendar.HoursPerDay;
+        while (remainingDays > 1)
         {
-            float sampleHours = (float)Math.Min(remainingHours, 1d);
-            totalRainfall += weather.GetPrecipitation(pos, totalDays - remainingHours / hoursPerDay, baseClimate) * sampleHours;
-            remainingHours -= sampleHours;
+            double stepDays = remainingDays / 2f;
+            double sampleDays = remainingDays + stepDays;
+
+            baseClimate = weather.api.World.BlockAccessor.GetClimateAt(pos, EnumGetClimateMode.WorldGenValues, sampleDays);
+            
+            totalRainfall += weather.GetPrecipitation(pos, sampleDays, baseClimate) * (float)stepDays;
+            remainingDays -= stepDays;
         }
+        totalRainfall += weather.GetPrecipitation(pos, toTotalHours, baseClimate) * calendar.HoursPerDay * (float)remainingDays;
         
         return totalRainfall;
     }

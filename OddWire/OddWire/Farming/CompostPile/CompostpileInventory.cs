@@ -13,6 +13,7 @@ public sealed class CompostpileInventory
     private WeatherSystemBase? _weather;
     private CompostpileSettings Settings => CompostpileSettings.Default;
 
+    #region StoredState
     public int TotalQty => BrownsQty + NutritionQty + InoculumQty + CompostQty;
     private float GetFullness01() => Math.Clamp((float)TotalQty / Settings.TotalMaxQty, 0,1);
 
@@ -43,6 +44,7 @@ public sealed class CompostpileInventory
     public float Stress01;
     
     public double PrevTimeProcessed = -1;
+    #endregion
     
     
     #region RateHelpers
@@ -154,6 +156,7 @@ public sealed class CompostpileInventory
     #endregion
 
 
+    #region Harvest
     //  Intent: Nutrition is lossy
     public bool CanHarvest() =>
         CompostQty > 0
@@ -262,8 +265,10 @@ public sealed class CompostpileInventory
         PreUpdateInsulation01();
         return true;
     }
-    
-    
+    #endregion
+
+
+    #region Input
     public void ResetOnPlaced(Block block)
     {
         int stackBonus = 0;
@@ -369,9 +374,13 @@ public sealed class CompostpileInventory
         accepted = 0;
 
         AssetLocation blockCode = slot.Itemstack?.Block?.Code;
+        string stackVariant = blockCode?.EndVariant();
         if (string.IsNullOrEmpty(blockCode)
         || !blockCode.BeginsWith("oddwire","compostpile")
-        || !int.TryParse(blockCode.EndVariant().Substring(1), out int stackBonus)
+        ||  string.IsNullOrEmpty(stackVariant)
+        ||  stackVariant.Length < 2
+        ||  stackVariant[0] != '#'
+        || !int.TryParse(stackVariant.Substring(1), out int stackBonus)
            )
             return false;
 
@@ -422,7 +431,10 @@ public sealed class CompostpileInventory
         accepted = adjustedAccept * ratio;
         return true;
     }
-    
+    #endregion
+
+
+    #region NutritionRemoval
     private bool TryGetCheapestNutritionCategory(out EnumFoodCategory result)
     {
         bool found = false;
@@ -530,7 +542,10 @@ public sealed class CompostpileInventory
             remaining -= removeQty;
         }
     }
+    #endregion
 
+
+    #region StateUpdates
     public void RestoreAeration01(BlockEntity be, float aeration)
     {
         if (aeration <= 0)
@@ -754,7 +769,10 @@ public sealed class CompostpileInventory
 
         return true;
     }
-    
+    #endregion
+
+
+    #region Processing
     private bool ProcessCompost(BlockEntity be, double totalHours)
     {
         if (PrevTimeProcessed < 0
@@ -907,8 +925,10 @@ public sealed class CompostpileInventory
         
         return (brownsInputPortions, nutritionInputPortions);
     }
-    
-    
+    #endregion
+
+
+    #region Visuals
     public Vec4f GetVisualTintRgba()
     {
         if (TotalQty < 1)
@@ -933,7 +953,10 @@ public sealed class CompostpileInventory
             , 1f
             );
     }
+    #endregion
 
+
+    #region Persistence
     public void ToTreeAttributes(ITreeAttribute tree, string? key = null)
     {
         tree.SetDouble($"{key}.PrevTimeMoistureUpdated", PrevTimeMoistureUpdated);
@@ -992,4 +1015,5 @@ public sealed class CompostpileInventory
         _prevTimeStressUpdated = tree.GetDouble($"{key}._prevTimeStressUpdated", -1);
         Stress01 = tree.GetFloat($"{key}.Stress01", 0f);
     }
+    #endregion
 }

@@ -34,15 +34,19 @@ public class BlockCompostpile : Block
 
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
-        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostpile be)
+        if (world.BlockAccessor.GetBlockEntity(pos) is not BlockEntityCompostpile be)
         {
-            if (world.Side == EnumAppSide.Server)
-                be.Harvest(dropQuantityMultiplier);
-            
-            if(be.CanHarvest())
-                return;
+            base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
+            return;
         }
-        
+
+        if (world.Side != EnumAppSide.Server)
+            return; // Let the server decide post-harvest removal. Client state here is still pre-harvest.
+
+        be.Harvest(dropQuantityMultiplier);
+        if (be.CanHarvest())
+            return;
+
         base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
     }
 }
