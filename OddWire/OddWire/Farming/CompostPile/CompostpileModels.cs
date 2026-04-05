@@ -118,7 +118,7 @@ public class CompostpileSettings
             }
         ,Aeration01PerCompostpileInput = 1.0f
         
-        ,BaseCompostRatePerHour = 0.33f
+        ,BaseCompostRatePerHour = 0.05f
         ,NutritionSpeed = new Dictionary<string, float>
             {{"Fruit", 1.5f}
             ,{"Vegetable", 2.0f}

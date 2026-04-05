@@ -167,9 +167,12 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
     private void OnEvery12Seconds(float dt)
     {
         if (Api?.Side == EnumAppSide.Server
-        &&  _inventory.Update(this, Api.World.Calendar.TotalHours)
-            )
+        && _inventory.Update(this, Api.World.Calendar.TotalHours)
+           )
+        {
+            UpdateShapeStackSize();
             MarkDirty();
+        }
     }
 
     public void Water(float dt)
@@ -187,21 +190,55 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
         bool skyExposed = Api?.World?.BlockAccessor != null && Api.World.BlockAccessor.IsSkyExposed(Pos);
         float envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, skyExposed, Settings.GreenhouseHeat, out bool inGreenhouse);
         
-        
-        dsc.AppendLine(Lang.Get("Ambient temp: {0:0.#}°C{1}", envTemp, inGreenhouse ? ", (InGreenhouse)" : ""));
-        dsc.AppendLine(Lang.Get("Pile temp: {0:0.#}°C", _inventory.Temperature));
-        dsc.AppendLine(Lang.Get("Moisture: {0:0.#}%", _inventory.Moisture01 * 100f));
-        dsc.AppendLine(Lang.Get("Aeration: {0:0.#}%", _inventory.Aeration01 * 100f));
-        
+        dsc.AppendLine(Lang.Get("Temp: {0:0.#}°C ({1:0.#}°C {2})", _inventory.Temperature, envTemp, inGreenhouse ? "in greenhouse" : "outside"));
+        dsc.AppendLine(Lang.Get("Moisture: {0:0.#}% | Aeration: {1:0.#}%", _inventory.Moisture01 * 100f, _inventory.Aeration01 * 100f));
 
+        
+        string rateString = "Stalled";
+        float rateSpeed = Settings.BaseCompostRatePerHour * _inventory.GetFactor();
+        if (rateSpeed > 0)
+        {
+            float hoursPerCompost = 1f / rateSpeed;
+            if (hoursPerCompost < Api.World.Calendar.HoursPerDay)
+                rateString = $"{hoursPerCompost:0.00} hours";
+            else
+                rateString = $"{(hoursPerCompost / Api.World.Calendar.HoursPerDay):0.00} days";
+        }
+
+        dsc.AppendLine();
+        dsc.AppendLine(Lang.Get("Rate: {0}", rateString));
+        dsc.AppendLine(Lang.Get(
+            "Factor {0:0}% ({1:#.00}I×{2:#.00}T×{3:#.00}M×{4:#.00}N)",
+            _inventory.GetFactor() * 100,
+            _inventory.GetInoculumFactor01(),
+            _inventory.GetTemperatureFactor01(),
+            _inventory.GetMoistureFactor01(),
+            _inventory.GetNutritionFactor()
+        ));
+        
+        dsc.AppendLine(Lang.Get(
+            "Health {0:0}% ({1:#.00}A×{2:#.00}T×{3:#.00}M)",
+            _inventory.GetHealth01() * 100,
+            _inventory.GetAerationHealth01(),
+            _inventory.GetTemperatureHealth01(),
+            _inventory.GetMoistureHealth01()
+        ));
+        
+        
         float brownsPortions = (float)_inventory.BrownsQty / Settings.Browns.ConsumePerTransition;
         float nutritionPortions = (float)_inventory.NutritionQty / Settings.Nutrition.ConsumePerTransition;
         float bulkPortions = brownsPortions + nutritionPortions;
         
+        float inoculumPortions = (float)_inventory.InoculumQty / Settings.Inoculum.ConsumePerTransition;
+        
         dsc.AppendLine();
         dsc.AppendLine(Lang.Get("Bulk portions: {0:0.0}", bulkPortions));
-        dsc.AppendLine(Lang.Get("- Browns: {0}/{1} ({2:0.0})", _inventory.BrownsQty, Settings.Browns.MaxQty, brownsPortions));
-        dsc.AppendLine(Lang.Get("- Nutrition: {0}/{1} ({2:0.0})", _inventory.NutritionQty, Settings.Nutrition.MaxQty, nutritionPortions));
+        dsc.AppendLine(Lang.Get
+            ("Browns: {0}/{1} ({2:0.0}) | Nutrition: {3}/{4} ({5:0.0}) | Inoc: {6}+{7}/{8} ({9:0.0})"
+            ,_inventory.BrownsQty, Settings.Browns.MaxQty, brownsPortions
+            ,_inventory.NutritionQty, Settings.Nutrition.MaxQty, nutritionPortions
+            ,_inventory.InoculumQty, _inventory.CompostQty, Settings.Inoculum.MaxQty, inoculumPortions
+            ));
         if (_inventory.NutritionStacks.Count > 0)
         {
             var parts = _inventory.NutritionStacks
@@ -211,9 +248,8 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
                 .ToArray();
 
             if (parts.Length > 0)
-                dsc.AppendLine(Lang.Get("-> Mix: {0}", string.Join(", ", parts)));
+                dsc.AppendLine(Lang.Get("-&gt; Mix: {0}", string.Join(", ", parts)));
         }
-        dsc.AppendLine(Lang.Get("Inoc: {0} & Comp: {1}/{2}", _inventory.InoculumQty, _inventory.CompostQty, Settings.Inoculum.MaxQty));
 
         
         dsc.AppendLine();
@@ -222,35 +258,6 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
             _inventory.CompostQty,
             _inventory.GetHarvestableCompostpileQty()
         ));
-
-        
-        float totalFactor = _inventory.GetFactor();
-        float ratePerHour = Settings.BaseCompostRatePerHour * totalFactor;
-        
-        dsc.AppendLine();
-        dsc.AppendLine(Lang.Get("Rate: {0:0.000}/hr", ratePerHour));
-        dsc.AppendLine(Lang.Get(
-            "- Hours / transition: {0}",
-            ratePerHour > 0f ? $"{1f / ratePerHour:0.00}hr" : "stalled"
-        ));
-        
-        dsc.AppendLine(Lang.Get(
-            "- Factors: Starter {0:0}% × Temp {1:0}% × Moisture {2:0}% × Nutrition {3:0}% = {4:0}%",
-            _inventory.GetInoculumFactor01() * 100,
-            _inventory.GetTemperatureFactor01() * 100,
-            _inventory.GetMoistureFactor01() * 100,
-            _inventory.GetNutritionFactor() * 100,
-            totalFactor * 100
-        ));
-        
-        dsc.AppendLine(Lang.Get(
-            "Health: Aeration {0:0}% × Temp {1:0}% × Moisture {2:0}% = {3:0}%",
-            _inventory.GetAerationHealth01() * 100,
-            _inventory.GetTemperatureHealth01() * 100,
-            _inventory.GetMoistureHealth01() * 100,
-            _inventory.GetHealth01() * 100
-        ));
-        dsc.AppendLine(Lang.Get("- Stress: {0:0}%", _inventory.Stress01));
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)

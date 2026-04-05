@@ -909,27 +909,29 @@ public sealed class CompostpileInventory
     }
     
     
-
     public Vec4f GetVisualTintRgba()
     {
-        float totalTintQty = BrownsQty + NutritionQty + InoculumQty + CompostQty;
-        if (totalTintQty <= 0f)
+        if (TotalQty < 1)
             return new Vec4f(1f, 1f, 1f, 1f);
 
-        float red = BrownsQty / totalTintQty;
-        float green = NutritionQty / totalTintQty;
-        float blue = (InoculumQty + CompostQty) / totalTintQty;
+        float brownsFull01 = (float)BrownsQty / Settings.Browns.MaxQty;
+        float greensFull01 = (float)NutritionQty / Settings.Nutrition.MaxQty;
+        float inoculumFull01 = (float)(InoculumQty + CompostQty) / Settings.Inoculum.MaxQty;
+        
+        float red = GameMath.Lerp(0.85f, 1f, brownsFull01);
+        float green = GameMath.Lerp(0.85f, 1f, greensFull01);
+        float blue = GameMath.Lerp(0.85f, 1f, inoculumFull01);
 
-        float tintStrength = GameMath.Lerp(0.35f, 1f, GetFullness01());
-        red = GameMath.Lerp(1f, red, tintStrength);
-        green = GameMath.Lerp(1f, green, tintStrength);
-        blue = GameMath.Lerp(1f, blue, tintStrength);
+        float moistureDarken = GameMath.Lerp(1f, 0.75f, Moisture01);
+        float aerationDarken = GameMath.Lerp(0.75f, 1f, _aeration01);
+        float brightness = moistureDarken * aerationDarken;
 
-        float moistureDarken = GameMath.Lerp(1f, 0.65f, Math.Clamp(Moisture01, 0f, 1f));
-        float aerationDarken = GameMath.Lerp(0.45f, 1f, Math.Clamp(_aeration01, 0f, 1f));
-        float brightness = Math.Clamp(moistureDarken * aerationDarken, 0.20f, 1f);
-
-        return new Vec4f(red * brightness, green * brightness, blue * brightness, 1f);
+        return new Vec4f
+            (Math.Clamp(red * brightness, 0,1)
+            ,Math.Clamp(green * brightness, 0,1)
+            ,Math.Clamp(blue * brightness, 0,1)
+            , 1f
+            );
     }
 
     public void ToTreeAttributes(ITreeAttribute tree, string? key = null)

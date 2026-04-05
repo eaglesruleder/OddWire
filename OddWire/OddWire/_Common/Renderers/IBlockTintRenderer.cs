@@ -135,48 +135,4 @@ public class BlockTintRenderer : IRenderer
 
     public void Dispose() =>
         _api.Event.UnregisterRenderer(this, _renderStage);
-
-    public static Vec4f Rgba(int r, int g, int b, int a = 255) => new Vec4f
-        (GameMath.Clamp(r, 0, 255) / 255f
-        ,GameMath.Clamp(g, 0, 255) / 255f
-        ,GameMath.Clamp(b, 0, 255) / 255f
-        ,GameMath.Clamp(a, 0, 255) / 255f
-        );
-
-    /// <summary>
-    /// hueDeg: 0..360
-    /// saturation: 0..1
-    /// value: 0..1
-    /// alpha: 0..1
-    /// </summary>
-    public static Vec4f Hsv(float hueDeg, float saturation, float value, float alpha = 1f)
-    {
-        hueDeg = ((hueDeg % 360f) + 360f) % 360f;
-        saturation = GameMath.Clamp(saturation, 0f, 1f);
-        value = GameMath.Clamp(value, 0f, 1f);
-        alpha = GameMath.Clamp(alpha, 0f, 1f);
-
-        float c = value * saturation;
-        float x = c * (1f - Math.Abs((hueDeg / 60f % 2f) - 1f));
-        float m = value - c;
-
-        float r = 0f;
-        float g = 0f;
-        float b = 0f;
-
-        if (hueDeg < 60f)
-            { r = c; g = x; b = 0f; }
-        else if (hueDeg < 120f)
-            { r = x; g = c; b = 0f; }
-        else if (hueDeg < 180f)
-            { r = 0f; g = c; b = x; }
-        else if (hueDeg < 240f)
-            { r = 0f; g = x; b = c; }
-        else if (hueDeg < 300f)
-            { r = x; g = 0f; b = c; }
-        else
-            { r = c; g = 0f; b = x; }
-
-        return new Vec4f(r + m, g + m, b + m, alpha);
-    }
 }

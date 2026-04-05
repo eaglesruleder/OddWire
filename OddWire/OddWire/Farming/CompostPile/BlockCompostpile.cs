@@ -4,26 +4,32 @@ using Vintagestory.API.MathTools;
 namespace OddWire.GameContent;
 public class BlockCompostpile : Block
 {
-    public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
+    public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handling)
     {
-        if (world.Side != EnumAppSide.Server
-        ||  blockSel is null
-        ||  world.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityCompostpile be
+        if (blockSel is null
+        ||  byEntity.Controls.ShiftKey
+        ||  byEntity.World.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityCompostpile be
             )
-            return false;
+        {
+            base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handling);
+            return;
+        }
 
-        var slot = byPlayer.InventoryManager.ActiveHotbarSlot;
-        if (slot?.Empty != false)
-            return false;
-        
-        if (!be.TryAdd(slot, out int accepted)
-        ||  accepted < 1
-            )
-            return false;
+        if (be.TryAdd(slot, out int accepted)
+        &&  accepted > 0
+           )
+        {
+            if (byEntity.World.Side == EnumAppSide.Server)
+            {
+                slot.TakeOut(accepted);
+                slot.MarkDirty();
+            }
 
-        slot.TakeOut(accepted);
-        slot.MarkDirty();
-        return true;
+            handling = EnumHandHandling.PreventDefault;
+            return;
+        }
+
+        base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handling);
     }
 
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
