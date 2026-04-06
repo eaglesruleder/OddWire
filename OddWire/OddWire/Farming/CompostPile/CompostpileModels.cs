@@ -73,6 +73,10 @@ public class CompostpileSettings
     public int HarvestCompostpileStackQty { get; internal set; }
     
     public int TotalMaxQty => Browns.MaxQty + Nutrition.MaxQty + Inoculum.MaxQty;
+
+    public bool InfoDebug;
+    public float InfoFactorWarningThreshhold;
+    public float InfoNeedsPortionsThreshhold;
     
     public static readonly CompostpileSettings Default = new()
         {Browns = new()
@@ -164,5 +168,9 @@ public class CompostpileSettings
         ,HarvestCompostpilePath = "oddwire:Compostpile-#1"
         ,HarvestCompostpileQty = 2
         ,HarvestCompostpileStackQty = 2
+        
+        ,InfoDebug = false
+        ,InfoFactorWarningThreshhold = 0.8f
+        ,InfoNeedsPortionsThreshhold = 2f
         };
 }

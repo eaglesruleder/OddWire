@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Text;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -185,80 +185,227 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
 
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
     {
-        double totalHours = Api?.World?.Calendar?.TotalHours ?? 0;
-
-        bool skyExposed = Api?.World?.BlockAccessor != null && Api.World.BlockAccessor.IsSkyExposed(Pos);
-        float envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, skyExposed, Settings.GreenhouseHeat, out bool inGreenhouse);
-        
-        dsc.AppendLine(Lang.Get("Temp: {0:0.#}°C ({1:0.#}°C {2})", _inventory.Temperature, envTemp, inGreenhouse ? "in greenhouse" : "outside"));
-        dsc.AppendLine(Lang.Get("Moisture: {0:0.#}% | Aeration: {1:0.#}%", _inventory.Moisture01 * 100f, _inventory.Aeration01 * 100f));
-
-        
-        string rateString = "Stalled";
-        float rateSpeed = Settings.BaseCompostRatePerHour * _inventory.GetFactor();
-        if (rateSpeed > 0)
+        bool skyExposed = Api.World.BlockAccessor?.IsSkyExposed(Pos) == true;
+        bool inGreenhouse = false;
+        if (!skyExposed)
         {
-            float hoursPerCompost = 1f / rateSpeed;
-            if (hoursPerCompost < Api.World.Calendar.HoursPerDay)
-                rateString = $"{hoursPerCompost:0.00} hours";
-            else
-                rateString = $"{(hoursPerCompost / Api.World.Calendar.HoursPerDay):0.00} days";
+            var room = Api.ModLoader.GetModSystem<RoomRegistry>()?.GetRoomForPosition(Pos.UpCopy());
+            inGreenhouse = 
+                room != null
+            &&  room.SkylightCount > room.NonSkylightCount
+            &&  room.ExitCount == 0;
         }
 
-        dsc.AppendLine();
-        dsc.AppendLine(Lang.Get("Rate: {0}", rateString));
-        dsc.AppendLine(Lang.Get(
-            "Factor {0:0}% ({1:#.00}I×{2:#.00}T×{3:#.00}M×{4:#.00}N)",
-            _inventory.GetFactor() * 100,
-            _inventory.GetInoculumFactor01(),
-            _inventory.GetTemperatureFactor01(),
-            _inventory.GetMoistureFactor01(),
-            _inventory.GetNutritionFactor()
-        ));
+        string roomLabel = inGreenhouse ? "Greenhouse" : "Outside";
+        if (Settings.InfoDebug)
+            roomLabel += Lang.Get(" ({0:0.#}°C)", Api.GetEnvironmentTemperatureC(Pos, Api.World.Calendar.TotalHours, skyExposed, Settings.GreenhouseHeat, out _));
         
-        dsc.AppendLine(Lang.Get(
-            "Health {0:0}% ({1:#.00}A×{2:#.00}T×{3:#.00}M)",
-            _inventory.GetHealth01() * 100,
-            _inventory.GetAerationHealth01(),
-            _inventory.GetTemperatureHealth01(),
-            _inventory.GetMoistureHealth01()
-        ));
+        dsc.AppendLine(Lang.Get("Composting: {0}, {1}", GetCompostingStatus(), roomLabel));
+        
+        dsc.AppendLine(Lang.Get
+            ("Temp {0:0.#}°C | Moist {1:0.#}% | Air {2:0.#}%"
+            ,_inventory.Temperature
+            ,_inventory.Moisture01 * 100f
+            ,_inventory.Aeration01 * 100f
+            ));
+
+        if (Settings.InfoDebug)
+        {
+            dsc.AppendLine(Lang.Get
+                ("Health {0:0}% | Temp {1:0}% × Moist {2:0}% × Air {3:0}%"
+                ,_inventory.GetHealth01() * 100f
+                ,_inventory.GetTemperatureHealth01() * 100f
+                ,_inventory.GetMoistureHealth01() * 100f
+                ,_inventory.GetAerationHealth01() * 100f
+                ));
+            dsc.AppendLine();
+        }
         
         
+        float factor = _inventory.GetFactor();
+        dsc.AppendLine(Lang.Get
+            ("Speed: {0:0}%, {1}"
+            ,factor * 100f
+            ,GetCompostRateLabel(factor)
+            ));
+
+        if (Settings.InfoDebug)
+        {
+            dsc.AppendLine(Lang.Get
+                ("Inoc {0:0}% × Temp {1:0}% × Moist {2:0}% × Nut {3:0}%"
+                ,_inventory.GetInoculumFactor01() * 100f
+                ,_inventory.GetTemperatureFactor01() * 100f
+                ,_inventory.GetMoistureFactor01() * 100f
+                ,_inventory.GetNutritionFactor() * 100f
+                ));
+            dsc.AppendLine();
+        }
+        
+        string missingLabel = GetMissingMaterialLabel();
+        if (!string.IsNullOrEmpty(missingLabel))
+            dsc.AppendLine(missingLabel);
+
+        if (Settings.InfoDebug)
+        {
+            string mixLabel = GetNutritionMixLabel();
+            if (!string.IsNullOrEmpty(mixLabel))
+                dsc.AppendLine(mixLabel);
+        }
+        
+        dsc.AppendLine(Lang.Get
+            ("Harvest: Compost {0} | Pile {1}{2}"
+            ,_inventory.CompostQty
+            ,_inventory.GetHarvestableCompostpileQty()
+            ,_inventory.Aeration01 < Settings.HypoxicThreshold + Settings.HypoxicTolerance ? " | Turn soon" : ""
+            ));
+    }
+
+    private string GetCompostingStatus()
+    {
+        List<string> states = new();
+
+        AppendInoculumStatus(states);
+        AppendTemperatureStatus(states);
+        AppendMoistureStatus(states);
+        AppendAerationStatus(states);
+
+        if (states.Count < 1)
+            return "Active";
+
+        return string.Join(", ", states);
+    }
+
+    private void AppendTemperatureStatus(List<string> states)
+    {
+        if (_inventory.Temperature > Settings.OverheatThreshold)
+            states.Add("Overheating");
+        else if (_inventory.GetTemperatureFactor01() < Settings.InfoFactorWarningThreshhold)
+        {
+            if(_inventory.Temperature >= 55f)
+                states.Add("Hot");
+            else
+            if (_inventory.Temperature < 20f)
+                states.Add("Cold");
+        }
+    }
+
+    private void AppendMoistureStatus(List<string> states)
+    {
+        // Intended: _aeration01 reduces, not invalidates Drowning
+        if (_inventory.Moisture01 > Settings.DrowningThreshold)
+            states.Add("Drowning");
+        else if (_inventory.GetMoistureFactor01() < Settings.InfoFactorWarningThreshhold)
+        {
+            if (_inventory.Moisture01 < Settings.Moisture01Optimal)
+                states.Add("Dry");
+        }
+    }
+
+    private void AppendAerationStatus(List<string> states)
+    {
+        if (_inventory.Aeration01 < Settings.HypoxicThreshold)
+            states.Add("Hypoxic");
+    }
+
+    private void AppendInoculumStatus(List<string> states)
+    {
+        if (_inventory.GetInoculumFactor01() <= 1f - Settings.InfoFactorWarningThreshhold)
+            states.Add("Unseeded");
+    }
+
+    private string GetCompostRateLabel(float factor)
+    {
+        float rateSpeed = Settings.BaseCompostRatePerHour * factor;
+        if (rateSpeed <= 0f)
+            return "stalled";
+
+        float hoursPerCompost = 1f / rateSpeed;
+        float hoursPerDay = Api?.World?.Calendar?.HoursPerDay ?? 24f;
+
+        if (hoursPerCompost < hoursPerDay)
+            return $"{hoursPerCompost:0.#}hr(s) / compost";
+
+        float daysPerCompost = hoursPerCompost / hoursPerDay;
+        return $"{daysPerCompost:0.#} day(s) / compost";
+    }
+
+    private string GetMissingMaterialLabel()
+    {
         float brownsPortions = (float)_inventory.BrownsQty / Settings.Browns.ConsumePerTransition;
         float nutritionPortions = (float)_inventory.NutritionQty / Settings.Nutrition.ConsumePerTransition;
-        float bulkPortions = brownsPortions + nutritionPortions;
-        
         float inoculumPortions = (float)_inventory.InoculumQty / Settings.Inoculum.ConsumePerTransition;
-        
-        dsc.AppendLine();
-        dsc.AppendLine(Lang.Get("Bulk portions: {0:0.0}", bulkPortions));
-        dsc.AppendLine(Lang.Get
-            ("Browns: {0}/{1} ({2:0.0}) | Nutrition: {3}/{4} ({5:0.0}) | Inoc: {6}+{7}/{8} ({9:0.0})"
-            ,_inventory.BrownsQty, Settings.Browns.MaxQty, brownsPortions
-            ,_inventory.NutritionQty, Settings.Nutrition.MaxQty, nutritionPortions
-            ,_inventory.InoculumQty, _inventory.CompostQty, Settings.Inoculum.MaxQty, inoculumPortions
-            ));
-        if (_inventory.NutritionStacks.Count > 0)
-        {
-            var parts = _inventory.NutritionStacks
-                .Where(kvp => kvp.Value > 0)
-                .OrderByDescending(kvp => kvp.Value)
-                .Select(kvp => $"{kvp.Key}:{kvp.Value}")
-                .ToArray();
 
-            if (parts.Length > 0)
-                dsc.AppendLine(Lang.Get("-&gt; Mix: {0}", string.Join(", ", parts)));
+        float maxThresholdPortions =
+            Math.Max(Math.Max(brownsPortions, nutritionPortions), inoculumPortions)
+        -   Settings.InfoNeedsPortionsThreshhold;
+
+        float minPortions = Math.Min(Math.Min(brownsPortions, nutritionPortions), inoculumPortions);
+        if (minPortions > maxThresholdPortions
+        && !Settings.InfoDebug
+           )
+            return "";
+
+        string result = Settings.InfoDebug ? "" : "Needs: ";
+        
+        if (brownsPortions < maxThresholdPortions
+        ||  Settings.InfoDebug
+           )
+            result += Lang.Get
+            ("{0} {1}/{2}{3} | "
+            ,"Browns"
+            ,_inventory.BrownsQty
+            ,Settings.Browns.MaxQty
+            ,Settings.InfoDebug ? $" ({(float)_inventory.BrownsQty/Settings.Browns.ConsumePerTransition:0.0})" : ""
+            );
+        
+        if (nutritionPortions < maxThresholdPortions
+        ||  Settings.InfoDebug
+           )
+            result += Lang.Get
+            ("{0} {1}/{2}{3} | "
+            ,"Nutrition"
+            ,_inventory.NutritionQty
+            ,Settings.Nutrition.MaxQty
+            ,Settings.InfoDebug ? $" ({(float)_inventory.NutritionQty/Settings.Nutrition.ConsumePerTransition:0.0})" : ""
+            );
+        
+        if (inoculumPortions < maxThresholdPortions
+        ||  Settings.InfoDebug
+           )
+            result += Lang.Get
+            ("{0} {1}/{2}{3} | "
+            ,"Inoculum"
+            ,_inventory.InoculumQty
+            ,Settings.Inoculum.MaxQty
+            ,Settings.InfoDebug ? $" ({(float)_inventory.InoculumQty/Settings.Inoculum.ConsumePerTransition:0.0})" : ""
+            );
+
+        return result.Substring(0, result.Length - 3);
+    }
+
+    private string GetNutritionMixLabel()
+    {
+        if (_inventory.NutritionStacks.Count < 1)
+            return "";
+
+        StringBuilder mix = new();
+        foreach (var nutritionStack in _inventory.NutritionStacks)
+        {
+            if (nutritionStack.Value < 1)
+                continue;
+            
+            mix.Append(nutritionStack.Key);
+            mix.Append(": ");
+            mix.Append(nutritionStack.Value);
+            mix.Append(", ");
         }
 
-        
-        dsc.AppendLine();
-        dsc.AppendLine(Lang.Get(
-            "Harvestable: Compost {0}, Pile {1}",
-            _inventory.CompostQty,
-            _inventory.GetHarvestableCompostpileQty()
-        ));
+        if (mix.Length < 1)
+            return "";
+
+        return Lang.Get("Nut Mix: {0}", mix.ToString().Substring(0, mix.Length - 2));
     }
+
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
     {
