@@ -1,0 +1,92 @@
+Core Objective
+
+Create a lightweight, continuous AI simulation where “latent enemies” (red dots) drift through a 3D field toward the surface over time, only materializing as real entities near the player — giving the world a sense of hidden life without heavy computation.
+
+System Objectives
+1. Data Representation
+
+Represent each world region (e.g., 64³) with an RGB tensor:
+
+R: enemy density / latent activity
+
+G: terrain density + movement cost
+
+B: skylight exposure / surface distance
+
+Maintain and stream these maps per chunk or chunk-ring around players.
+
+Update G/B lazily when terrain or light changes.
+
+Store R as a dynamic buffer, updated each tick by queue processing.
+
+2. Latent Agent Engine
+
+Maintain a queue of red-dot positions (latent enemies).
+
+Each tick:
+
+Process a fixed number (N) of dots.
+
+Sample local G/B values to determine preferred movement (e.g., down gradient to surface).
+
+Move one step; re-enqueue with decay or replacement.
+
+If near a player + hidden from view → collapse into a real enemy spawn.
+
+If too far or obsolete → recycle to seed new latent dots underground.
+
+Include hysteresis: once collapsed, persist for a while before despawning.
+
+3. Field Generation
+
+Periodically (every 1–2 s), run a 3D transformer or UNet to update global spawn desirability:
+
+Input: current RGB map.
+
+Output: next R field (spawn pressure).
+
+Model encodes long-range coherence and global flow (e.g., caves feeding surface hot spots).
+
+Between passes, the queue handles micro-movement using the static field.
+
+4. Performance Control
+
+Throttle updates (e.g., 100–1000 queue ops/tick).
+
+Keep field data in FP16 or 8-bit to minimize memory (~1–3 MB/chunk).
+
+Run inference in background thread or GPU stream.
+
+Stream only nearby chunk tensors; evict distant ones.
+
+5. Spawn Mechanics
+
+Spawn only when:
+
+Player is within a defined radius.
+
+Line-of-sight and light thresholds are met.
+
+Local spawn budget not exceeded.
+
+Randomize enemy type by difficulty (derived from R intensity).
+
+Despawn far or idle entities by reabsorbing them into the latent field (back to R).
+
+6. Integration
+
+Cache and reuse the RGB tensors per chunk.
+
+Synchronize with lighting, pathfinding, and player movement systems.
+
+Save/load latent R field and queue seeds to preserve world continuity.
+
+7. Optional Enhancements
+
+Add memory layers (e.g., “noise,” “fear,” “pheromones”) to bias spawn flow.
+
+Use Dijkstra/flow maps for path prediction or “migration” events.
+
+Allow environmental factors (storms, seasons, biomes) to influence R updates.
+
+Add simple visualization for debugging (heatmap overlay of latent activity).

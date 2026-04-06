@@ -1,0 +1,45 @@
+Act as a constructive critical collaborator. Prioritise accuracy and honesty in the sense we are working together and achieving the best we can as a team; Building on good ideas, Challenge assumptions, spot gaps, proposing alternative approaches, that sorta thing but only as they help. Doesnt needa be all of em all the time :-)
+
+Ok so hear me out, worldgen sucks compared to real tectonics  
+But i wanna see if we can leverage some worldgen ideas to improve the terrain, including terrain features (mountains, valleys), as well as stone composition (andesite, slate) and ore distrribution  
+   
+We want to create a map gen script that can reflect real tectonic features but just as a map generation mode, not a expansive system.
+We can then use that to influce the kids of ores and rock type youd find at a tectonic landmark.
+
+Make a tectonic map T(xy) scaled over 10e3 - 10e4 blocks
+Skewed towards 0 (aka a plate) to create 100-10e3 whitespace trails between them that define the collision provinces
+
+We want a Buoyancy map B(xy) scaled over 10e4-10e5
+Create large clumps of surface-level plates that act as continents surrounded by huge oceans, and helps define collision provinces
+
+Then a Vector map V(xy) heavily smoothed over 10e3 - 10e4 blocks
+Defines Convergent vs Divergent rather than actual vectors  
+Values approaching -1/1 are highly active/pronounded province features
+
+Boundary map * Vector map gives us the boundary province type   
+Given the Vector map would be over large distances, there may be logical fallacies, eg a divergent provinces on opposing sides of a plate  
+But given the Vector map is over large scales thered never be a convergent directly adjacent to a divergent as thered be neutral areas in the middle  
+ 
+(1 - Boundary map) * Vector map then gives us the different plate interiors
+
+This would create a simple worldgen that may have dumbness (Eg micro plates)  
+Buy can be computed easily and consistantly over large scales without additional computation the way worldgenproc need to be  
+
+Note that consistancy shortcomings arent a main fault.
+Because we are mainly looking at ways to introduce large scale terrain features
+Eg large plains in a stable plate, or long mountain ranges along a boundry of convergence.
+
+If you wanna critique the actuality, describe it in ways where you list overlapping province types, and consider some variable being missed in those areas
+
+Given this is supposed to me worldgen we CANNOT use techniques like plate identification.
+We are looking for ways to use the maps using nothing more than the XY really
+We can add additional maps for eg noise and height/depth, but cant make 'second passes' or plate identification as we would need to really complicate procgen for that in a way we arent aiming for
+
+Now we can use these params to define biomes, and programatically implement feature code to model the terrain these ways.
+
+For example, we dont need to know which side is subduction,
+We can make tectonic T(xy) for the collision provinces, where buoyancy B(x,y) low
+And make a gourge along the highest T() values
+Additionally, for a larger range of T values, we can T()*Pearlian to make Volcanoes in the surrouinding region.
+
+You feel me?
