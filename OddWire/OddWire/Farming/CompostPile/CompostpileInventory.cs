@@ -458,27 +458,68 @@ public sealed class CompostpileInventory
     {
         accepted = 0;
 
-        var collectible = slot.Itemstack?.Collectible;
+        ItemStack stack = slot.Itemstack;
+        var collectible = stack?.Collectible;
         var nutritionProps = collectible?.NutritionProps;
         if (nutritionProps is null)
             return false;
 
-        int room = Settings.Nutrition.MaxQty - NutritionQty;
-        if (room < 1)
+        int roomQty = Settings.Nutrition.MaxQty - NutritionQty;
+        if (roomQty < 1)
+            return false;
+    
+        float nutritionQtyPerInput = GetNutritionRotQtyPerInput(stack);
+        if (nutritionQtyPerInput <= 0f)
             return false;
 
-        int ratio = CompostpileSettings.Ingredient.GetStackNormalizedRatio(collectible);
-        if (slot.StackSize < ratio)
+        // MaxInputPerAdd refs NutritionQty, not StackSize
+        int nutritionMaxAdd = Math.Min(roomQty, Settings.Nutrition.MaxInputPerAdd);
+        float nutritionAdd =
+            nutritionMaxAdd > nutritionQtyPerInput
+        ?   MathF.Floor(nutritionMaxAdd / nutritionQtyPerInput)
+        :   MathF.Ceiling(nutritionMaxAdd / nutritionQtyPerInput);
+        
+        int stackConsumeQty = (int)Math.Min(nutritionAdd, slot.StackSize);
+        if (stackConsumeQty < 1)
+            return false;
+        
+        int nutritionAddQty = (int)(stackConsumeQty * nutritionQtyPerInput);
+        if (nutritionAddQty < 1)
             return false;
 
-        int adjustedStackSize = slot.StackSize / ratio;
-        int adjustedAccept = Math.Min(adjustedStackSize > room ? room : adjustedStackSize, Settings.Nutrition.MaxInputPerAdd);
+        NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out int cur);
+        NutritionStacks[nutritionProps.FoodCategory] = cur + nutritionAddQty;
 
-        NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out var cur);
-        NutritionStacks[nutritionProps.FoodCategory] = cur + adjustedAccept;
-
-        accepted = adjustedAccept * ratio;
+        accepted = stackConsumeQty;
         return true;
+    }
+
+    private float GetNutritionRotQtyPerInput(ItemStack stack)
+    {
+        var transitionProps =
+            stack.Item?.TransitionableProps
+        ??  stack.Block?.TransitionableProps;
+
+        if (transitionProps is null
+        ||  transitionProps.Length < 1
+            )
+            return 1f;
+
+        foreach (var prop in transitionProps)
+        {
+            if (prop?.Type != EnumTransitionType.Perish
+            ||  prop.TransitionedStack?.Code is null
+                )
+                continue;
+            
+            string transitionedCode = 
+               (prop.TransitionedStack.Code.Domain ?? "game") + ":"
+            +   prop.TransitionedStack.Code.Path;
+            if (Settings.Inoculum.AddItemCodeRatios?.TryGetValue(transitionedCode, out float inRatio) == true)
+                return Math.Max(prop.TransitionRatio * inRatio, 0f);
+        }
+
+        return 1f;
     }
     #endregion
 

@@ -22,12 +22,6 @@ public class CompostpileSettings
         public int HarvestStackQty { get; internal set; }
     
         public int ConsumePerTransition { get; internal set; }
-
-        public static int GetStackNormalizedRatio(CollectibleObject? collectible) =>
-            collectible?.MaxStackSize > 0
-        &&  collectible .MaxStackSize != 64
-        ?   Math.Max(64 / collectible.MaxStackSize, 1)
-        :   1;
     }
     
     public Ingredient Browns { get; private set; }
