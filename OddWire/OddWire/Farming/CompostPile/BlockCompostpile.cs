@@ -4,6 +4,27 @@ using Vintagestory.API.MathTools;
 namespace OddWire.GameContent;
 public class BlockCompostpile : Block
 {
+    public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
+    {
+        if (blockSel is null
+        ||  world.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityCompostpile be
+           )
+            return false;
+
+        var slot = byPlayer.InventoryManager.ActiveHotbarSlot;
+        if (slot?.Empty != false)
+            return false;
+        
+        if(!be.TryAdd(slot, out int accepted)
+        ||  accepted < 1
+           )
+            return false;
+
+        slot.TakeOut(accepted);
+        slot.MarkDirty();
+        return true;
+    }
+    
     public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handling)
     {
         if (blockSel is null
