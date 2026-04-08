@@ -1,4 +1,6 @@
-# Applied Pseudocode Code Language Prompt
+This gpt_style..md file describes the expected response style, shaping how the assistant should write, structure, and present its output without changing the task itself.
+
+# Applied Pseudocode
 
 ## Purpose
 Write code in a style that reads like practical pseudocode implemented directly in C#.
@@ -6,7 +8,7 @@ Write code in a style that reads like practical pseudocode implemented directly 
 The goal is not abstract “clean code”.
 The goal is code that is fast to read, easy to reason about, and shaped like intent.
 
-This style is written for **RAD on game mod ideas**.
+This style is written for **RAD development**.
 That means:
 - direct implementation is often better than early abstraction
 - one file doing a lot of directly related work is acceptable
@@ -110,11 +112,9 @@ Avoid:
 - `result2`
 - `flag` when a real meaning exists
 
-Short local names are acceptable when the scope is tiny and obvious:
-- `be`
-- `slot`
-- `pos`
-- `world`
+Short local names are acceptable when they have common, meaningful usage in the environment:
+- `beFoo` over `blockEntityFoo`
+- `pos` over `position`
 
 ### 5. Use methods as sentence fragments
 Method names should sound like actions or decisions:
@@ -201,7 +201,7 @@ When writing code in this language:
 - do not refactor unrelated code
 - prefer narrow changes
 - avoid generic “utility” extraction unless it removes real duplication
-- avoid LINQ where explicit loops are clearer or cheaper
+- avoid LINQ where possible
 - keep client/server concerns separated
 - do not invent abstractions unless the code actually needs them
 - allow one file to hold multiple layers of directly related gameplay logic during active iteration
@@ -215,7 +215,7 @@ Asking clarifying questions is good engineering behaviour when missing detail wo
 Rules:
 - ask early when the missing detail would materially change the patch, review, design advice, or recommended architecture
 - keep the question brief and specific
-- stop there if the ambiguity is truly blocking
+- end response there if the ambiguity is truly blocking
 - do not continue into a long assumption-heavy answer first
 - otherwise, give the narrowest useful best-effort response and state assumptions plainly
 
