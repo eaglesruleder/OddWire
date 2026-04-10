@@ -44,6 +44,12 @@ public sealed class CompostpileInventory
     public float Stress01;
     
     public double PrevTimeProcessed = -1;
+    
+    private int _adjacentBlockCount;
+    public int AdjacentBlockCount
+    {   get =>  _adjacentBlockCount;
+        set => _adjacentBlockCount = Math.Clamp(value, 0, 5);
+    }
     #endregion
     
     
@@ -766,15 +772,16 @@ public sealed class CompostpileInventory
             _prevTimeAerationUpdated = totalHours;
             return true;
         }
-        
+
         float dtAerationDays = (float)((totalHours - _prevTimeAerationUpdated) / be.Api.World.Calendar.HoursPerDay);
         if (dtAerationDays <= 0)
             return false;
 
         float compaction01 = GameMath.Lerp(0.45f, 1.0f, GetFullness01());
+        float airflowPenalty = 1f + _adjacentBlockCount * Settings.AerationBlockedPenalty;
         _aeration01 = Math.Clamp
             (_aeration01
-         -   dtAerationDays * compaction01 / Settings.AerationRetentionDays
+         -   dtAerationDays * compaction01 * airflowPenalty / Settings.AerationRetentionDays
             ,0,1);
         _prevTimeAerationUpdated = totalHours;
 
@@ -1078,6 +1085,8 @@ public sealed class CompostpileInventory
 
         tree.SetDouble($"{key}._prevTimeStressUpdated", _prevTimeStressUpdated);
         tree.SetFloat($"{key}.Stress01", Stress01);
+        
+        tree.SetInt($"{key}._adjacentBlockCount", _adjacentBlockCount);
     }
 
     public void FromTreeAttributes(ITreeAttribute tree, string? key = null)
@@ -1104,6 +1113,8 @@ public sealed class CompostpileInventory
 
         _prevTimeStressUpdated = tree.GetDouble($"{key}._prevTimeStressUpdated", -1);
         Stress01 = tree.GetFloat($"{key}.Stress01", 0f);
+        
+        _adjacentBlockCount = tree.GetInt($"{key}._adjacentBlockCount");
     }
     #endregion
 }

@@ -53,6 +53,16 @@ public class BlockCompostpile : Block
         base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handling);
     }
 
+    public override void OnNeighbourBlockChange(IWorldAccessor world, BlockPos pos, BlockPos neibpos)
+    {
+        base.OnNeighbourBlockChange(world, pos, neibpos);
+
+        if (world.Side == EnumAppSide.Server
+        &&  world.BlockAccessor.GetBlockEntity(pos) is BlockEntityCompostpile be
+            )
+            be.NeighboursDirty = true;
+    }
+
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
         if (world.BlockAccessor.GetBlockEntity(pos) is not BlockEntityCompostpile be)

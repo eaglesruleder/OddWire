@@ -16,6 +16,12 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
     private CompostpileSettings Settings => CompostpileSettings.Default;
     
     private readonly CompostpileInventory _inventory = new();
+    
+    private bool _neighboursDirty;
+    public bool NeighboursDirty
+    {   get => _neighboursDirty;
+        set => _neighboursDirty |= value;
+    }
 
     private BlockTintRenderer _tintRenderer;
     private MultiTextureMeshRef _tintMeshRef;
@@ -74,8 +80,49 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
         Api.World.BlockAccessor.ExchangeBlock(block.Id, Pos);
         Block = block;
     }
-    
-    
+
+    public int GetAdjacentSolidBlocks()
+    {
+        int blockedSides = 0;
+
+        if (BlocksAirflow(Pos.UpCopy(), BlockFacing.DOWN))
+            blockedSides++;
+        
+        if (BlocksAirflow(Pos.NorthCopy(), BlockFacing.SOUTH))
+            blockedSides++;
+
+        if (BlocksAirflow(Pos.SouthCopy(), BlockFacing.NORTH))
+            blockedSides++;
+
+        if (BlocksAirflow(Pos.EastCopy(), BlockFacing.WEST))
+            blockedSides++;
+
+        if (BlocksAirflow(Pos.WestCopy(), BlockFacing.EAST))
+            blockedSides++;
+
+        return blockedSides;
+    }
+
+    private bool BlocksAirflow(BlockPos pos, BlockFacing sideFacingPile)
+    {
+        IBlockAccessor blockAccessor = Api.World.BlockAccessor;
+
+        if (blockAccessor.GetBlockEntity(pos) is BlockEntityCompostpile)
+            return true;
+
+        Block block = blockAccessor.GetBlock(pos);
+        if (block is null
+        ||  block.Id == 0
+        ||  block.Replaceable >= 6000
+            )
+            return false;
+        
+        return 
+            block.SideSolid[sideFacingPile.Index]
+        ||  block.CollisionBoxes?.Length > 0;
+    }
+
+
     public bool TryAdd(ItemSlot slot, out int accepted)
     {
         accepted = 0;
@@ -131,7 +178,10 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
         }
 
         if (api.Side == EnumAppSide.Server)
+        {
+            NeighboursDirty = true;
             RegisterGameTickListener(OnEvery12Seconds, 12000);
+        }
     }
 
     public override void OnBlockPlaced(ItemStack byItemStack = null)
@@ -140,7 +190,8 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
 
         _inventory.ResetOnPlaced(Block);
         _inventory.PrevTimeProcessed = Api.World.Calendar.TotalHours;
-        
+
+        NeighboursDirty = true;        
         UpdateShapeStackSize();
     }
 
@@ -166,12 +217,20 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
 
     private void OnEvery12Seconds(float dt)
     {
-        if (Api?.Side == EnumAppSide.Server
-        && _inventory.Update(this, Api.World.Calendar.TotalHours)
-           )
+        if (Api?.Side != EnumAppSide.Server)
+            return;
+
+        if (NeighboursDirty)
+        {
+            _inventory.AdjacentBlockCount = GetAdjacentSolidBlocks();
+            _neighboursDirty = false;
+            MarkDirty();
+        }
+
+        if (_inventory.Update(this, Api.World.Calendar.TotalHours))
         {
             UpdateShapeStackSize();
-            MarkDirty();
+            MarkDirty(true);
         }
     }
 
@@ -211,6 +270,11 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
 
         if (Settings.InfoDebug)
         {
+            dsc.AppendLine(Lang.Get
+                ("Airflow {0:0}% ({1}/5 blocked)"
+                ,1f - _inventory.AdjacentBlockCount * Settings.AerationBlockedPenalty
+                ,_inventory.AdjacentBlockCount
+                ));
             dsc.AppendLine(Lang.Get
                 ("Health {0:0}% | Temp {1:0}% × Moist {2:0}% × Air {3:0}%"
                 ,_inventory.GetHealth01() * 100f

@@ -41,6 +41,7 @@ public class CompostpileSettings
     public float DrowningTolerance { get; private set; }
     
     public float AerationRetentionDays { get; private set; }
+    public float AerationBlockedPenalty { get; private set; }
     public float HypoxicThreshold { get; private set; }
     public float HypoxicTolerance { get; private set; }
     
@@ -133,6 +134,7 @@ public class CompostpileSettings
         ,DrowningTolerance = 0.15f
         
         ,AerationRetentionDays = 10f
+        ,AerationBlockedPenalty = 0.2f
         ,HypoxicThreshold = 0.35f
         ,HypoxicTolerance = 0.20f
         
