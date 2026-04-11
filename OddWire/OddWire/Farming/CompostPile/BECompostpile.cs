@@ -11,16 +11,27 @@ using OddWire.Renderers;
 
 namespace OddWire.GameContent;
 
-public class BlockEntityCompostpile : BlockEntity, IBlockTint
+public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
 {
     private CompostpileSettings Settings => CompostpileSettings.Default;
     
     private readonly CompostpileInventory _inventory = new();
-    
+
+    private bool[] _neighbourHeatSource = new bool[BlockFacing.NumberOfFaces];
     private bool _neighboursDirty;
     public bool NeighboursDirty
     {   get => _neighboursDirty;
         set => _neighboursDirty |= value;
+    }
+
+    public float GetHeatStrength(IWorldAccessor world, BlockPos heatSourcePos, BlockPos heatReceiverPos)
+    {
+        if (_inventory.Temperature < 35f)
+            return 0f;
+
+        float heatTemp = _inventory.Temperature - 35;
+        float sizeEmission = GameMath.Lerp(0.2f, 1.2f, _inventory.GetFullness01());
+        return 0.0015f * heatTemp * heatTemp * sizeEmission;
     }
 
     private BlockTintRenderer _tintRenderer;
@@ -79,47 +90,6 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
 
         Api.World.BlockAccessor.ExchangeBlock(block.Id, Pos);
         Block = block;
-    }
-
-    public int GetAdjacentSolidBlocks()
-    {
-        int blockedSides = 0;
-
-        if (BlocksAirflow(Pos.UpCopy(), BlockFacing.DOWN))
-            blockedSides++;
-        
-        if (BlocksAirflow(Pos.NorthCopy(), BlockFacing.SOUTH))
-            blockedSides++;
-
-        if (BlocksAirflow(Pos.SouthCopy(), BlockFacing.NORTH))
-            blockedSides++;
-
-        if (BlocksAirflow(Pos.EastCopy(), BlockFacing.WEST))
-            blockedSides++;
-
-        if (BlocksAirflow(Pos.WestCopy(), BlockFacing.EAST))
-            blockedSides++;
-
-        return blockedSides;
-    }
-
-    private bool BlocksAirflow(BlockPos pos, BlockFacing sideFacingPile)
-    {
-        IBlockAccessor blockAccessor = Api.World.BlockAccessor;
-
-        if (blockAccessor.GetBlockEntity(pos) is BlockEntityCompostpile)
-            return true;
-
-        Block block = blockAccessor.GetBlock(pos);
-        if (block is null
-        ||  block.Id == 0
-        ||  block.Replaceable >= 6000
-            )
-            return false;
-        
-        return 
-            block.SideSolid[sideFacingPile.Index]
-        ||  block.CollisionBoxes?.Length > 0;
     }
 
 
@@ -222,16 +192,84 @@ public class BlockEntityCompostpile : BlockEntity, IBlockTint
 
         if (NeighboursDirty)
         {
-            _inventory.AdjacentBlockCount = GetAdjacentSolidBlocks();
-            _neighboursDirty = false;
+            UpdateNeighbourBlocks();
             MarkDirty();
         }
+
+        _inventory.AdjacentBlockHeat = GetNeighbourHeat();
 
         if (_inventory.Update(this, Api.World.Calendar.TotalHours))
         {
             UpdateShapeStackSize();
             MarkDirty(true);
         }
+    }
+
+    private float GetNeighbourHeat()
+    {
+        float result = 0f;
+
+        for (int i = 0; i < _neighbourHeatSource.Length; i++)
+        {
+            if(!_neighbourHeatSource[i])
+                continue;
+            
+            BlockPos neighbourPos = Pos.AddCopy(BlockFacing.ALLFACES[i]);
+            result += Api.World.BlockAccessor
+               ?.GetBlock(neighbourPos)
+               ?.GetInterface<IHeatSource>(Api.World, neighbourPos)
+               ?.GetHeatStrength(Api.World, neighbourPos, Pos.Copy())
+            ??   0;
+        }
+
+        return result;
+    }
+    
+    public void UpdateNeighbourBlocks()
+    {
+        int blockedSides = 0;
+
+        if (BlocksAirflow( BlockFacing.UP))
+            blockedSides++;
+        
+        if (BlocksAirflow(BlockFacing.NORTH))
+            blockedSides++;
+        
+        if (BlocksAirflow(BlockFacing.SOUTH))
+            blockedSides++;
+
+        if (BlocksAirflow(BlockFacing.EAST))
+            blockedSides++;
+
+        if (BlocksAirflow(BlockFacing.WEST))
+            blockedSides++;
+
+        _inventory.AdjacentBlockCount = blockedSides;
+        _neighboursDirty = false;
+    }
+
+    private bool BlocksAirflow(BlockFacing neighbour)
+    {
+        IBlockAccessor blockAccessor = Api.World.BlockAccessor;
+        BlockPos neighbourPos = Pos.AddCopy(neighbour);
+        
+        Block neighbourBlock = blockAccessor.GetBlock(neighbourPos);
+        _neighbourHeatSource[neighbour.Index] = neighbourBlock?.GetInterface<IHeatSource>(Api.World, neighbourPos) is not null;
+        
+        if (neighbourBlock is null
+        ||  neighbourBlock.Id == 0
+           )
+            return false;
+        
+        if (blockAccessor.GetBlockEntity(neighbourPos) is BlockEntityCompostpile)
+            return true;
+        
+        if(neighbourBlock.Replaceable >= 6000)
+            return false;
+        
+        return 
+            neighbourBlock.SideSolid[neighbour.Opposite.Index]
+        ||  neighbourBlock.CollisionBoxes?.Length > 0;
     }
 
     public void Water(float dt)

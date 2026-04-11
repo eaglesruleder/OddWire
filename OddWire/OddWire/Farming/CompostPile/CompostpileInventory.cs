@@ -15,7 +15,7 @@ public sealed class CompostpileInventory
 
     #region StoredState
     public int TotalQty => BrownsQty + NutritionQty + InoculumQty + CompostQty;
-    private float GetFullness01() => Math.Clamp((float)TotalQty / Settings.TotalMaxQty, 0,1);
+    public float GetFullness01() => Math.Clamp((float)TotalQty / Settings.TotalMaxQty, 0,1);
 
     public int BrownsQty;
     public readonly Dictionary<EnumFoodCategory, int> NutritionStacks = new();
@@ -50,6 +50,8 @@ public sealed class CompostpileInventory
     {   get =>  _adjacentBlockCount;
         set => _adjacentBlockCount = Math.Clamp(value, 0, 5);
     }
+
+    public float AdjacentBlockHeat;
     #endregion
     
     
@@ -833,7 +835,7 @@ public sealed class CompostpileInventory
         double coolingAmount = coolingRate * dtTemperatureHours;
         float coolingFactor = (float)(coolingAmount / (1f + coolingAmount));
         
-        float targetTemp = _envTemp + GetInternalHeat();
+        float targetTemp = _envTemp + GetInternalHeat() + AdjacentBlockHeat * Settings.NeighbourHeatRate;
         _temperature += (targetTemp - _temperature) * coolingFactor;
         _prevTimeTemperatureUpdated = totalHours;
 
@@ -1087,6 +1089,7 @@ public sealed class CompostpileInventory
         tree.SetFloat($"{key}.Stress01", Stress01);
         
         tree.SetInt($"{key}._adjacentBlockCount", _adjacentBlockCount);
+        tree.SetFloat($"{key}.AdjacentBlockHeat", AdjacentBlockHeat);
     }
 
     public void FromTreeAttributes(ITreeAttribute tree, string? key = null)
@@ -1115,6 +1118,7 @@ public sealed class CompostpileInventory
         Stress01 = tree.GetFloat($"{key}.Stress01", 0f);
         
         _adjacentBlockCount = tree.GetInt($"{key}._adjacentBlockCount");
+        AdjacentBlockHeat = tree.GetFloat($"{key}.AdjacentBlockHeat");
     }
     #endregion
 }

@@ -48,6 +48,7 @@ public class CompostpileSettings
     public float HeatingRatePerHour { get; private set; }
     public float CoolingRatePerHour { get; private set; }
     public float GreenhouseHeat { get; private set; }
+    public float NeighbourHeatRate { get; private set; }
     public Dictionary<string, float>? NutritionHeat { get; private set; }
     public float OverheatThreshold { get; private set; }
     public float OverheatTolerance { get; private set; }
@@ -141,6 +142,7 @@ public class CompostpileSettings
         ,HeatingRatePerHour = 42
         ,CoolingRatePerHour = 0.16f
         ,GreenhouseHeat = 3f
+        ,NeighbourHeatRate = 1f
         ,NutritionHeat = new Dictionary<string, float>()
             {{"Fruit", 1.5f}
             ,{"Vegetable", 2.0f}
