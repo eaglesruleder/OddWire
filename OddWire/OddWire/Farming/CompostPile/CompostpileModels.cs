@@ -4,7 +4,6 @@ namespace OddWire.GameContent;
 
 public class CompostpileSettings
 {
-    #region IngredientModel
     public class Ingredient
     {
         public string Name { get; internal set; }
@@ -22,7 +21,6 @@ public class CompostpileSettings
 
         public int ConsumePerTransition { get; internal set; }
     }
-    #endregion
 
     #region IngredientSettings
     public Ingredient Browns { get; private set; } = new()
@@ -133,7 +131,7 @@ public class CompostpileSettings
     public string HarvestCompostPath { get; private set; } = "game:compost";
     public int HarvestCompostQty { get; internal set; } = 8;
     public int HarvestCompostStackQty { get; internal set; } = 8;
-    public string HarvestCompostpilePath { get; private set; } = "oddwire:Compostpile-#1";
+    public string HarvestCompostpilePath { get; private set; } = "oddwire:compostpile-#1";
     public int HarvestCompostpileQty { get; internal set; } = 2;
     public int HarvestCompostpileStackQty { get; internal set; } = 2;
 

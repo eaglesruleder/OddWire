@@ -251,6 +251,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
     public void UpdateNeighbourBlocks()
     {
         int blockedSides = 0;
+        _neighbourHeatSource = false;
         
         #region Count BlocksAirflow(BlockFacing.All)
         if (BlocksAirflow( BlockFacing.UP)) blockedSides++;

@@ -175,6 +175,8 @@ public sealed class CompostpileInventory
             return false;
         
         Item spawnItem = be.Api.World.GetItem(new AssetLocation(Settings.HarvestCompostPath));
+        if (spawnItem is null)
+            return false;
 
         int available = Math.Min(CompostQty, Settings.HarvestCompostQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
@@ -205,6 +207,10 @@ public sealed class CompostpileInventory
             return false;
         
         Block spawnBlock = be.Api.World.GetBlock(new AssetLocation(Settings.HarvestCompostpilePath));
+        if (spawnBlock is null
+        ||  spawnBlock.Id == 0
+            )
+            return false;
 
         int available = Math.Min(compostpileQty, Settings.HarvestCompostpileQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
@@ -231,6 +237,8 @@ public sealed class CompostpileInventory
             return false;
         
         Item spawnBlock = be.Api.World.GetItem(new AssetLocation(Settings.Inoculum.HarvestItemPath));
+        if (spawnBlock is null)
+            return false;
 
         int available = Math.Min(InoculumQty, Settings.Inoculum.HarvestQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
@@ -255,6 +263,8 @@ public sealed class CompostpileInventory
             return false;
         
         Item spawnBlock = be.Api.World.GetItem(new AssetLocation(Settings.Browns.HarvestItemPath));
+        if (spawnBlock is null)
+            return false;
 
         int available = Math.Min(BrownsQty, Settings.Browns.HarvestQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
@@ -407,7 +417,7 @@ public sealed class CompostpileInventory
         #region Require compostpile stack
         AssetLocation blockCode = slot.Itemstack?.Block?.Code;
         string stackVariant = blockCode?.EndVariant();
-        if (string.IsNullOrEmpty(blockCode)
+        if (blockCode is null
         || !blockCode.BeginsWith("oddwire","compostpile")
         ||  string.IsNullOrEmpty(stackVariant)
         ||  stackVariant.Length < 2

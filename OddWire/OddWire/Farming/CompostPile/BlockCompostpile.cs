@@ -21,8 +21,12 @@ public class BlockCompostpile : Block
            )
             return false;
 
-        slot.TakeOut(accepted);
-        slot.MarkDirty();
+        if (world.Side == EnumAppSide.Server)
+        {
+            slot.TakeOut(accepted);
+            slot.MarkDirty();
+        }
+
         return true;
     }
     
