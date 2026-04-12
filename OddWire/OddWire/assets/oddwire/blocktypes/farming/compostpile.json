@@ -14,8 +14,8 @@
 	maxStackSize: 32,
 	lightAbsorption: 1,
 	textures: {
-		"block": { base: "farming/compostpile-normal" },
-		"splat": { base: "farming/compostsplat-normal" }
+		"block": { base: "farming/compostpile" },
+		"splat": { base: "farming/compostsplat" }
 	},
 	sideao: { all: false },
 	sidesolid: { all: false },
