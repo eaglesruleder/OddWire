@@ -4,6 +4,7 @@ using Vintagestory.API.MathTools;
 namespace OddWire.GameContent;
 public class BlockCompostpile : Block
 {
+    #region Interaction
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
         if (blockSel is null
@@ -53,6 +54,9 @@ public class BlockCompostpile : Block
         base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handling);
     }
 
+    #endregion
+
+    #region NeighbourUpdates
     public override void OnNeighbourBlockChange(IWorldAccessor world, BlockPos pos, BlockPos neibpos)
     {
         base.OnNeighbourBlockChange(world, pos, neibpos);
@@ -63,6 +67,9 @@ public class BlockCompostpile : Block
             be.NeighboursDirty = true;
     }
 
+    #endregion
+
+    #region BreakHandling
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
         if (world.BlockAccessor.GetBlockEntity(pos) is not BlockEntityCompostpile be)
@@ -80,4 +87,5 @@ public class BlockCompostpile : Block
 
         base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
     }
+    #endregion
 }

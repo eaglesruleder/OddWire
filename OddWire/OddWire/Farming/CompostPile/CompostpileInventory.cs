@@ -11,7 +11,7 @@ namespace OddWire.GameContent;
 public sealed class CompostpileInventory
 {
     private WeatherSystemBase? _weather;
-    private CompostpileSettings Settings => new();
+    private static readonly CompostpileSettings Settings = new();
 
     #region StoredState
     public int TotalQty => BrownsQty + NutritionQty + InoculumQty + CompostQty;
