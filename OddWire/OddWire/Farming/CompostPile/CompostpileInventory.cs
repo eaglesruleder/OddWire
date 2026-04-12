@@ -311,9 +311,13 @@ public sealed class CompostpileInventory
     public bool TryAdd(BlockEntity be, ItemSlot slot, out int accepted)
     {
         accepted = 0;
+
+        #region Require input stack
         if (slot.StackSize < 1)
             return false;
+        #endregion
 
+        #region Resolve accepted input path
         bool added = false;
         float restoreAeration = 0;
 
@@ -331,37 +335,50 @@ public sealed class CompostpileInventory
 
         if (!added)
             return false;
+        #endregion
         
+        #region Apply accepted input
         RestoreAeration01(be, restoreAeration);
         UpdateInsulation01();
         return true;
+        #endregion
     }
     
     public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient, int imposeQty = 0)
     {
         accepted = 0;
+
+        #region Require registered ratios
         if (ingredient.AddItemCodeRatios is null
         ||  ingredient.AddItemCodeRatios.Count == 0
            )
             return false;
+        #endregion
 
+        #region Cap by ingredient room
         int roomQty = ingredient.MaxQty - (currentQty + imposeQty);
         if (roomQty < 1
         ||  slot.StackSize < 1
             )
             return false;
+        #endregion
 
+        #region Resolve input code
         string code =
             slot.Itemstack?.Item?.Code.ToString()
         ??  slot.Itemstack?.Block?.Code.ToString()
         ??  "";
+        #endregion
         
+        #region Resolve conversion ratio
         if(!ingredient.AddItemCodeRatios.TryGetValue(code, out float ratio)
         ||  ratio <= 0f
         ||  slot.StackSize < Math.Max(ratio, 1)
             )
             return false;
+        #endregion
 
+        #region Resolve accepted quantities
         int adjustedLimit = 
             ratio >= 1f
         ?   (int)(Math.Min(ingredient.MaxInputPerAdd, roomQty) * ratio)
@@ -372,18 +389,22 @@ public sealed class CompostpileInventory
             adjustedInput = (int)(Math.Floor(adjustedInput / ratio) * ratio);
         
         int adjustedOutput = (int)Math.Min(adjustedInput / ratio, roomQty);
+        #endregion
 
+        #region Apply accepted output
         currentQty += adjustedOutput;
         accepted = adjustedInput;
 
         
         return accepted > 0;
+        #endregion
     }
 
     private bool TryAddCompostPile(BlockEntity be, ItemSlot slot, out int accepted)
     {
         accepted = 0;
 
+        #region Require compostpile stack
         AssetLocation blockCode = slot.Itemstack?.Block?.Code;
         string stackVariant = blockCode?.EndVariant();
         if (string.IsNullOrEmpty(blockCode)
@@ -394,13 +415,17 @@ public sealed class CompostpileInventory
         || !int.TryParse(stackVariant.Substring(1), out int stackBonus)
            )
             return false;
+        #endregion
 
+        #region Resolve bundled ingredient quantities
         stackBonus = Math.Max(stackBonus - 1, 0);
         
         int brownsAdd = Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty;
         int nutritionAdd = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
         int inoculumAdd = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
+        #endregion
 
+        #region Cap by ingredient room
         //  Intent: Nutrition is lossy, matching harvest behaviour.
         int brownsRoom = Math.Max(Settings.Browns.MaxQty - BrownsQty, 0);
         int nutritionRoom = Math.Max(Settings.Nutrition.MaxQty - NutritionQty, 0);
@@ -409,7 +434,9 @@ public sealed class CompostpileInventory
         &&  inoculumRoom < 1
             )
             return false;
+        #endregion
 
+        #region Resolve accepted ingredient quantities
         int brownsAccepted = Math.Min(brownsAdd, brownsRoom);
         int nutritionAccepted = Math.Min(nutritionAdd, nutritionRoom);
         int inoculumAccepted = Math.Min(inoculumAdd, inoculumRoom);
@@ -419,7 +446,9 @@ public sealed class CompostpileInventory
         &&  inoculumAccepted < 1
             )
             return false;
+        #endregion
 
+        #region Apply accepted ingredients
         BrownsQty += brownsAccepted;
 
         if (nutritionAccepted > 0)
@@ -429,13 +458,18 @@ public sealed class CompostpileInventory
         }
 
         InoculumQty += inoculumAccepted;
+        #endregion
 
+        #region Drop recoverable overflow
         DropIngredientOverflow(be, Settings.Browns, brownsAdd - brownsAccepted);
         //  Intent: Nutrition is lossy
         DropIngredientOverflow(be, Settings.Inoculum, inoculumAdd - inoculumAccepted);
+        #endregion
 
+        #region Return accepted pile
         accepted = 1;
         return true;
+        #endregion
     }
 
     private void DropIngredientOverflow(BlockEntity be, CompostpileSettings.Ingredient ingredient, int quantity)
@@ -462,41 +496,43 @@ public sealed class CompostpileInventory
     {
         consumedQty = 0;
 
-        #region If we have NutritionProps,
+        #region Require nutrition props
         ItemStack stack = slot.Itemstack;
         var collectible = stack?.Collectible;
         var nutritionProps = collectible?.NutritionProps;
         if (nutritionProps is null)
             return false;
         #endregion
-        #region Room,
+        #region Cap by nutrition room
         int roomQty = Settings.Nutrition.MaxQty - NutritionQty;
         int nutritionBudget = Math.Min(roomQty, Settings.Nutrition.MaxInputPerAdd);
         if (nutritionBudget < 1)
             return false;
         #endregion
-        #region A cost per input,
+        #region Resolve nutrition per input
         float nutritionPerInput = GetNutritionPerInput(stack);
         if (nutritionPerInput <= 0)
             return false;
         #endregion
-        #region Atleast one input,
+        #region Resolve consumable input qty
         int stackConsumeMaxQty = (int)MathF.Floor(nutritionBudget / nutritionPerInput);
         int stackConsumeQty = Math.Min(stackConsumeMaxQty, slot.StackSize);
         if (stackConsumeQty < 1)
             return false;
         #endregion
         
+        #region Resolve nutrition output qty
         int nutritionAddQty = (int)MathF.Ceiling(stackConsumeQty * nutritionPerInput);
         nutritionAddQty = Math.Min(nutritionAddQty, nutritionBudget);
         if (nutritionAddQty < 1)
             return false;
+        #endregion
 
-        #region Add nutrition
+        #region Apply nutrition gain
         NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out int cur);
         NutritionStacks[nutritionProps.FoodCategory] = cur + nutritionAddQty;
         #endregion
-        #region And return true out acceptedstackConsumedQty
+        #region Return consumed qty
         consumedQty = stackConsumeQty;
         return true;
         #endregion
@@ -684,26 +720,34 @@ public sealed class CompostpileInventory
         |   ProcessCompost(be, totalHours);
     }
 
+    #region CachedEnvironment
     private double _lastPreUpdatedHours = -1;
     private bool _skyExposed;
     private float _envTemp;
     private bool _inGreenhouse;
     private float _insulation01;
+    #endregion
     private void PreUpdateState(BlockEntity be, double totalHours, bool forceRecalc = false)
     {
+        #region Resolve exposure change
         bool nowSkyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
         forceRecalc |= nowSkyExposed ^ _skyExposed;
+        #endregion
         
+        #region Skip fresh cached state
         if (_lastPreUpdatedHours + 1 > totalHours
         && !forceRecalc
             )
             return;
+        #endregion
 
+        #region Refresh cached environment
         _skyExposed = nowSkyExposed;
         _envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, _skyExposed, Settings.GreenhouseHeat, out _inGreenhouse);
         UpdateInsulation01();
         
         _lastPreUpdatedHours = totalHours;
+        #endregion
     }
     
     private void UpdateInsulation01()
@@ -728,6 +772,7 @@ public sealed class CompostpileInventory
 
     private bool UpdateMoisture(BlockEntity be, double totalHours)
     {
+        #region Initialise moisture timestamp
         if (PrevTimeMoistureUpdated < 0
         ||  PrevTimeMoistureUpdated > totalHours
            )
@@ -735,11 +780,15 @@ public sealed class CompostpileInventory
             PrevTimeMoistureUpdated = totalHours;
             return true;
         }
+        #endregion
         
+        #region Resolve elapsed moisture time
         float dtMoistureDays = (float)((totalHours - PrevTimeMoistureUpdated) / be.Api.World.Calendar.HoursPerDay);
         if (dtMoistureDays <= 0)
             return false;
+        #endregion
         
+        #region Collect rainfall exposure
         float rainfallHours = 0;
 
         if (_skyExposed)
@@ -747,18 +796,23 @@ public sealed class CompostpileInventory
             _weather ??= be.Api.ModLoader.GetModSystem<WeatherSystemBase>();
             rainfallHours = _weather?.GetTotalRainfallSince(be.Pos, PrevTimeMoistureUpdated, totalHours) ?? 0f;
         }
+        #endregion
         
+        #region Apply rainfall and drying
         if (rainfallHours > 0f)
             Moisture01 += rainfallHours * Settings.Moisture01GainPerRainyDay / be.Api.World.Calendar.HoursPerDay;
         
         float ambientDrying01 = Math.Clamp(_envTemp / 20f, 0.05f, 1.75f);
         Moisture01 -= ambientDrying01 * dtMoistureDays / Settings.MoistureAmbientRetentionDays;
+        #endregion
         
+        #region Clamp by passive retention
         float retention01 = GameMath.Lerp(0.05f, 0.50f, _insulation01);
         Moisture01 = Math.Clamp(Math.Max(Moisture01, retention01), 0f, 1f);
         
         PrevTimeMoistureUpdated = totalHours;
         return true;
+        #endregion
     }
 
     private bool UpdateAeration(BlockEntity be, double totalHours)
@@ -805,6 +859,7 @@ public sealed class CompostpileInventory
 
     private bool UpdateTemperature(BlockEntity be, double totalHours)
     {
+        #region Initialise temperature timestamp
         if (_prevTimeTemperatureUpdated < 0
         ||  _prevTimeTemperatureUpdated > totalHours
            )
@@ -813,11 +868,15 @@ public sealed class CompostpileInventory
             _temperature = _envTemp;
             return true;
         }
+        #endregion
         
+        #region Resolve elapsed temperature time
         double dtTemperatureHours = totalHours - _prevTimeTemperatureUpdated;
         if (dtTemperatureHours <= 0f)
             return false;
+        #endregion
         
+        #region Resolve cooling response
         float evaporativeCooling01 =
             Moisture01 > Settings.Moisture01Optimal
         ?   0.35f * (Moisture01 - Settings.Moisture01Optimal) / (1f - Settings.Moisture01Optimal)
@@ -830,12 +889,15 @@ public sealed class CompostpileInventory
             );
         double coolingAmount = coolingRate * dtTemperatureHours;
         float coolingFactor = (float)(coolingAmount / (1f + coolingAmount));
+        #endregion
         
+        #region Move toward target temperature
         float targetTemp = _envTemp + GetInternalHeat() + AdjacentBlockHeat * Settings.NeighbourHeatRate;
         _temperature += (targetTemp - _temperature) * coolingFactor;
         _prevTimeTemperatureUpdated = totalHours;
 
         return true;
+        #endregion
     }
 
     private bool UpdateStress(BlockEntity be, double totalHours)
@@ -869,6 +931,7 @@ public sealed class CompostpileInventory
     #region Processing
     private bool ProcessCompost(BlockEntity be, double totalHours)
     {
+        #region Initialise or reject processing window
         if (PrevTimeProcessed < 0
         ||  PrevTimeProcessed > totalHours
         || (InoculumQty + CompostQty >= Settings.Inoculum.MaxQty
@@ -878,7 +941,9 @@ public sealed class CompostpileInventory
             PrevTimeProcessed = totalHours;
             return false;
         }
+        #endregion
 
+        #region Resolve available bulk portions
         float brownsPortions = (float)BrownsQty / Settings.Browns.ConsumePerTransition;
         float nutritionPortions = (float)NutritionQty / Settings.Nutrition.ConsumePerTransition;
         float bulkPortions = brownsPortions + nutritionPortions;
@@ -888,20 +953,28 @@ public sealed class CompostpileInventory
             PrevTimeProcessed = totalHours;
             return false;
         }
+        #endregion
         
+        #region Resolve completed transitions
         float transitionRate = Settings.BaseCompostRatePerHour * GetFactor();
         double durationTransitions = (totalHours - PrevTimeProcessed) * transitionRate;
         int transitions = (int)Math.Min(durationTransitions, bulkPortions);
         if (transitions < 1)
             return false; // keep accruing progress
+        #endregion
         
+        #region Resolve output transitions
         (int compostOutput, int failedOutput) = ResolveOutputTransitions(transitions);
         int actualTransitions = compostOutput + failedOutput;
         if (actualTransitions < 1)
             return false; // keep accruing progress
+        #endregion
         
+        #region Resolve consumed input portions
         (float brownsInputPortions, float nutritionInputPortions) = ResolveInputPortions(actualTransitions, brownsPortions, nutritionPortions);
+        #endregion
         
+        #region Apply input and output mutation
         BrownsQty -= (int)Math.Min(brownsInputPortions * Settings.Browns.ConsumePerTransition, BrownsQty);
         TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionInputPortions * Settings.Nutrition.ConsumePerTransition));
 
@@ -916,9 +989,12 @@ public sealed class CompostpileInventory
         -   compostOutput * Settings.Inoculum.ConsumePerTransition
             ,0,Settings.Inoculum.MaxQty - CompostQty
             );
+        #endregion
 
+        #region Advance processed time
         PrevTimeProcessed += Math.Floor(durationTransitions) / transitionRate;
         return true;
+        #endregion
     }
 
     private (int compostOutput, int failedOutput) ResolveOutputTransitions(int transitions)
