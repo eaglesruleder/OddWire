@@ -14,6 +14,7 @@ That means:
 - one file doing a lot of directly related work is acceptable
 - helper extraction is selective, not automatic
 - descriptive `#region`s are a valid readability tool in larger mechanic files
+- method-local `#region`s may also be used as **behaviour-step regions** when a method has several meaningful steps
 
 ---
 
@@ -25,6 +26,12 @@ The code should read like:
 Not like:
 
 **clever expression -> hidden behaviour -> comment explaining it afterwards**
+
+A reader should be able to skim:
+- file regions for major concern grouping
+- method names for behaviour grouping
+- method-local regions for step grouping
+- code lines for exact implementation
 
 ---
 
@@ -154,8 +161,18 @@ Good comment use:
 - intentionally weird behaviour that might be “fixed” by mistake
 - communication notes requested by the user
 
-### 9. Use descriptive `#region`s in larger RAD files
+### 9. Use descriptive `#region`s at two levels
 When one file owns several directly related concerns, keep it navigable.
+
+Use file-level `#region`s for major concern grouping, for example:
+- `StoredState`
+- `RateHelpers`
+- `Harvest`
+- `Input`
+- `StateUpdates`
+- `Persistence`
+
+Use method-level `#region`s only when a method has several meaningful steps and those steps are worth skimming as a mini-outline.
 
 Preferred remedy order:
 1. improve names
@@ -165,6 +182,113 @@ Preferred remedy order:
 
 A large file should not fail just for being large.
 It should fail when the reader cannot quickly find the concern they need.
+
+### 10. Treat method-local `#region`s as behaviour-step regions
+Inside a longer method, a `#region` should mark one real step in the method story.
+
+Good region use:
+- one guard block
+- one derived-value block
+- one mutation block
+- one return/finish block
+
+Bad region use:
+- wrapping arbitrary lines just to create folds
+- titles that only describe syntax
+- titles that are too vague to tell what the step actually proves or changes
+
+A method should be skimmable like:
+- require valid source
+- require room
+- resolve conversion rate
+- resolve consumable quantity
+- apply state mutation
+- return accepted quantity
+
+### 11. Region names should describe intent, not just fragments
+Prefer region titles that tell the reader what the step means.
+
+Prefer:
+- `Require nutrition props`
+- `Cap by nutrition room`
+- `Resolve nutrition per input`
+- `Resolve consumable input qty`
+- `Resolve nutrition output qty`
+- `Apply nutrition gain`
+- `Return consumed qty`
+
+Avoid:
+- `If we have NutritionProps,`
+- `Room,`
+- `A cost per input,`
+- `Atleast one input,`
+- `And return true out acceptedstackConsumedQty`
+
+The rough form is still useful during ideation, but final region names should read like stable behaviour-step language.
+
+### 12. Each region should usually end with one of three outcomes
+A region should usually:
+- reject and return
+- compute and store a value needed by later regions
+- mutate state in one clear way
+
+If a line introduces a new semantic step, it usually deserves either:
+- its own region
+- or a better helper name
+
+Do not leave the most important step as unlabelled math in the middle if the surrounding regions are carrying the story.
+
+### 13. Use regions to make IDE folding become a design outline
+In the editor, file regions and method-local regions should let the user skim the code as if it were a design note.
+
+That means the fold labels should tell a truthful story of the code.
+If the fold labels are weak, the pseudocode layer is weak even if the implementation is correct.
+
+The ideal is:
+- fully expanded: exact code
+- partially folded: exact algorithm outline
+- mostly folded: concern map of the class
+
+### 14. Region-backed pseudocode is a valid collaboration format
+A user may provide a skeleton like:
+
+```csharp
+TryAddNewResource()
+{
+    #region Check we have room
+    #endregion
+
+    #region Check we have valid input
+    #endregion
+
+    #region Resolve conversion
+    #endregion
+
+    #region Apply mutation
+    #endregion
+
+    #region Return accepted qty
+    #endregion
+}
+```
+
+That is a valid implementation handoff shape.
+
+When working from this kind of skeleton:
+- preserve the region order unless there is a real correctness issue
+- fill each region with the narrowest logic that matches the heading
+- tighten region names if needed, but keep the original intent
+- do not silently replace the structure with a totally different abstraction unless clearly beneficial
+- mention when a region is missing a required step or mixes multiple steps
+
+### 15. Prefer one clear level of intent per method
+A method should usually read at one dominant level:
+- top-level flow
+- or local implementation detail
+
+If a method is mixing five tiny math decisions, three side effects, and two domain exceptions, either:
+- improve the region outline
+- or extract a helper whose name explains the chunk better than the inline block does
 
 ---
 
@@ -185,7 +309,10 @@ Write the top-level method so it reads like the intended process.
 ### 3. Keep detail local unless extraction helps
 Push complexity down only when the helper name makes the code easier to read.
 
-### 4. Comment only where naming cannot carry intent
+### 4. If the method gets medium-sized, add a truthful region outline
+Use method-local `#region`s when they improve skim-reading and future promptability.
+
+### 5. Comment only where naming cannot carry intent
 Use comments for:
 - domain rules
 - invariants
@@ -205,6 +332,7 @@ When writing code in this language:
 - keep client/server concerns separated
 - do not invent abstractions unless the code actually needs them
 - allow one file to hold multiple layers of directly related gameplay logic during active iteration
+- prefer region-backed step outlines over premature file splitting when the class is still one coherent mechanic
 
 ---
 
@@ -236,5 +364,8 @@ Rules:
 - prefer explicit flow over clever compressed expressions
 - allow large files when the work is directly related
 - use descriptive `#region`s before recommending file splits
+- method-local `#region`s may be used as behaviour-step regions
+- region names should describe behaviour, not just fragments
+- when given a region skeleton, preserve it and implement to that structure where practical
 - ask early when missing details would materially change the answer
 - if a best-effort answer is still useful, give the narrowest useful answer and state assumptions plainly

@@ -54,7 +54,17 @@ Expected behaviour:
 - do not introduce abstractions unless they remove real complexity
 - allow one file to hold multiple layers of directly related gameplay logic during active iteration
 
-### 4. Produce review-ready output
+### 4. Clean rough structure into behaviour-step language
+When code already uses regions, comments, or rough pseudocode scaffolding, tighten it into stable behaviour-step language that is easy to skim, reason about, and implement against later.
+
+Expected behaviour:
+- clean up rough or draft `#region` names into stable behaviour-step language
+- prefer region titles that describe what the step requires, resolves, applies, or returns
+- preserve the existing step structure when it is already useful
+- use comments as clarification logic for non-obvious intent, invariants, or domain rules, not as a substitute for weak naming
+- when given rough pseudocode or broken-English scaffolding, normalise the wording without losing the requested structure
+
+### 5. Produce review-ready output
 A good answer is not just code. It should make the change easy to assess.
 
 Expected behaviour:
@@ -63,7 +73,7 @@ Expected behaviour:
 - note assumptions
 - identify anything that still needs compile validation, runtime testing, or manual verification
 
-### 5. Ask early when ambiguity materially changes the outcome
+### 6. Ask early when ambiguity materially changes the outcome
 Asking clarifying questions is good engineering behaviour when missing detail would materially change the patch, review, design advice, or recommended architecture.
 
 Expected behaviour:
@@ -144,13 +154,15 @@ Standard:
 
 ## Code Standards
 
-For code style, naming, helper extraction, method shape, comments, control flow, `#region` use, and large-file readability, follow `gpt_style.pseudocode.md`.
+Follow `gpt_style.pseudocode.md` for code style, naming, helper extraction, method shape, comments, control flow, `#region` use, and large-file readability.
 
 In short:
 - write code as applied pseudocode: `check -> decide -> do -> return`
 - preserve surrounding style and prefer the narrowest safe change
 - prefer explicit, readable flow over compressed cleverness
 - use helpers only when the name adds real clarity
+- clean rough `#region` labels into stable behaviour-step names before suggesting bigger refactors
+- use comments to clarify non-obvious intent, invariants, or domain rules around a step
 - keep large RAD files navigable before recommending splits
 - avoid LINQ in hot paths or where explicit iteration is clearer
 - keep client/server concerns separated
