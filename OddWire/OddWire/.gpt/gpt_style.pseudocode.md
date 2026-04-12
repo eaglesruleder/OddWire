@@ -8,6 +8,10 @@ Write code in a style that reads like practical pseudocode implemented directly 
 The goal is not abstract “clean code”.
 The goal is code that is fast to read, easy to reason about, and shaped like intent.
 
+This style standard is mainly about readability, cleanliness, editor navigation, and implemented-pseudocode fit.
+It should influence ratings like `Code quality`, `Self-documenting`, and `Pseudocode clarity`.
+It should not be treated as the main source for runtime safety or stability scoring.
+
 This style is written for **RAD development**.
 That means:
 - direct implementation is often better than early abstraction

@@ -210,6 +210,7 @@ Standard:
 Deliver these ratings:
 - **Humanishness:** 0-10
 - **Code quality:** 0-10
+- **Code stability:** 0-10
 - **Completeness:** done/undone as a weighted split like 90/10
 - **Self-documenting:** 0-10
 - **Pseudocode clarity:** 0-10
@@ -218,6 +219,18 @@ Standard:
 - justify ratings with concrete evidence
 - do not inflate scores because the intent is good
 - do not tank scores just because the file is big during RAD
+
+`Code quality` should judge mainly:
+- cleanliness and readability of the implementation
+- naming clarity and local flow
+- how well the code matches the project pseudocode standard
+- whether the file stays navigable and maintainable for the current RAD phase
+
+`Code stability` should judge mainly:
+- runtime safety and integrity
+- compile confidence and API correctness
+- client/server ownership, persistence, and tick/update safety
+- how likely the code is to behave correctly in-game under real state changes
 
 `Pseudocode clarity` should judge both:
 - how easy the code is to read as step-by-step logic
@@ -231,6 +244,7 @@ Standard:
 When doing a formal review or quality pass, start with:
 - **Humanishness:** X/10
 - **Code quality:** X/10
+- **Code stability:** X/10
 - **Completeness:** X/Y
 - **Self-documenting:** X/10
 - **Pseudocode clarity:** X/10
@@ -306,6 +320,11 @@ Use language like:
 - **Confirmed:** directly supported by the code
 - **Likely:** strong inference from visible flow
 - **Assumed:** depends on unseen code, engine behaviour, or omitted requirements
+
+When scoring, keep the split explicit:
+- **Code quality** is about cleanliness, readability, navigability, and pseudocode-standard fit
+- **Code stability** is about runtime safety, correctness, and confidence the code will hold up in-game
+- do not use `Code quality` as a proxy for stability when the structure is good but runtime risk remains
 
 ### Prefer grounded criticism
 Do not praise by default.
