@@ -17,7 +17,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
     
     private readonly CompostpileInventory _inventory = new();
 
-    private bool[] _neighbourHeatSource = new bool[BlockFacing.NumberOfFaces];
+    private bool _neighbourHeatSource;
     private bool _neighboursDirty;
     public bool NeighboursDirty
     {   get => _neighboursDirty;
@@ -209,11 +209,13 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
 
     private float GetNeighbourHeat()
     {
+        if (!_neighbourHeatSource)
+            return 0f;
+        
         float result = 0f;
-
-        for (int i = 0; i < _neighbourHeatSource.Length; i++)
+        for (int i = 0; i < BlockFacing.NumberOfFaces; i++)
         {
-            if(!_neighbourHeatSource[i])
+            if(i == BlockFacing.indexDOWN)
                 continue;
             
             BlockPos neighbourPos = Pos.AddCopy(BlockFacing.ALLFACES[i]);
@@ -223,7 +225,6 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
                ?.GetHeatStrength(Api.World, neighbourPos, Pos.Copy())
             ??   0;
         }
-
         return result;
     }
     
@@ -256,7 +257,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
         BlockPos neighbourPos = Pos.AddCopy(neighbour);
         
         Block neighbourBlock = blockAccessor.GetBlock(neighbourPos);
-        _neighbourHeatSource[neighbour.Index] = neighbourBlock?.GetInterface<IHeatSource>(Api.World, neighbourPos) is not null;
+        _neighbourHeatSource |= neighbourBlock?.GetInterface<IHeatSource>(Api.World, neighbourPos) is not null;
         
         if (neighbourBlock is null
         ||  neighbourBlock.Id == 0
