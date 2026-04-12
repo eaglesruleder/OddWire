@@ -13,7 +13,7 @@ namespace OddWire.GameContent;
 
 public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
 {
-    private CompostpileSettings Settings => CompostpileSettings.Default;
+    private CompostpileSettings Settings => new();
     
     private readonly CompostpileInventory _inventory = new();
 
