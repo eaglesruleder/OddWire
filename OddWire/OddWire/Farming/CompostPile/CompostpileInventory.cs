@@ -54,7 +54,6 @@ public sealed class CompostpileInventory
     public float AdjacentBlockHeat;
     #endregion
     
-    
     #region RateHelpers
     //  Factor impacts Processing Rate
     public float GetFactor()
@@ -162,8 +161,7 @@ public sealed class CompostpileInventory
         return 0;
     }
     #endregion
-
-
+    
     #region Harvest
     //  Intent: Nutrition is lossy
     public bool CanHarvest() =>
@@ -190,7 +188,7 @@ public sealed class CompostpileInventory
 
         CompostQty = Math.Max(CompostQty - available, 0);
         
-        PreUpdateInsulation01();
+        UpdateInsulation01();
         return true;
     }
     
@@ -222,7 +220,7 @@ public sealed class CompostpileInventory
         TryRemoveCheapestNutrition(Settings.Nutrition.InitialQty * available);
         InoculumQty = Math.Max(InoculumQty - Settings.Inoculum.InitialQty * available, 0);
 
-        PreUpdateInsulation01();
+        UpdateInsulation01();
         return true;
     }
     
@@ -246,7 +244,7 @@ public sealed class CompostpileInventory
 
         InoculumQty = Math.Max(InoculumQty - available, 0);
         
-        PreUpdateInsulation01();
+        UpdateInsulation01();
         return true;
     }
     
@@ -270,12 +268,11 @@ public sealed class CompostpileInventory
 
         BrownsQty = Math.Max(BrownsQty - available, 0);
         
-        PreUpdateInsulation01();
+        UpdateInsulation01();
         return true;
     }
     #endregion
-
-
+    
     #region Input
     public void ResetOnPlaced(Block block)
     {
@@ -336,7 +333,7 @@ public sealed class CompostpileInventory
             return false;
         
         RestoreAeration01(be, restoreAeration);
-        PreUpdateInsulation01();
+        UpdateInsulation01();
         return true;
     }
     
@@ -404,14 +401,14 @@ public sealed class CompostpileInventory
         int nutritionAdd = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
         int inoculumAdd = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
 
+        //  Intent: Nutrition is lossy, matching harvest behaviour.
         int brownsRoom = Math.Max(Settings.Browns.MaxQty - BrownsQty, 0);
         int nutritionRoom = Math.Max(Settings.Nutrition.MaxQty - NutritionQty, 0);
+        int inoculumRoom = GetInoculumRoomQty();
         if (brownsRoom < 1
-        &&  nutritionRoom < 1
+        &&  inoculumRoom < 1
             )
             return false;
-
-        int inoculumRoom = GetInoculumRoomQty();
 
         int brownsAccepted = Math.Min(brownsAdd, brownsRoom);
         int nutritionAccepted = Math.Min(nutritionAdd, nutritionRoom);
@@ -434,8 +431,7 @@ public sealed class CompostpileInventory
         InoculumQty += inoculumAccepted;
 
         DropIngredientOverflow(be, Settings.Browns, brownsAdd - brownsAccepted);
-
-        // Intentional: Nutrition overflow from bundled compostpile input stays lossy, matching harvest behaviour.
+        //  Intent: Nutrition is lossy
         DropIngredientOverflow(be, Settings.Inoculum, inoculumAdd - inoculumAccepted);
 
         accepted = 1;
@@ -462,47 +458,51 @@ public sealed class CompostpileInventory
         }
     }
     
-    private bool TryAddNutrition(ItemSlot slot, out int accepted)
+    private bool TryAddNutrition(ItemSlot slot, out int consumedQty)
     {
-        accepted = 0;
+        consumedQty = 0;
 
+        #region If we have NutritionProps,
         ItemStack stack = slot.Itemstack;
         var collectible = stack?.Collectible;
         var nutritionProps = collectible?.NutritionProps;
         if (nutritionProps is null)
             return false;
-
+        #endregion
+        #region Room,
         int roomQty = Settings.Nutrition.MaxQty - NutritionQty;
-        if (roomQty < 1)
+        int nutritionBudget = Math.Min(roomQty, Settings.Nutrition.MaxInputPerAdd);
+        if (nutritionBudget < 1)
             return false;
-    
-        float nutritionQtyPerInput = GetNutritionRotQtyPerInput(stack);
-        if (nutritionQtyPerInput <= 0f)
+        #endregion
+        #region A cost per input,
+        float nutritionPerInput = GetNutritionPerInput(stack);
+        if (nutritionPerInput <= 0)
             return false;
-
-        // MaxInputPerAdd refs NutritionQty, not StackSize
-        int nutritionMaxAdd = Math.Min(roomQty, Settings.Nutrition.MaxInputPerAdd);
-        float nutritionAdd =
-            nutritionMaxAdd > nutritionQtyPerInput
-        ?   MathF.Floor(nutritionMaxAdd / nutritionQtyPerInput)
-        :   MathF.Ceiling(nutritionMaxAdd / nutritionQtyPerInput);
-        
-        int stackConsumeQty = (int)Math.Min(nutritionAdd, slot.StackSize);
+        #endregion
+        #region Atleast one input,
+        int stackConsumeMaxQty = (int)MathF.Floor(nutritionBudget / nutritionPerInput);
+        int stackConsumeQty = Math.Min(stackConsumeMaxQty, slot.StackSize);
         if (stackConsumeQty < 1)
             return false;
+        #endregion
         
-        int nutritionAddQty = (int)(stackConsumeQty * nutritionQtyPerInput);
+        int nutritionAddQty = (int)MathF.Ceiling(stackConsumeQty * nutritionPerInput);
+        nutritionAddQty = Math.Min(nutritionAddQty, nutritionBudget);
         if (nutritionAddQty < 1)
             return false;
 
+        #region Add nutrition
         NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out int cur);
         NutritionStacks[nutritionProps.FoodCategory] = cur + nutritionAddQty;
-
-        accepted = stackConsumeQty;
+        #endregion
+        #region And return true out acceptedstackConsumedQty
+        consumedQty = stackConsumeQty;
         return true;
+        #endregion
     }
 
-    private float GetNutritionRotQtyPerInput(ItemStack stack)
+    private float GetNutritionPerInput(ItemStack stack)
     {
         var transitionProps =
             stack.Item?.TransitionableProps
@@ -530,8 +530,7 @@ public sealed class CompostpileInventory
         return 1f;
     }
     #endregion
-
-
+    
     #region NutritionRemoval
     private bool TryGetCheapestNutritionCategory(out EnumFoodCategory result)
     {
@@ -641,8 +640,7 @@ public sealed class CompostpileInventory
         }
     }
     #endregion
-
-
+    
     #region StateUpdates
     public void RestoreAeration01(BlockEntity be, float aeration)
     {
@@ -693,24 +691,22 @@ public sealed class CompostpileInventory
     private float _insulation01;
     private void PreUpdateState(BlockEntity be, double totalHours, bool forceRecalc = false)
     {
+        bool nowSkyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
+        forceRecalc |= nowSkyExposed ^ _skyExposed;
+        
         if (_lastPreUpdatedHours + 1 > totalHours
         && !forceRecalc
             )
             return;
 
-        PreUpdateEnv(be, totalHours);
-        PreUpdateInsulation01();
+        _skyExposed = nowSkyExposed;
+        _envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, _skyExposed, Settings.GreenhouseHeat, out _inGreenhouse);
+        UpdateInsulation01();
         
         _lastPreUpdatedHours = totalHours;
     }
-
-    private void PreUpdateEnv(BlockEntity be, double totalHours)
-    {
-        _skyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
-        _envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, _skyExposed, Settings.GreenhouseHeat, out _inGreenhouse);
-    }
     
-    private void PreUpdateInsulation01()
+    private void UpdateInsulation01()
     {
         _insulation01 = 0.25f + 0.75f * GetFullness01();
         if (!_skyExposed)
@@ -870,7 +866,6 @@ public sealed class CompostpileInventory
     }
     #endregion
 
-
     #region Processing
     private bool ProcessCompost(BlockEntity be, double totalHours)
     {
@@ -1025,8 +1020,7 @@ public sealed class CompostpileInventory
         return (brownsInputPortions, nutritionInputPortions);
     }
     #endregion
-
-
+    
     #region Visuals
     public Vec4f GetVisualTintRgba()
     {
@@ -1053,8 +1047,7 @@ public sealed class CompostpileInventory
             );
     }
     #endregion
-
-
+    
     #region Persistence
     public void ToTreeAttributes(ITreeAttribute tree, string? key = null)
     {

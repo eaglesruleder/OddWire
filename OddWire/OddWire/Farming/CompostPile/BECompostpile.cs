@@ -85,7 +85,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
         int variantSize = Math.Clamp((int)Math.Ceiling((float)stackSize / 64), 1, 5);
         AssetLocation loc = Block.CodeWithVariant("size", $"#{variantSize:0}");
         Block block = Api.World.GetBlock(loc);
-        if (block == null)
+        if (block == null
+        ||  block.Code == Block.Code
+            )
             return;
 
         Api.World.BlockAccessor.ExchangeBlock(block.Id, Pos);
@@ -293,7 +295,10 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
             &&  room.ExitCount == 0;
         }
 
-        string roomLabel = inGreenhouse ? "Greenhouse" : "Outside";
+        string roomLabel = 
+            inGreenhouse ? "Greenhouse"
+        :   skyExposed ? "Outside"
+        :   "Inside";
         if (Settings.InfoDebug)
             roomLabel += Lang.Get(" ({0:0.#}°C)", Api.GetEnvironmentTemperatureC(Pos, Api.World.Calendar.TotalHours, skyExposed, Settings.GreenhouseHeat, out _));
         
@@ -309,9 +314,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
         if (Settings.InfoDebug)
         {
             dsc.AppendLine(Lang.Get
-                ("Airflow {0:0}% ({1}/5 blocked)"
-                ,1f - _inventory.AdjacentBlockCount * Settings.AerationBlockedPenalty
+                ("Neighbours: {0}/5 blocking{1}"
                 ,_inventory.AdjacentBlockCount
+                ,_inventory.AdjacentBlockHeat > 0 ? $" | Heat: {_inventory.AdjacentBlockHeat:0.0}°C" : ""
                 ));
             dsc.AppendLine(Lang.Get
                 ("Health {0:0}% | Temp {1:0}% × Moist {2:0}% × Air {3:0}%"
