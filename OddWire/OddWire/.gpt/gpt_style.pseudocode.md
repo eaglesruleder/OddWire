@@ -15,6 +15,7 @@ That means:
 - helper extraction is selective, not automatic
 - descriptive `#region`s are a valid readability tool in larger mechanic files
 - method-local `#region`s may also be used as **behaviour-step regions** when a method has several meaningful steps
+- the fold structure should optimise **editor navigation and skim-reading first**, not formal prose purity
 
 ---
 
@@ -35,9 +36,74 @@ A reader should be able to skim:
 
 ---
 
+## Design Bias
+
+### 1. Treat code as something read in the IDE, not just in review
+The code should still make sense when partially folded.
+
+Preferred skim states:
+- **fully expanded**: exact implementation
+- **partially folded**: rough method story
+- **mostly folded**: class concern map
+
+This means region labels do not need to be perfect English.
+They do need to make the fold view useful.
+
+### 2. Optimise for local mechanic language
+Prefer wording that fits the actual mechanic and the surrounding codebase.
+
+Good labels may use:
+- local domain nouns
+- concrete state names
+- concrete method or field names
+- rough English when it still scans clearly
+
+Examples:
+- `Default moisture`
+- `Client _tintRenderer`
+- `Server OnEvery12Seconds`
+- `Update neighbours`
+- `Update _inventory`
+- `Get Environment`
+- `Make roomLabel`
+- `Write CompostingStatus`
+- `Materials`
+
+Do not force every region title into formal command language when a shorter project-shaped label is easier to skim.
+
+### 3. Prefer truthful labels over polished labels
+A label should tell the reader what block they are about to unfold.
+That matters more than whether the wording is elegant.
+
+Good:
+- `Get MinMax`
+- `Browns`
+- `Nutrition`
+- `Inoculum`
+- `Debug health`
+- `Debug`
+
+Bad:
+- labels that sound polished but hide what the code really does
+- labels so generic that they stop helping navigation
+- labels that are longer than the block they describe
+
+### 4. Regions are allowed to be a little rough when they still carry the story
+This style does **not** require every region to read like final documentation prose.
+
+It is acceptable for a region name to be:
+- short
+- slightly rough
+- mixed with project-specific symbols
+- closer to prompt language than to textbook naming
+
+That is valid when it makes the file easier to work in.
+
+---
+
 ## What this means in practice
 
-### 1. Top-level methods should read like process steps
+### 5. Top-level methods should read like process steps
 A reader should be able to skim a method and understand the whole story without diving into every line.
 
 Prefer:
@@ -61,7 +127,7 @@ public bool TryAddFromHeldSlot(ItemSlot slot, out int accepted)
 But do not extract helpers just for style.
 A short inline method is also good when it already reads clearly.
 
-### 2. Prefer readable inline logic when it is already clear
+### 6. Prefer readable inline logic when it is already clear
 Good applied pseudocode is often a compact method with a few guards and one action.
 
 Prefer:
@@ -89,7 +155,7 @@ public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer
 
 This is good when the flow is still easy to scan.
 
-### 3. Use helpers when the name adds real value
+### 7. Use helpers when the name adds real value
 Extract a helper when:
 - the block has strong domain meaning
 - the same logic is reused
@@ -102,7 +168,7 @@ Do not extract a helper when:
 - the helper would only wrap one or two trivial lines
 - the result would feel fragmented or over-abstracted
 
-### 4. Prefer good variable names over explanatory prose
+### 8. Prefer good variable names over explanatory prose
 Prefer:
 - `acceptedQuantity`
 - `remainingNutrition`
@@ -123,7 +189,7 @@ Short local names are acceptable when they have common, meaningful usage in the 
 - `beFoo` over `blockEntityFoo`
 - `pos` over `position`
 
-### 5. Use methods as sentence fragments
+### 9. Use methods as sentence fragments
 Method names should sound like actions or decisions:
 - `CanAcceptFrom`
 - `TryRestoreAeration`
@@ -134,11 +200,11 @@ Method names should sound like actions or decisions:
 
 That lets the caller read like rough English.
 
-### 6. Prefer explicit control flow
+### 10. Prefer explicit control flow
 Use readable `if`, `foreach`, and early returns.
 Do not compress meaningful logic into dense expressions just because it is shorter.
 
-### 7. Prefer vertical scanning
+### 11. Prefer vertical scanning
 Where it fits the codebase, line up compound conditions so they scan cleanly:
 
 ```csharp
@@ -151,7 +217,7 @@ if (world.Side != EnumAppSide.Server
 
 This style is good when it makes the logic feel like stacked reasons, not a dense sentence.
 
-### 8. Use comments sparingly
+### 12. Use comments sparingly
 Do not write comments that just restate obvious code.
 
 Good comment use:
@@ -161,18 +227,25 @@ Good comment use:
 - intentionally weird behaviour that might be “fixed” by mistake
 - communication notes requested by the user
 
-### 9. Use descriptive `#region`s at two levels
+---
+
+## Region Use
+
+### 13. Use descriptive `#region`s at two levels
 When one file owns several directly related concerns, keep it navigable.
 
 Use file-level `#region`s for major concern grouping, for example:
 - `StoredState`
-- `RateHelpers`
-- `Harvest`
-- `Input`
-- `StateUpdates`
+- `HeatSource`
+- `TintRendering`
+- `Inventory`
+- `Lifecycle`
+- `Environment`
+- `BlockInfo`
 - `Persistence`
 
-Use method-level `#region`s only when a method has several meaningful steps and those steps are worth skimming as a mini-outline.
+Use method-level `#region`s when they improve skim-reading of a medium or large method.
+Do not avoid them just because the method is not huge.
 
 Preferred remedy order:
 1. improve names
@@ -183,73 +256,105 @@ Preferred remedy order:
 A large file should not fail just for being large.
 It should fail when the reader cannot quickly find the concern they need.
 
-### 10. Treat method-local `#region`s as behaviour-step regions
-Inside a longer method, a `#region` should mark one real step in the method story.
+### 14. Treat method-local `#region`s as fold-backed pseudocode
+Inside a longer method, a `#region` should mark one useful step in the method story.
 
 Good region use:
 - one guard block
+- one setup block
 - one derived-value block
 - one mutation block
-- one return/finish block
+- one write/output block
+- one finish block
+
+Also valid:
+- a short loop-body step when it materially helps skim-reading
+- a short sub-block inside a long method when it makes the fold view more truthful
 
 Bad region use:
-- wrapping arbitrary lines just to create folds
-- titles that only describe syntax
-- titles that are too vague to tell what the step actually proves or changes
+- wrapping arbitrary lines that do not form a real step
+- creating folds so tiny they clutter more than they help
+- forcing formal structure where the method is already clearer without it
 
 A method should be skimmable like:
-- require valid source
-- require room
-- resolve conversion rate
-- resolve consumable quantity
-- apply state mutation
-- return accepted quantity
+- `Default moisture`
+- `Client _tintRenderer`
+- `Server OnEvery12Seconds`
+- `Update neighbours`
+- `Update _inventory`
+- `Get Environment`
+- `Make roomLabel`
+- `Materials`
 
-### 11. Region names should describe intent, not just fragments
-Prefer region titles that tell the reader what the step means.
+### 15. Region names should aim for scan utility, not documentation prose
+Prefer region titles that make sense in the fold gutter.
 
 Prefer:
+- `Default moisture`
+- `Client _tintRenderer`
+- `Server OnEvery12Seconds`
+- `Get Environment`
+- `Make roomLabel`
+- `Write CompostingStatus`
+- `Debug health`
+- `Rates`
+- `Materials`
+- `Get MinMax`
+
+Still avoid:
+- titles that only describe syntax
+- titles that are misleading about what the block does
+- extremely long natural-language descriptions that make folding noisy
+
+This style no longer requires every region title to be formal command language like:
 - `Require nutrition props`
-- `Cap by nutrition room`
-- `Resolve nutrition per input`
-- `Resolve consumable input qty`
-- `Resolve nutrition output qty`
+- `Resolve room label`
 - `Apply nutrition gain`
-- `Return consumed qty`
 
-Avoid:
-- `If we have NutritionProps,`
-- `Room,`
-- `A cost per input,`
-- `Atleast one input,`
-- `And return true out acceptedstackConsumedQty`
+That form is still valid.
+It is no longer the only preferred form.
 
-The rough form is still useful during ideation, but final region names should read like stable behaviour-step language.
+### 16. A region may be local, concrete, and symbol-aware
+It is acceptable for region names to reference:
+- a field
+- a method name
+- a local output label
+- a domain concept
+- a concrete write target
 
-### 12. Each region should usually end with one of three outcomes
-A region should usually:
-- reject and return
-- compute and store a value needed by later regions
-- mutate state in one clear way
+Examples:
+- `Client _tintRenderer`
+- `Update _inventory`
+- `result += neighbours.GetHeatStrength()`
+- `Write CompostingStatus`
 
-If a line introduces a new semantic step, it usually deserves either:
-- its own region
-- or a better helper name
+Use this when it improves local navigation.
+Do not use it when it makes the label more confusing than the unfolded code.
 
-Do not leave the most important step as unlabelled math in the middle if the surrounding regions are carrying the story.
+### 17. Not every important line needs its own region
+The aim is a readable fold outline, not maximum segmentation.
 
-### 13. Use regions to make IDE folding become a design outline
+Add a method-local region when it improves one of these:
+- navigation
+- skim-reading
+- future prompting
+- implementation handoff
+- collaboration against a rough skeleton
+
+Do not add a region just because a line is important.
+
+### 18. Use regions to make IDE folding become a design outline
 In the editor, file regions and method-local regions should let the user skim the code as if it were a design note.
 
 That means the fold labels should tell a truthful story of the code.
-If the fold labels are weak, the pseudocode layer is weak even if the implementation is correct.
+If the fold labels are useful in your IDE workflow, the pseudocode layer is doing its job.
 
 The ideal is:
 - fully expanded: exact code
-- partially folded: exact algorithm outline
+- partially folded: rough implementation outline
 - mostly folded: concern map of the class
 
-### 14. Region-backed pseudocode is a valid collaboration format
+### 19. Region-backed pseudocode is a valid collaboration format
 A user may provide a skeleton like:
 
 ```csharp
@@ -274,14 +379,32 @@ TryAddNewResource()
 
 That is a valid implementation handoff shape.
 
+A user may also provide a rougher shape like:
+
+```csharp
+Initialize()
+{
+    #region Default moisture
+    #endregion
+
+    #region Client _tintRenderer
+    #endregion
+
+    #region Server OnEvery12Seconds
+    #endregion
+}
+```
+
+That is also a valid implementation handoff shape.
+
 When working from this kind of skeleton:
 - preserve the region order unless there is a real correctness issue
 - fill each region with the narrowest logic that matches the heading
-- tighten region names if needed, but keep the original intent
+- tighten obviously broken wording only when it improves scan value
 - do not silently replace the structure with a totally different abstraction unless clearly beneficial
 - mention when a region is missing a required step or mixes multiple steps
 
-### 15. Prefer one clear level of intent per method
+### 20. Prefer one clear level of intent per method
 A method should usually read at one dominant level:
 - top-level flow
 - or local implementation detail
@@ -312,7 +435,11 @@ Push complexity down only when the helper name makes the code easier to read.
 ### 4. If the method gets medium-sized, add a truthful region outline
 Use method-local `#region`s when they improve skim-reading and future promptability.
 
-### 5. Comment only where naming cannot carry intent
+### 5. Tune the labels for the user’s fold workflow
+Prefer the shortest truthful labels that make the fold view useful.
+Do not over-polish them into abstract prose unless that clearly helps.
+
+### 6. Comment only where naming cannot carry intent
 Use comments for:
 - domain rules
 - invariants
@@ -333,6 +460,7 @@ When writing code in this language:
 - do not invent abstractions unless the code actually needs them
 - allow one file to hold multiple layers of directly related gameplay logic during active iteration
 - prefer region-backed step outlines over premature file splitting when the class is still one coherent mechanic
+- prefer fold usefulness over region-name elegance
 
 ---
 
@@ -365,7 +493,9 @@ Rules:
 - allow large files when the work is directly related
 - use descriptive `#region`s before recommending file splits
 - method-local `#region`s may be used as behaviour-step regions
-- region names should describe behaviour, not just fragments
+- region names should optimise fold readability, not polished prose
+- short rough labels are valid when they are truthful and useful
+- labels may use local mechanic language, symbols, and concrete write targets
 - when given a region skeleton, preserve it and implement to that structure where practical
 - ask early when missing details would materially change the answer
 - if a best-effort answer is still useful, give the narrowest useful answer and state assumptions plainly
