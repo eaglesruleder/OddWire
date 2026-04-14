@@ -711,7 +711,7 @@ public sealed class CompostpileInventory
         if (Moisture01 >= 1)
             return false;
         
-        Moisture01 = Math.Clamp(Moisture01 + moisture, 0,1);
+        Moisture01 = Math.Clamp(Moisture01 + moisture * Settings.Moisture01WaterRate * (1f - GetFullness01()), 0,1);
         PrevTimeMoistureUpdated = totalHours;
 
         return true;

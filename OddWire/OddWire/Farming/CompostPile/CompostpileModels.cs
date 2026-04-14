@@ -87,6 +87,7 @@ public class CompostpileSettings
     #endregion
 
     #region MoistureTuning
+    public float Moisture01WaterRate { get; private set; } = 0.33f;
     public float Moisture01Initial { get; private set; } = 0.85f;
     public float Moisture01Optimal { get; private set; } = 0.60f;
     public float Moisture01GainPerRainyDay { get; private set; } = 0.30f;

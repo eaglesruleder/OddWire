@@ -11,7 +11,7 @@ using OddWire.Renderers;
 
 namespace OddWire.GameContent;
 
-public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
+public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWaterable
 {
     #region StoredState
     private static readonly CompostpileSettings Settings = new();
@@ -292,7 +292,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint
     public void Water(float dt)
     {
         if (Api?.Side == EnumAppSide.Server
-        &&  _inventory.RestoreMoisture01(this, dt/2)
+        &&  _inventory.RestoreMoisture01(this, dt)
             )
             MarkDirty();
     }
