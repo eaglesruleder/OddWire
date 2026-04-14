@@ -2,11 +2,11 @@
 	code: "compostpile",
 	class: "oddwirefarming.compostpile.block",
 	entityClass: "oddwirefarming.compostpile.blockentity",
-	behaviors: [ { name: "UnstableFalling" } ],
-	shape: { base: "farming/compostpile/compostpile-{size}" },
 	"variantgroups": [
 		{ code:"size", states: ["#1", "#2", "#3", "#4", "#5"] }
 	],
+	behaviors: [ { name: "UnstableFalling" } ],
+	shape: { base: "farming/compostpile/compostpile-{size}" },
 	drops: [],
 	creativeinventory: { "general": ["*"] },
 	blockmaterial: "Soil",
@@ -64,10 +64,6 @@
 			x1: 0, y1: 0, z1: 0,
 			x2: 1, y2: 0.8, z2: 1
 		},
-	},
-	combustibleProps: {
-		burnTemperature: 600,
-		burnDuration: 20,
 	},
 	sounds: {
 		place: "game:block/dirt",

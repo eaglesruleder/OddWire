@@ -1,4 +1,9 @@
 {
+    "block-compostpile-*": "Compost Pile",
+    "blockdesc-compostpile-*": "Turns Food, Rot, and Grass into Compost over time.",
+    "oddwire:block-handbooktitle-oddwire:compostpile-*": "Use:",
+    "oddwire:block-handbooktext-oddwire:compostpile-*": "Construct a starter pile in the crafting grid.<br>Once placed, add Rot or Compost to seed it, Food to feed it, and Dry Grass to build bulk and improve airflow.<br>Composting works best when the pile is warm, damp, and well supplied. Temperature is best around 20-55°C; greenhouse warmth, sheltered placement, and nearby heat sources can help, but too much heat will harm it.<br>Moisture is best when kept damp but not soaked. Rain and watering restore moisture, while long dry periods slow the pile down.<br>Aeration is restored when adding material, but collapses over time, especially if the pile is boxed in by nearby blocks.<br>When the pile yields Compost or has collapsed, dig it up. Some Compost Pile is returned so it can be rebuilt and turned back into the process.",
+    
     "block-brazier-short-copper-*": "Brazier (Copper)",
     "block-brazier-tall-copper-*": "Tall Brazier (Copper)",
     "block-brazier-short-tinbronze-*": "Brazier (Tin Bronze)",
