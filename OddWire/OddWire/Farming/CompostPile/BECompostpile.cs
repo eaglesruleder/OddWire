@@ -18,7 +18,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     private readonly CompostpileInventory _inventory = new();
     #endregion
     
-    #region HeatSource
+    #region HeatSourceEmission
     private bool _neighbourHeatSource;
     private bool _neighboursDirty;
     public bool NeighboursDirty
@@ -81,8 +81,8 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tessThreadTesselator) => true;
     #endregion
     
-    #region Inventory
-    public void UpdateShapeStackSize() => SetShapeStackSize(_inventory.BrownsQty + _inventory.NutritionQty + _inventory.InoculumQty + _inventory.CompostQty);
+    #region PileMutationAndHarvest
+    public void UpdateShapeStackSize() => SetShapeStackSize(_inventory.TotalQty);
     public void SetShapeStackSize(int stackSize)
     {
         if (Api.Side != EnumAppSide.Server)
@@ -142,14 +142,15 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     {
         base.Initialize(api);
 
-        #region Default moisture
+        //  Intent: normal moisture init belongs to ResetOnPlaced()/persistence; this only recovers legacy unset state.
+        #region Recover legacy unset moisture state
         if (_inventory.Moisture01 <= 0f
         &&  _inventory.PrevTimeMoistureUpdated < 0
             )
             _inventory.Moisture01 = Settings.Moisture01Initial;
         #endregion
 
-        #region Client tint renderer
+        #region Start client-side tint rendering
         if (api.Side == EnumAppSide.Client
         &&  api is ICoreClientAPI capi
             )
@@ -159,7 +160,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         }
         #endregion
 
-        #region Server tick listener
+        #region Start server-side ticking
         if (api.Side == EnumAppSide.Server)
         {
             NeighboursDirty = true;
@@ -201,13 +202,13 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     }
     #endregion
     
-    #region Environment
+    #region NeighbourSamplingAndTickUpdate
     private void OnEvery12Seconds(float dt)
     {
         if (Api?.Side != EnumAppSide.Server)
             return;
         
-        #region Update neighbours
+        #region Refresh neighbour airflow and heat state
         if (NeighboursDirty)
         {
             UpdateNeighbourBlocks();
@@ -216,7 +217,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         
         _inventory.AdjacentBlockHeat = GetNeighbourHeat();
         #endregion
-        #region Update inventory
+        #region Advance compostpile simulation
         if (_inventory.Update(this, Api.World.Calendar.TotalHours))
         {
             UpdateShapeStackSize();
@@ -236,7 +237,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             if(i == BlockFacing.indexDOWN)
                 continue;
             
-            #region Add neighbour heat
+            #region Accumulate neighbour heat
             BlockPos neighbourPos = Pos.AddCopy(BlockFacing.ALLFACES[i]);
             result += Api.World.BlockAccessor
                ?.GetBlock(neighbourPos)
@@ -253,7 +254,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         int blockedSides = 0;
         _neighbourHeatSource = false;
         
-        #region Count BlocksAirflow(BlockFacing.All)
+        #region Count blocked airflow faces above and beside pile
         if (BlocksAirflow( BlockFacing.UP)) blockedSides++;
         if (BlocksAirflow(BlockFacing.NORTH)) blockedSides++;
         if (BlocksAirflow(BlockFacing.SOUTH)) blockedSides++;
@@ -267,26 +268,35 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
 
     private bool BlocksAirflow(BlockFacing neighbour)
     {
+        #region Resolve neighbour block and position
         IBlockAccessor blockAccessor = Api.World.BlockAccessor;
         BlockPos neighbourPos = Pos.AddCopy(neighbour);
-        
         Block neighbourBlock = blockAccessor.GetBlock(neighbourPos);
-        _neighbourHeatSource |= neighbourBlock?.GetInterface<IHeatSource>(Api.World, neighbourPos) is not null;
-        
         if (neighbourBlock is null
         ||  neighbourBlock.Id == 0
            )
             return false;
+        #endregion
         
+        #region Flag adjacent heat interface
+        _neighbourHeatSource |= neighbourBlock.GetInterface<IHeatSource>(Api.World, neighbourPos) is not null;
+        #endregion
+        
+        #region Treat adjacent compostpile as an airflow block
         if (blockAccessor.GetBlockEntity(neighbourPos) is BlockEntityCompostpile)
             return true;
+        #endregion
         
+        #region Ignore replaceable neighbour blocks
         if(neighbourBlock.Replaceable >= 6000)
             return false;
+        #endregion
         
+        #region Return whether neighbour blocks airflow
         return 
             neighbourBlock.SideSolid[neighbour.Opposite.Index]
         ||  neighbourBlock.CollisionBoxes?.Length > 0;
+        #endregion
     }
 
     public void Water(float dt)
@@ -299,10 +309,10 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
 
     #endregion
     
-    #region BlockInfo
+    #region BlockInfoFormatting
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
     {
-        #region Get environment
+        #region Resolve room exposure state
         bool skyExposed = Api.World.BlockAccessor?.IsSkyExposed(Pos) == true;
         bool inGreenhouse = false;
         if (!skyExposed)
@@ -314,7 +324,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             &&  room.ExitCount == 0;
         }
         #endregion
-        #region Make room label
+        #region Format environment label
         string roomLabel = 
             inGreenhouse ? "Greenhouse"
         :   skyExposed ? "Outside"
@@ -323,7 +333,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             roomLabel += Lang.Get(" ({0:0.#}°C)", Api.GetEnvironmentTemperatureC(Pos, Api.World.Calendar.TotalHours, skyExposed, Settings.GreenhouseHeat, out _));
         #endregion
         
-        #region Write composting status
+        #region Write composting status summary
         dsc.AppendLine(Lang.Get("Composting: {0}, {1}", GetCompostingStatus(), roomLabel));
         
         dsc.AppendLine(Lang.Get
@@ -333,7 +343,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             ,_inventory.Aeration01 * 100f
             ));
         #endregion
-        #region Debug health
+        #region Write debug health
         if (Settings.InfoDebug)
         {
             dsc.AppendLine(Lang.Get
@@ -351,7 +361,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             dsc.AppendLine();
         }
         #endregion
-        #region Rates
+        #region Write composting rate summary
         float factor = _inventory.GetFactor();
         dsc.AppendLine(Lang.Get
             ("Speed: {0:0}%, {1}"
@@ -359,7 +369,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             ,GetCompostRateLabel(factor)
             ));
         #endregion
-        #region Debug
+        #region Write debug factors
         if (Settings.InfoDebug)
         {
             dsc.AppendLine(Lang.Get
@@ -372,7 +382,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             dsc.AppendLine();
         }
         #endregion
-        #region Materials
+        #region Write materials and harvest summary
         string missingLabel = GetMissingMaterialLabel();
         if (!string.IsNullOrEmpty(missingLabel))
             dsc.AppendLine(missingLabel);
@@ -395,14 +405,14 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
 
     private string GetCompostingStatus()
     {
-        #region Collect warnings
+        #region Collect composting warning states
         List<string> states = new();
         AppendInoculumStatus(states);
         AppendTemperatureStatus(states);
         AppendMoistureStatus(states);
         AppendAerationStatus(states);
         #endregion
-        #region Return warnings
+        #region Return status label
         if (states.Count < 1)
             return "Active";
 
@@ -463,7 +473,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         float brownsPortions = (float)_inventory.BrownsQty / Settings.Browns.ConsumePerTransition;
         float nutritionPortions = (float)_inventory.NutritionQty / Settings.Nutrition.ConsumePerTransition;
         float inoculumPortions = (float)_inventory.InoculumQty / Settings.Inoculum.ConsumePerTransition;
-        #region Get min/max
+        #region Resolve visible material shortfall threshold
         float maxThresholdPortions =
             Math.Max(Math.Max(brownsPortions, nutritionPortions), inoculumPortions)
         -   Settings.InfoNeedsPortionsThreshhold;
@@ -476,7 +486,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #endregion
         
         string result = Settings.InfoDebug ? "" : "Needs: ";
-        #region Browns
+        #region Append browns shortfall
         if (brownsPortions < maxThresholdPortions
         ||  Settings.InfoDebug
            )
@@ -488,7 +498,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             ,Settings.InfoDebug ? $" ({(float)_inventory.BrownsQty/Settings.Browns.ConsumePerTransition:0.0})" : ""
             );
         #endregion
-        #region Nutrition
+        #region Append nutrition shortfall
         if (nutritionPortions < maxThresholdPortions
         ||  Settings.InfoDebug
            )
@@ -500,7 +510,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             ,Settings.InfoDebug ? $" ({(float)_inventory.NutritionQty/Settings.Nutrition.ConsumePerTransition:0.0})" : ""
             );
         #endregion
-        #region Inoculum
+        #region Append inoculum shortfall
         if (inoculumPortions < maxThresholdPortions
         ||  Settings.InfoDebug
            )

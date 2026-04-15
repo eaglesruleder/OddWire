@@ -22,7 +22,7 @@ public class CompostpileSettings
         public int ConsumePerTransition { get; internal set; }
     }
 
-    #region IngredientSettings
+    #region IngredientTuning
     public Ingredient Browns { get; private set; } = new()
     {
         Name = "browns",
@@ -74,7 +74,7 @@ public class CompostpileSettings
     public float Aeration01PerCompostpileInput { get; internal set; } = 1.0f;
     #endregion
 
-    #region RateTuning
+    #region CompostRateTuning
     public float BaseCompostRatePerHour { get; private set; } = 0.05f;
     public Dictionary<string, float>? NutritionSpeed { get; private set; } = new()
     {
@@ -139,7 +139,7 @@ public class CompostpileSettings
     public int TotalMaxQty => Browns.MaxQty + Nutrition.MaxQty + Inoculum.MaxQty;
     #endregion
 
-    #region InfoTuning
+    #region BlockInfoDisplayTuning
     public bool InfoDebug = false;
     public float InfoFactorWarningThreshhold = 0.8f;
     public float InfoNeedsPortionsThreshhold = 2f;
