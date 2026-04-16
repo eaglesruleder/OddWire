@@ -1,0 +1,92 @@
+{
+	code: "compostpile",
+	class: "oddwirefarming.compostpile.block",
+	entityClass: "oddwirefarming.compostpile.blockentity",
+	"variantgroups": [
+		{ code:"size", states: ["#1", "#2", "#3", "#4", "#5"] }
+	],
+	behaviors: [ { name: "UnstableFalling" } ],
+	shape: { base: "farming/compostpile/compostpile-{size}" },
+	drops: [],
+	creativeinventory: { "general": ["*"] },
+	blockmaterial: "Soil",
+	replaceable: 200,
+	maxStackSize: 32,
+	lightAbsorption: 1,
+	textures: {
+		"block": { base: "farming/compostpile" },
+		"splat": { base: "farming/compostsplat" }
+	},
+	sideao: { all: false },
+	sidesolid: { all: false },
+	emitsideao: { all: false },
+	sideopaque: { all: false },
+	collisionboxByType: {
+		"compostpile-#1": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.2, z2: 0.9375
+		},
+		"compostpile-#2": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.4, z2: 0.9375
+		},
+		"compostpile-#3": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.6, z2: 0.9375
+		},
+		"compostpile-#4": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.6, z2: 0.9375
+		},
+		"compostpile-#5": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.8, z2: 0.9375
+		},
+	},
+	selectionboxByType: {
+		"compostpile-#1": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.2, z2: 0.9375
+		},
+		"compostpile-#2": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.4, z2: 0.9375
+		},
+		"compostpile-#3": {
+			x1: 0.0625, y1: 0, z1: 0.0625,
+			x2: 0.9375, y2: 0.6, z2: 0.9375
+		},
+		"compostpile-#4": {
+			x1: 0, y1: 0, z1: 0,
+			x2: 1, y2: 0.6, z2: 1
+		},
+		"compostpile-#5": {
+			x1: 0, y1: 0, z1: 0,
+			x2: 1, y2: 0.8, z2: 1
+		},
+	},
+	sounds: {
+		place: "game:block/dirt",
+		break: "game:block/dirt",
+		hit: "game:block/dirt",
+		walk: "game:walk/grass"
+	},
+	materialDensity: 600,
+	heldTpIdleAnimation: "holdbothhandslarge", heldRightReadyAnimation: "heldblockready", heldTpUseAnimation: "twohandplaceblock",
+	tpHandTransform: {
+		translation: { x: -1.7, y: -0.95, z: -0.69 },
+		rotation: { x: 12, y: 14, z: -81 },
+		scale: 0.5
+	},
+	fpHandTransform: {
+		translation: { x: -1.7, y: -0.95, z: -0.69 },
+		rotation: { x: 12, y: 14, z: -81 },
+		scale: 0.5
+	},
+	guiTransform: {
+		translation: { x: 0, y: -5, z: 0 },
+	},
+	groundTransform: {
+		scale: 3.5
+	}
+}
