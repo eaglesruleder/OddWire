@@ -27,10 +27,10 @@
 	},
 	resistance: 2.5,
 	sounds: {
-		place: "block/dirt",
-		break: "block/dirt",
-		hit: "block/dirt",
-		walk: "walk/grass"
+		place: "game:block/dirt",
+		break: "game:block/dirt",
+		hit: "game:block/dirt",
+		walk: "game:walk/grass"
 	},
 	sideopaque: {
 		all: false,
