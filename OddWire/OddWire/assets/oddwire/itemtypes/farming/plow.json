@@ -1,0 +1,84 @@
+{
+	code: "plow",
+	class: "oddwirefarming.plow.item",
+	heldTpUseAnimation: "hoe",
+	behaviors: [{ 
+		name: "GroundStorable",
+		properties: {
+			layout: 'WallHalves',
+			wallOffY: 1,
+			ctrlKey: true,
+			selectionBox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.1, z2: 1 },
+			collisionBox: { x1: 0, y1: 0, z1: 0, x2: 0, y2: 0, z2: 0 },
+		}
+	}],
+	attributes: {
+		heldItemPitchFollow: 0.5,
+		groundStorageTransform: {
+			translation: { x: 0, y: 0.04, z: -0.25 },
+			rotation: { x: 23, y: 87, z: -90 },
+			scale: 0.88
+		},
+		handbook: {
+			groupBy: ["plow-*"]
+		},
+		toolrackTransform: {
+			rotation: { y: 1, z: -1 },
+			translation: { x: -0.25, y: 0.6 },
+			scale: 1.25,
+		}
+	},
+	variantgroups: [
+		{ code: "material", states: ["iron", "meteoriciron", "steel"] },
+	],
+	damagedby: ["blockbreaking", "attacking"],
+	shapeByType: {
+		"*-iron": { "base": "game:item/tool/hoe-copper" },
+		"*-meteoriciron": { "base": "game:item/tool/hoe-copper" },
+		"*-steel": { "base": "game:item/tool/hoe-copper" }
+	},
+	heldTpHitAnimation: "breaktool",
+	textures: {
+		"material": { base: "game:block/metal/ingot/{material}" }
+	},
+	tool: "hoe",
+	miningspeedbytype: {
+		"plow-iron": { "soil": 4.5 },
+		"plow-meteoriciron": { "soil": 4.75 },
+		"plow-steel": { "soil": 5.0 }
+	},
+	durabilitybytype: {
+		"plow-iron": 500,
+		"plow-meteoriciron": 600,
+		"plow-steel": 1250
+	},
+	attackpowerbytype: {
+		"plow-iron": 2.25,
+		"plow-meteoriciron": 2.3,
+		"plow-steel": 2.5
+	},
+	creativeinventory: { "general": ["*"], "items": ["*"], "tools": ["*"] },
+	fpHandTransform: {
+		translation: { x: -0.3, y: -0.2, z: 0 },
+		rotation: { x: -7, y: 16, z: 90 },
+		scale: 2.5
+	},
+	guiTransform: {
+		rotate: false,
+		translation: { x: 0, y: 0, z: 0 },
+		rotation: { x: -56, y: -127, z: -180 },
+		origin: { x: 0.35, y: 0, z: 0.55 },
+		scale: 1.43
+	},
+	groundTransform: {
+		translation: { x: 0, y: 0, z: 0 },
+		rotation: { x: 0, y: 0, z: 0 },
+		origin: { x: 0.5, y: 0, z: 0.5 },
+		scale: 3.6
+	},
+	tpHandTransform: {
+		translation: { x: -1, y: -0.5, z: -0.08 },
+		rotation: { x: 90, y: 0, z: -5 },
+		scale: 1
+	}
+}

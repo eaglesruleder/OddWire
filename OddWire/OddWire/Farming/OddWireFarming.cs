@@ -10,6 +10,11 @@ namespace OddWire
             api.RegisterBlockClass($"{Mod.Info.ModID}farming.compostpile.block", typeof(BlockCompostpile));
             api.RegisterBlockEntityClass($"{Mod.Info.ModID}farming.compostpile.blockentity", typeof(BlockEntityCompostpile));
             
+            api.RegisterBlockClass($"{Mod.Info.ModID}farming.plowland.block", typeof(BlockPlowland));
+            api.RegisterBlockEntityClass($"{Mod.Info.ModID}farming.plowland.blockentity", typeof(BlockEntityPlowland));
+            
+            api.RegisterItemClass($"{Mod.Info.ModID}farming.plow.item", typeof(ItemPlow));
+            
             base.Start(api);
         }
     }
