@@ -69,10 +69,6 @@ public sealed class PlowlandEngine
         changed |= UpdateNutrients(be);
         #endregion
 
-        #region Update visible block state
-        changed |= UpdateBlockState(be);
-        #endregion
-
         return changed;
     }
     #endregion
@@ -189,27 +185,6 @@ public sealed class PlowlandEngine
     }
     #endregion
 
-    #region UpdateVisualBlock
-    private bool UpdateBlockState(BlockEntityPlowland be)
-    {
-        #region Resolve target block code
-        Block currentBlock = be.Api.World.BlockAccessor.GetBlock(be.Pos);
-        string state = Moisture01 > Settings.MoistVisibleThreshold ? PlowlandSettings.StateMoist : PlowlandSettings.StateDry;
-        string fertilityCode = ResolveVisibleFertilityCode(OriginalNutrients);
-
-        AssetLocation targetCode = ResolvePlowlandCode(currentBlock.Code.Domain, state, fertilityCode);
-        Block? targetBlock = be.Api.World.GetBlock(targetCode);
-        if (targetBlock == null || targetBlock.Id == currentBlock.Id)
-            return false;
-        #endregion
-
-        #region Exchange block variant
-        be.Api.World.BlockAccessor.ExchangeBlock(targetBlock.Id, be.Pos);
-        be.Api.World.BlockAccessor.MarkBlockDirty(be.Pos);
-        return true;
-        #endregion
-    }
-    #endregion
 
     #region Support
     private bool RefreshSupport(BlockEntityPlowland be)
