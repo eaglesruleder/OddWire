@@ -9,6 +9,8 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
 {
     private readonly PlowlandEngine _engine = new();
 
+    public float[] Nutrients => _engine.Nutrients;
+
     #region Setup
     public override void Initialize(ICoreAPI api)
     {
@@ -20,9 +22,15 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         #endregion
     }
 
-    public void InitialiseFromPlow(Block targetBlockBefore, Block supportBlockBelow)
+    public void InitialiseFromPlow(Block targetBlockBefore, Block supportBlockBelow, float[] nutrients)
     {
-        _engine.ResetOnPlowed(targetBlockBefore, supportBlockBelow);
+        _engine.ResetOnPlowed(targetBlockBefore, supportBlockBelow, nutrients);
+        MarkDirty(true);
+    }
+
+    public void SetFertility(string fertilityCode)
+    {
+        _engine.SetFertility(fertilityCode);
         MarkDirty(true);
     }
     #endregion

@@ -13,7 +13,7 @@ public sealed class PlowlandEngine
     #region StoredState
     public float Moisture01;
 
-    public readonly int[] OriginalNutrients = new int[3];
+    public readonly float[] OriginalNutrients = new float[3];
     public readonly float[] Nutrients = new float[3];
     public readonly float[] SlowReleaseNutrients = new float[3];
 
@@ -25,19 +25,21 @@ public sealed class PlowlandEngine
     #endregion
 
     #region Setup
-    public void ResetOnPlowed(Block targetBlock, Block supportBlock)
+    public void ResetOnPlowed(Block targetBlock, Block supportBlock, float[]? nutrients = null)
     {
         #region Resolve support and fertility seed
         Support = ResolveSupport(supportBlock);
-        int[] original = ResolveOriginalNutrients(targetBlock, supportBlock);
+        float[] original = ResolveOriginalNutrients(targetBlock, supportBlock);
         #endregion
 
         #region Reset nutrients from seed
         for (int i = 0; i < 3; i++)
         {
             OriginalNutrients[i] = original[i];
-            Nutrients[i] = original[i];
-            SlowReleaseNutrients[i] = 0;
+            Nutrients[i] = nutrients != null && nutrients.Length > i
+                ? GameMath.Clamp(nutrients[i], 0f, Settings.MaxFertilizedNutrient)
+                : original[i];
+            SlowReleaseNutrients[i] = 0f;
         }
         #endregion
 
@@ -47,6 +49,20 @@ public sealed class PlowlandEngine
         PrevTimeMoistureUpdated = -1;
         PrevTimeNutrientsUpdated = -1;
         #endregion
+    }
+
+    public void SetFertility(string fertilityCode)
+    {
+        if (!FertilitySet.Contains(fertilityCode))
+            return;
+
+        float fertility = FertilitySet.Get(fertilityCode);
+
+        for (int i = 0; i < 3; i++)
+        {
+            OriginalNutrients[i] = fertility;
+            Nutrients[i] = Math.Min(Nutrients[i], fertility);
+        }
     }
     #endregion
 
@@ -208,10 +224,9 @@ public sealed class PlowlandEngine
             )
             return false;
 
-        if (targetBlock is BlockPlowland)
-            return false;
-
-        if (targetBlock is BlockFarmland)
+        if (targetBlock is BlockPlowland
+        ||  targetBlock is BlockFarmland
+            )
             return true;
 
         return targetBlock.BlockMaterial == EnumBlockMaterial.Soil;
@@ -223,68 +238,32 @@ public sealed class PlowlandEngine
         ||  supportBlock.Id == 0
         ||  supportBlock.IsLiquid()
             )
-            return new PlowlandSupportModel(false, null, 0f, 0f, PlowlandSettings.FertilityLow);
+            return new PlowlandSupportModel(false, null, 0f, 0f, PlowlandSettings.DefaultFertility);
 
         string? supportCode = supportBlock.Code?.ToShortString();
-        string fertilityCode = ResolveFertilityCode(supportBlock);
+        string fertilityCode = FertilitySet.Get(supportBlock)!;
 
         if (supportBlock is BlockFarmland)
             return new PlowlandSupportModel(true, supportCode, 4.5f, 1.00f, fertilityCode);
 
-        return supportBlock.BlockMaterial switch
-        {
-            EnumBlockMaterial.Soil   => new PlowlandSupportModel(true, supportCode, 4.0f, 1.00f, fertilityCode),
-            EnumBlockMaterial.Sand   => new PlowlandSupportModel(true, supportCode, 2.5f, 0.65f, fertilityCode),
-            EnumBlockMaterial.Gravel => new PlowlandSupportModel(true, supportCode, 1.5f, 0.35f, fertilityCode),
-            _                        => new PlowlandSupportModel(true, supportCode, 3.0f, 0.50f, fertilityCode),
-        };
+        if (supportBlock is BlockPlowland)
+            return new PlowlandSupportModel(true, supportCode, 4.25f, 1.00f, fertilityCode);
+
+        if (supportBlock.BlockMaterial == EnumBlockMaterial.Soil)
+            return new PlowlandSupportModel(true, supportCode, 4.0f, 1.00f, fertilityCode);
+
+        return new PlowlandSupportModel(false, null, 0f, 0f, PlowlandSettings.DefaultFertility);
     }
 
-    public static int[] ResolveOriginalNutrients(Block targetBlock, Block supportBlock)
+    public static float[] ResolveOriginalNutrients(Block targetBlock, Block supportBlock)
     {
-        string fertilityCode = ResolveFertilityCode(targetBlock);
-        
-        if (!Settings.FertilityByCode.ContainsKey(fertilityCode))
-            fertilityCode = ResolveFertilityCode(supportBlock);
-        
-        if (!Settings.FertilityByCode.ContainsKey(fertilityCode))
-            fertilityCode = PlowlandSettings.FertilityLow;
+        string? fertilityCode = targetBlock?.LastCodePart();
+        if (!FertilitySet.Contains(fertilityCode))
+            fertilityCode = supportBlock?.LastCodePart();
 
-        int fertility = Settings.FertilityByCode[fertilityCode];
-        return new[] { fertility, fertility, fertility };
+        return FertilitySet.MakeUniformNutrients(fertilityCode);
     }
 
-    public static string ResolveVisibleFertilityCode(int[] nutrients)
-    {
-        if (nutrients is null
-        ||  nutrients.Length < 3
-            )
-            return PlowlandSettings.FertilityLow;
-
-        float average = (nutrients[0] + nutrients[1] + nutrients[2]) / 3f;
-
-        if (average <= Settings.FertilityByCode[PlowlandSettings.FertilityVeryLow]) return PlowlandSettings.FertilityVeryLow;
-        if (average <= Settings.FertilityByCode[PlowlandSettings.FertilityLow])     return PlowlandSettings.FertilityLow;
-        if (average <= Settings.FertilityByCode[PlowlandSettings.FertilityMedium])  return PlowlandSettings.FertilityMedium;
-        if (average <= Settings.FertilityByCode[PlowlandSettings.FertilityCompost]) return PlowlandSettings.FertilityCompost;
-        return PlowlandSettings.FertilityHigh;
-    }
-
-    public static string ResolveFertilityCode(Block? block)
-    {
-        string? code = block?.LastCodePart();
-        if (code != null && Settings.FertilityByCode.ContainsKey(code))
-            return code;
-
-        if (block is BlockFarmland)
-        {
-            code = block.LastCodePart(0);
-            if (code != null && Settings.FertilityByCode.ContainsKey(code))
-                return code;
-        }
-
-        return PlowlandSettings.FertilityLow;
-    }
 
     public static AssetLocation ResolvePlowlandCode(string domain, string state, string fertilityCode)
     {
@@ -338,9 +317,9 @@ public sealed class PlowlandEngine
         tree.SetFloat("supportWaterQuality01", Support.WaterQuality01);
         tree.SetString("supportFertilityCode", Support.FertilityCode);
 
-        tree.SetInt("origN", OriginalNutrients[0]);
-        tree.SetInt("origP", OriginalNutrients[1]);
-        tree.SetInt("origK", OriginalNutrients[2]);
+        tree.SetFloat("origN", OriginalNutrients[0]);
+        tree.SetFloat("origP", OriginalNutrients[1]);
+        tree.SetFloat("origK", OriginalNutrients[2]);
 
         tree.SetFloat("nutrN", Nutrients[0]);
         tree.SetFloat("nutrP", Nutrients[1]);
@@ -363,12 +342,12 @@ public sealed class PlowlandEngine
             tree.GetString("supportCode"),
             tree.GetFloat("supportRetentionDays"),
             tree.GetFloat("supportWaterQuality01"),
-            tree.GetString("supportFertilityCode") ?? PlowlandSettings.FertilityLow
+            tree.GetString("supportFertilityCode") ?? PlowlandSettings.DefaultFertility
         );
 
-        OriginalNutrients[0] = tree.GetInt("origN");
-        OriginalNutrients[1] = tree.GetInt("origP");
-        OriginalNutrients[2] = tree.GetInt("origK");
+        OriginalNutrients[0] = tree.GetFloat("origN");
+        OriginalNutrients[1] = tree.GetFloat("origP");
+        OriginalNutrients[2] = tree.GetFloat("origK");
 
         Nutrients[0] = tree.GetFloat("nutrN");
         Nutrients[1] = tree.GetFloat("nutrP");
