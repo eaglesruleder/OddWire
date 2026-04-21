@@ -38,13 +38,28 @@ public sealed class FertilitySet
         fertilityCode is not null
     &&  Values.ContainsKey(fertilityCode);
     
-    public static float Get(string? fertilityCode) => _singleton[fertilityCode];
+    public static int Index(Block? block) => _singleton._index(GetCode(block));
+    public static int Index(string? code) => _singleton._index(code);
+    private int _index(string? code)
+    {
+        if (code is null)
+            return -1;
+        
+        for (int i = 0; i < Order.Length; i++)
+            if (Order[i] == code)
+                return i;
+        return -1;
+    }
+    
+    
+    public static float Value(Block? block) => _singleton[GetCode(block)];
+    public static float Value(string? fertilityCode) => _singleton[fertilityCode];
     private float this[string? fertilityCode] =>
         fertilityCode is not null
     &&  Values.TryGetValue(fertilityCode, out float fertility)
     ?   fertility : Values[Default];
 
-    public static string? Get(Block? block) => _singleton[block];
+    public static string? GetCode(Block? block) => _singleton[block];
     private string? this[Block? block]
     { get {
         string? fertilityCode = block?.LastCodePart();

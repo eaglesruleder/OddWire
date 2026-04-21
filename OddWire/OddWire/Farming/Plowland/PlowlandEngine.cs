@@ -25,7 +25,7 @@ public sealed class PlowlandEngine
     #endregion
 
     #region Setup
-    public void ResetOnPlowed(Block targetBlock, Block supportBlock, float[]? nutrients = null)
+    public void ResetOnPlowed(Block targetBlock, Block supportBlock, float[]? nutrients = null, float? moisture01 = null)
     {
         #region Resolve support and fertility seed
         Support = ResolveSupport(supportBlock);
@@ -44,7 +44,7 @@ public sealed class PlowlandEngine
         #endregion
 
         #region Reset dynamic state
-        Moisture01 = Support.WaterQuality01;
+        Moisture01 = GameMath.Clamp(moisture01 ?? Support.WaterQuality01, 0f, 1f);
         LastWaterDistance = 99f;
         PrevTimeMoistureUpdated = -1;
         PrevTimeNutrientsUpdated = -1;
@@ -56,7 +56,7 @@ public sealed class PlowlandEngine
         if (!FertilitySet.Contains(fertilityCode))
             return;
 
-        float fertility = FertilitySet.Get(fertilityCode);
+        float fertility = FertilitySet.Value(fertilityCode);
 
         for (int i = 0; i < 3; i++)
         {
@@ -241,7 +241,7 @@ public sealed class PlowlandEngine
             return new PlowlandSupportModel(false, null, 0f, 0f, PlowlandSettings.DefaultFertility);
 
         string? supportCode = supportBlock.Code?.ToShortString();
-        string fertilityCode = FertilitySet.Get(supportBlock)!;
+        string fertilityCode = FertilitySet.GetCode(supportBlock)!;
 
         if (supportBlock is BlockFarmland)
             return new PlowlandSupportModel(true, supportCode, 4.5f, 1.00f, fertilityCode);
