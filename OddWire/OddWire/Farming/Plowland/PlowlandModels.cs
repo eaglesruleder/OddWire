@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OddWire.GameContent;
 
 public sealed class PlowlandSettings
@@ -18,11 +16,3 @@ public sealed class PlowlandSettings
     public float MaxFertilizedNutrient = 150f;
     public int WaterSearchRadius = 4;
 }
-
-public readonly record struct PlowlandSupportModel(
-    bool IsValid,
-    string? SupportCode,
-    float RetentionDays,
-    float WaterQuality01,
-    string FertilityCode
-);

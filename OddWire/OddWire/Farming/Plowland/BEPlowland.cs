@@ -11,6 +11,11 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
 
     public float[] Nutrients => _engine.Nutrients;
     public float Moisture01 => _engine.Moisture01;
+    public string? SupportCode => _engine.SupportCode;
+    public bool SupportIsValid => _engine.SupportIsValid;
+    public float SupportRetentionDays => _engine.SupportRetentionDays;
+    public float SupportWaterQuality01 => _engine.SupportWaterQuality01;
+    public string SupportFertilityCode => _engine.SupportFertilityCode;
 
     #region Setup
     public override void Initialize(ICoreAPI api)
@@ -23,9 +28,27 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         #endregion
     }
 
-    public void InitialiseFromPlow(Block targetBlockBefore, Block supportBlockBelow, float[] nutrients, float moisture01)
+    public void Initialise
+        (float[] originalNutrients
+        ,float[] nutrients
+        ,float moisture01
+        ,string? supportCode
+        ,bool supportIsValid
+        ,float supportRetentionDays
+        ,float supportWaterQuality01
+        ,string supportFertilityCode
+        )
     {
-        _engine.ResetOnPlowed(targetBlockBefore, supportBlockBelow, nutrients, moisture01);
+        _engine.Initialise
+            (originalNutrients
+            ,nutrients
+            ,moisture01
+            ,supportCode
+            ,supportIsValid
+            ,supportRetentionDays
+            ,supportWaterQuality01
+            ,supportFertilityCode
+            );
         MarkDirty(true);
     }
 
@@ -65,8 +88,8 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
     {
         dsc.AppendLine($"Moisture: {(_engine.Moisture01 * 100f):0}%");
-        dsc.AppendLine($"Support: {_engine.Support.SupportCode ?? "none"}");
-        dsc.AppendLine($"Retention: {_engine.Support.RetentionDays:0.0} days");
+        dsc.AppendLine($"Support: {_engine.SupportCode ?? "none"}");
+        dsc.AppendLine($"Retention: {_engine.SupportRetentionDays:0.0} days");
         dsc.AppendLine($"NPK: {MathF.Round(_engine.Nutrients[0], 1)} / {MathF.Round(_engine.Nutrients[1], 1)} / {MathF.Round(_engine.Nutrients[2], 1)}");
     }
     #endregion

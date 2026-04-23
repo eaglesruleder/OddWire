@@ -17,7 +17,12 @@ public sealed class PlowlandEngine
     public readonly float[] Nutrients = new float[3];
     public readonly float[] SlowReleaseNutrients = new float[3];
 
-    public PlowlandSupportModel Support;
+    public string? SupportCode;
+    public bool SupportIsValid;
+    public float SupportRetentionDays = 4f;
+    public float SupportWaterQuality01 = 1f;
+    public string SupportFertilityCode = PlowlandSettings.DefaultFertility;
+
     public float LastWaterDistance = 99f;
 
     public double PrevTimeMoistureUpdated = -1;
@@ -25,26 +30,44 @@ public sealed class PlowlandEngine
     #endregion
 
     #region Setup
-    public void ResetOnPlowed(Block targetBlock, Block supportBlock, float[]? nutrients = null, float? moisture01 = null)
+    public void Initialise
+        (float[] originalNutrients
+        ,float[]? nutrients = null
+        ,float? moisture01 = null
+        ,string? supportCode = null
+        ,bool supportIsValid = false
+        ,float? supportRetentionDays = null
+        ,float? supportWaterQuality01 = null
+        ,string? supportFertilityCode = null
+        )
     {
-        #region Resolve support and fertility seed
-        Support = ResolveSupport(supportBlock);
-        float[] original = ResolveOriginalNutrients(targetBlock, supportBlock);
+        #region Reset support state
+        SupportCode = supportCode;
+        SupportIsValid = supportIsValid;
+        SupportRetentionDays = Math.Max(0.25f, supportRetentionDays ?? Settings.DefaultRetentionDays);
+        SupportWaterQuality01 = GameMath.Clamp(supportWaterQuality01 ?? 1f, 0f, 1f);
+        SupportFertilityCode = FertilitySet.Contains(supportFertilityCode)
+            ? supportFertilityCode!
+            : PlowlandSettings.DefaultFertility;
         #endregion
 
         #region Reset nutrients from seed
         for (int i = 0; i < 3; i++)
         {
-            OriginalNutrients[i] = original[i];
+            float original = originalNutrients.Length > i
+                ? originalNutrients[i]
+                : 0f;
+
+            OriginalNutrients[i] = GameMath.Clamp(original, 0f, Settings.MaxFertilizedNutrient);
             Nutrients[i] = nutrients != null && nutrients.Length > i
                 ? GameMath.Clamp(nutrients[i], 0f, Settings.MaxFertilizedNutrient)
-                : original[i];
+                : OriginalNutrients[i];
             SlowReleaseNutrients[i] = 0f;
         }
         #endregion
 
         #region Reset dynamic state
-        Moisture01 = GameMath.Clamp(moisture01 ?? Support.WaterQuality01, 0f, 1f);
+        Moisture01 = GameMath.Clamp(moisture01 ?? SupportWaterQuality01, 0f, 1f);
         LastWaterDistance = 99f;
         PrevTimeMoistureUpdated = -1;
         PrevTimeNutrientsUpdated = -1;
@@ -56,8 +79,9 @@ public sealed class PlowlandEngine
         if (!FertilitySet.Contains(fertilityCode))
             return;
 
-        float fertility = FertilitySet.Value(fertilityCode);
+        SupportFertilityCode = fertilityCode;
 
+        float fertility = FertilitySet.Value(fertilityCode);
         for (int i = 0; i < 3; i++)
         {
             OriginalNutrients[i] = fertility;
@@ -146,12 +170,12 @@ public sealed class PlowlandEngine
             return false;
 
         LastWaterDistance = waterDistance;
-        float minMoisture = ResolveMinMoisture(waterDistance, Support);
+        float minMoisture = ResolveMinMoisture(waterDistance);
         #endregion
 
         #region Dry toward support retention
         float prev = Moisture01;
-        float totalRetentionHours = Math.Max(0.25f, Support.RetentionDays) * be.Api.World.Calendar.HoursPerDay;
+        float totalRetentionHours = Math.Max(0.25f, SupportRetentionDays) * be.Api.World.Calendar.HoursPerDay;
         Moisture01 = Math.Max(minMoisture, Moisture01 - (float)hoursPassed / totalRetentionHours);
         #endregion
 
@@ -201,82 +225,69 @@ public sealed class PlowlandEngine
     }
     #endregion
 
-
     #region Support
     private bool RefreshSupport(BlockEntityPlowland be)
     {
         Block supportBlock = be.Api.World.BlockAccessor.GetBlock(be.Pos.DownCopy());
-        PlowlandSupportModel nextSupport = ResolveSupport(supportBlock);
-        if (nextSupport.Equals(Support))
-            return false;
 
-        Support = nextSupport;
-        return true;
-    }
-    #endregion
+        string? prevSupportCode = SupportCode;
+        bool prevSupportIsValid = SupportIsValid;
+        float prevSupportRetentionDays = SupportRetentionDays;
+        float prevSupportWaterQuality01 = SupportWaterQuality01;
+        string prevSupportFertilityCode = SupportFertilityCode;
 
-    #region Rules
-    public static bool CanPlowTarget(Block targetBlock)
-    {
-        if (targetBlock is null
-        ||  targetBlock.Id == 0
-        ||  targetBlock.IsLiquid()
-            )
-            return false;
+        UpdateSupportFromBlock(supportBlock);
 
-        if (targetBlock is BlockPlowland
-        ||  targetBlock is BlockFarmland
-            )
-            return true;
-
-        return targetBlock.BlockMaterial == EnumBlockMaterial.Soil;
+        return prevSupportCode != SupportCode
+            ||  prevSupportIsValid != SupportIsValid
+            ||  Math.Abs(prevSupportRetentionDays - SupportRetentionDays) > 0.001f
+            ||  Math.Abs(prevSupportWaterQuality01 - SupportWaterQuality01) > 0.001f
+            ||  prevSupportFertilityCode != SupportFertilityCode;
     }
 
-    public static PlowlandSupportModel ResolveSupport(Block supportBlock)
+    private void UpdateSupportFromBlock(Block supportBlock)
     {
         if (supportBlock is null
         ||  supportBlock.Id == 0
         ||  supportBlock.IsLiquid()
             )
-            return new PlowlandSupportModel(false, null, 0f, 0f, PlowlandSettings.DefaultFertility);
+        {
+            SupportCode = null;
+            SupportIsValid = false;
+            SupportRetentionDays = Settings.DefaultRetentionDays;
+            SupportWaterQuality01 = 0f;
+            SupportFertilityCode = PlowlandSettings.DefaultFertility;
+            return;
+        }
 
-        string? supportCode = supportBlock.Code?.ToShortString();
-        string fertilityCode = FertilitySet.GetCode(supportBlock)!;
+        SupportCode = supportBlock.Code?.ToShortString();
+        SupportIsValid = true;
+        SupportWaterQuality01 = 1f;
+        SupportFertilityCode = FertilitySet.GetCode(supportBlock) ?? PlowlandSettings.DefaultFertility;
 
         if (supportBlock is BlockFarmland)
-            return new PlowlandSupportModel(true, supportCode, 4.5f, 1.00f, fertilityCode);
+        {
+            SupportRetentionDays = 4.5f;
+            return;
+        }
 
         if (supportBlock is BlockPlowland)
-            return new PlowlandSupportModel(true, supportCode, 4.25f, 1.00f, fertilityCode);
+        {
+            SupportRetentionDays = 4.25f;
+            return;
+        }
 
         if (supportBlock.BlockMaterial == EnumBlockMaterial.Soil)
-            return new PlowlandSupportModel(true, supportCode, 4.0f, 1.00f, fertilityCode);
+        {
+            SupportRetentionDays = 4f;
+            return;
+        }
 
-        return new PlowlandSupportModel(false, null, 0f, 0f, PlowlandSettings.DefaultFertility);
-    }
-
-    public static float[] ResolveOriginalNutrients(Block targetBlock, Block supportBlock)
-    {
-        string? fertilityCode = targetBlock?.LastCodePart();
-        if (!FertilitySet.Contains(fertilityCode))
-            fertilityCode = supportBlock?.LastCodePart();
-
-        return FertilitySet.MakeUniformNutrients(fertilityCode);
-    }
-
-
-    public static AssetLocation ResolvePlowlandCode(string domain, string state, string fertilityCode)
-    {
-        return new AssetLocation(domain, $"plowland-{state}-{fertilityCode}");
-    }
-
-    private static float ResolveMinMoisture(float waterDistance, PlowlandSupportModel support)
-    {
-        if (!support.IsValid)
-            return 0f;
-
-        float waterFloor = GameMath.Clamp(1f - waterDistance / Settings.WaterSearchRadius, 0f, 1f);
-        return waterFloor * support.WaterQuality01;
+        SupportIsValid = false;
+        SupportCode = null;
+        SupportRetentionDays = Settings.DefaultRetentionDays;
+        SupportWaterQuality01 = 0f;
+        SupportFertilityCode = PlowlandSettings.DefaultFertility;
     }
     #endregion
 
@@ -301,6 +312,15 @@ public sealed class PlowlandEngine
         deferred = chunkMissing;
         return deferred ? 99f : waterDistance;
     }
+
+    private float ResolveMinMoisture(float waterDistance)
+    {
+        if (!SupportIsValid)
+            return 0f;
+
+        float waterFloor = GameMath.Clamp(1f - waterDistance / Settings.WaterSearchRadius, 0f, 1f);
+        return waterFloor * SupportWaterQuality01;
+    }
     #endregion
 
     #region Persistence
@@ -311,11 +331,11 @@ public sealed class PlowlandEngine
         tree.SetDouble("prevTimeMoistureUpdated", PrevTimeMoistureUpdated);
         tree.SetDouble("prevTimeNutrientsUpdated", PrevTimeNutrientsUpdated);
 
-        tree.SetString("supportCode", Support.SupportCode);
-        tree.SetBool("supportIsValid", Support.IsValid);
-        tree.SetFloat("supportRetentionDays", Support.RetentionDays);
-        tree.SetFloat("supportWaterQuality01", Support.WaterQuality01);
-        tree.SetString("supportFertilityCode", Support.FertilityCode);
+        tree.SetString("supportCode", SupportCode);
+        tree.SetBool("supportIsValid", SupportIsValid);
+        tree.SetFloat("supportRetentionDays", SupportRetentionDays);
+        tree.SetFloat("supportWaterQuality01", SupportWaterQuality01);
+        tree.SetString("supportFertilityCode", SupportFertilityCode);
 
         tree.SetFloat("origN", OriginalNutrients[0]);
         tree.SetFloat("origP", OriginalNutrients[1]);
@@ -337,13 +357,11 @@ public sealed class PlowlandEngine
         PrevTimeMoistureUpdated = tree.GetDouble("prevTimeMoistureUpdated");
         PrevTimeNutrientsUpdated = tree.GetDouble("prevTimeNutrientsUpdated");
 
-        Support = new PlowlandSupportModel(
-            tree.GetBool("supportIsValid"),
-            tree.GetString("supportCode"),
-            tree.GetFloat("supportRetentionDays"),
-            tree.GetFloat("supportWaterQuality01"),
-            tree.GetString("supportFertilityCode") ?? PlowlandSettings.DefaultFertility
-        );
+        SupportCode = tree.GetString("supportCode");
+        SupportIsValid = tree.GetBool("supportIsValid");
+        SupportRetentionDays = tree.GetFloat("supportRetentionDays");
+        SupportWaterQuality01 = tree.GetFloat("supportWaterQuality01");
+        SupportFertilityCode = tree.GetString("supportFertilityCode") ?? PlowlandSettings.DefaultFertility;
 
         OriginalNutrients[0] = tree.GetFloat("origN");
         OriginalNutrients[1] = tree.GetFloat("origP");

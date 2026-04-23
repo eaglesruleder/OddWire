@@ -25,7 +25,7 @@ public class ItemPlow : Item
         {
             List<ItemStack> stacks = new();
             foreach (Block block in capi.World.Blocks)
-                if (PlowlandEngine.CanPlowTarget(block))
+                if (CanPlowTarget(block))
                     stacks.Add(new ItemStack(block));
 
             return new[]
@@ -79,13 +79,13 @@ public class ItemPlow : Item
 
         #region Require valid plow target
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
-        if (!PlowlandEngine.CanPlowTarget(targetBlock))
+        if (!CanPlowTarget(targetBlock))
             return;
         #endregion
 
         #region Require valid support block
         Block supportBlock = world.BlockAccessor.GetBlock(targetPos.DownCopy());
-        if (!PlowlandEngine.ResolveSupport(supportBlock).IsValid)
+        if (!IsValidSupportBlock(supportBlock))
             return;
         #endregion
 
@@ -125,8 +125,8 @@ public class ItemPlow : Item
         #region Require still-valid target
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
         Block supportBlock = world.BlockAccessor.GetBlock(targetPos.DownCopy());
-        if (!PlowlandEngine.CanPlowTarget(targetBlock)
-        ||  !PlowlandEngine.ResolveSupport(supportBlock).IsValid
+        if (!CanPlowTarget(targetBlock)
+        ||  !IsValidSupportBlock(supportBlock)
             )
             return false;
         #endregion
@@ -176,7 +176,7 @@ public class ItemPlow : Item
         #endregion
 
         #region Require valid target
-        if (!PlowlandEngine.CanPlowTarget(targetBlock))
+        if (!CanPlowTarget(targetBlock))
             return;
         #endregion
 
@@ -184,7 +184,7 @@ public class ItemPlow : Item
         int targetFertility = FertilitySet.Index(targetBlock);
         float[] targetNutrients = ResolveCurrentNutrients(targetBlock, targetBlockEntity);
         float targetAvgNutrients = GetAverage(targetNutrients);
-        
+
         int supportFertility = FertilitySet.Index(supportBlock);
         int supportChange = 0;
         float supportMax = FertilitySet.Value(supportBlock);
@@ -196,7 +196,9 @@ public class ItemPlow : Item
         {
             if (targetAvgNutrients < randChange)
             {
-                if (targetFertility > supportFertility)
+                if (targetFertility > supportFertility
+                &&  supportFertility > 0
+                    )
                     supportChange--;
                 else
                     targetFertility--;
@@ -207,20 +209,27 @@ public class ItemPlow : Item
         #region Chance fertility step upward when the target is overfed
             if (targetAvgNutrients - 100f > randChange)
             {
-                if (targetFertility > supportFertility)
+                if (targetFertility > supportFertility
+                ||  supportFertility < 0
+                    )
                     targetFertility++;
                 else
                     supportChange++;
             }
         #endregion
-        
+
         #region Build the new nutrient state for the plowed target
         float[] resultNutrients = new float[targetNutrients.Length];
         for (int i = 0; i < targetNutrients.Length; i++)
             resultNutrients[i] = Math.Min(150f, targetNutrients[i] + supportMax);
         #endregion
-        
-        #region Place plowland at the target position
+
+        #region Apply support fertility change
+        if (supportChange != 0)
+            supportBlock = ApplySupportFertilityStep(world, supportPos, supportBlock, supportChange);
+        #endregion
+
+        #region Resolve plowland init state
         float targetMoisture01 = ResolveCurrentMoisture(targetBlockEntity);
         bool targetMoist = targetMoisture01 > 0.10f;
 
@@ -229,8 +238,19 @@ public class ItemPlow : Item
             (FertilitySet.GetCode(targetBlock)
             ,targetFertility - currentTargetFertility
             );
+        
+        if (!TryResolveSupportState
+            (supportBlock
+            ,out string? supportCode
+            ,out float supportRetentionDays
+            ,out float supportWaterQuality01
+            ,out string supportFertilityCode
+            ))
+            return;
+        #endregion
 
-        AssetLocation plowlandCode = PlowlandEngine.ResolvePlowlandCode
+        #region Place plowland at the target position
+        AssetLocation plowlandCode = ResolvePlowlandCode
             (Code.Domain
             ,targetMoist ? PlowlandSettings.StateMoist : PlowlandSettings.StateDry
             ,targetFertilityCode
@@ -244,13 +264,22 @@ public class ItemPlow : Item
 
         world.BlockAccessor.SetBlock(plowlandBlock.BlockId, targetPos);
 
-        if (world.BlockAccessor.GetBlockEntity(targetPos) is BlockEntityPlowland bePlowland)
-            bePlowland.InitialiseFromPlow(targetBlock, supportBlock, resultNutrients, targetMoisture01);
-        #endregion
+        if (world.BlockAccessor.GetBlockEntity(targetPos) is not BlockEntityPlowland bePlowland)
+            return;
+
+        string originalFertilityCode = ResolveOriginalFertilityCode(targetBlock, supportBlock);
+        float[] originalNutrients = FertilitySet.MakeUniformNutrients(originalFertilityCode);
         
-        #region Change Support block
-        if (supportChange != 0)
-            supportBlock = ApplySupportFertilityStep(world, supportPos, supportBlock, supportChange);
+        bePlowland.Initialise
+            (originalNutrients
+            ,resultNutrients
+            ,targetMoisture01
+            ,supportCode
+            ,true
+            ,supportRetentionDays
+            ,supportWaterQuality01
+            ,supportFertilityCode
+            );
         #endregion
 
         #region Apply tool wear
@@ -272,6 +301,92 @@ public class ItemPlow : Item
         world.BlockAccessor.MarkBlockDirty(targetPos);
         #endregion
     }
+    #endregion
+
+    #region PlowRules
+    private static bool CanPlowTarget(Block targetBlock)
+    {
+        if (targetBlock is null
+        ||  targetBlock.Id == 0
+        ||  targetBlock.IsLiquid()
+            )
+            return false;
+
+        if (targetBlock is BlockPlowland
+        ||  targetBlock is BlockFarmland
+            )
+            return true;
+
+        return targetBlock.BlockMaterial == EnumBlockMaterial.Soil;
+    }
+
+    private static bool IsValidSupportBlock(Block supportBlock) =>
+        TryResolveSupportState
+            (supportBlock
+            ,out _
+            ,out _
+            ,out _
+            ,out _
+            );
+
+    private static bool TryResolveSupportState
+        (Block supportBlock
+        ,out string? supportCode
+        ,out float supportRetentionDays
+        ,out float supportWaterQuality01
+        ,out string supportFertilityCode
+        )
+    {
+        supportCode = null;
+        supportRetentionDays = 0f;
+        supportWaterQuality01 = 0f;
+        supportFertilityCode = PlowlandSettings.DefaultFertility;
+
+        if (supportBlock is null
+        ||  supportBlock.Id == 0
+        ||  supportBlock.IsLiquid()
+            )
+            return false;
+
+        supportCode = supportBlock.Code?.ToShortString();
+        supportWaterQuality01 = 1f;
+        supportFertilityCode = FertilitySet.GetCode(supportBlock) ?? PlowlandSettings.DefaultFertility;
+
+        if (supportBlock is BlockFarmland)
+        {
+            supportRetentionDays = 4.5f;
+            return true;
+        }
+
+        if (supportBlock is BlockPlowland)
+        {
+            supportRetentionDays = 4.25f;
+            return true;
+        }
+
+        if (supportBlock.BlockMaterial == EnumBlockMaterial.Soil)
+        {
+            supportRetentionDays = 4f;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string ResolveOriginalFertilityCode(Block targetBlock, Block supportBlock)
+    {
+        string? fertilityCode = targetBlock?.LastCodePart();
+        if (FertilitySet.Contains(fertilityCode))
+            return fertilityCode!;
+
+        fertilityCode = supportBlock?.LastCodePart();
+        return FertilitySet.Contains(fertilityCode)
+            ? fertilityCode!
+            : PlowlandSettings.DefaultFertility;
+    }
+
+    private static AssetLocation ResolvePlowlandCode(string domain, string state, string fertilityCode) =>
+        new(domain, $"plowland-{state}-{fertilityCode}");
     #endregion
 
     #region FertilityHelpers
