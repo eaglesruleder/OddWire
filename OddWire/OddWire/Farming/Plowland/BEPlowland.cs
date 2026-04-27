@@ -15,7 +15,7 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
     public bool SupportIsValid => _engine.SupportIsValid;
     public float SupportRetentionDays => _engine.SupportRetentionDays;
     public float SupportWaterQuality01 => _engine.SupportWaterQuality01;
-    public string SupportFertilityCode => _engine.SupportFertilityCode;
+    public string? SupportFertilityCode => _engine.SupportFertilityCode;
 
     #region Setup
     public override void Initialize(ICoreAPI api)
@@ -29,32 +29,21 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
     }
 
     public void Initialise
-        (float[] originalNutrients
-        ,float[] nutrients
-        ,float moisture01
-        ,string? supportCode
-        ,bool supportIsValid
-        ,float supportRetentionDays
-        ,float supportWaterQuality01
-        ,string supportFertilityCode
+        (float[]? nutrients = null
+        ,float? moisture01 = null
         )
     {
         _engine.Initialise
-            (originalNutrients
+            (this
             ,nutrients
             ,moisture01
-            ,supportCode
-            ,supportIsValid
-            ,supportRetentionDays
-            ,supportWaterQuality01
-            ,supportFertilityCode
             );
         MarkDirty(true);
     }
 
-    public void SetFertility(string fertilityCode)
+    public void SetOriginalFertility(string fertilityCode)
     {
-        _engine.SetFertility(fertilityCode);
+        _engine.SetOriginalFertility(fertilityCode);
         MarkDirty(true);
     }
     #endregion

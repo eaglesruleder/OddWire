@@ -14,14 +14,12 @@ public sealed class FertilitySet
     public const string Medium = "medium";
     public const string Compost = "compost";
     public const string High = "high";
-
-    public readonly string Default;
+    
     public readonly OrderedDictionary<string, float> Values;
     public readonly string[] Order;
 
     private FertilitySet()
     {
-        Default = Low;
         Values = BlockEntityFarmland.Fertilities;
         Order =
             [VeryLow
@@ -57,38 +55,64 @@ public sealed class FertilitySet
     private float this[string? fertilityCode] =>
         fertilityCode is not null
     &&  Values.TryGetValue(fertilityCode, out float fertility)
-    ?   fertility : Values[Default];
+    ?   fertility
+    :   0f;
 
-    public static string? GetCode(Block? block) => _singleton[block];
-    private string? this[Block? block]
-    { get {
+    public static string? GetCode(Block? block) => _singleton._getCode(block);
+    private string? _getCode(Block? block)
+    {
         string? fertilityCode = block?.LastCodePart();
         return
             Contains(fertilityCode)
         ?   fertilityCode
-        :   Default;
-    } }
+        :   null;
+    }
     #endregion
 
     #region Mutations
-    public static string StepCode(string? fertilityCode, int delta) => _singleton._stepCode(fertilityCode, delta);
-    private string _stepCode(string? fertilityCode, int delta)
+    public static string? StepCode(string? fertilityCode, int delta) => _singleton._stepCode(fertilityCode, delta);
+    private string? _stepCode(string? fertilityCode, int delta)
     {
-        string currentCode = Contains(fertilityCode) ? fertilityCode! : Default;
+        int nextIndex = Index(fertilityCode) + delta;
+        if (nextIndex < 0)
+            return null;
 
-        int index = 0;
-        for (int i = 0; i < Order.Length; i++)
-            if (Order[i] == currentCode)
-                { index = i; break; }
-        
-        return Order[GameMath.Clamp(index + delta, 0, Order.Length - 1)];
+        return Order[GameMath.Clamp(nextIndex, 0, Order.Length - 1)];
     }
 
-    public static float[] MakeUniformNutrients(string? fertilityCode) => _singleton._makeUniformNutrients(fertilityCode);
-    private float[] _makeUniformNutrients(string? fertilityCode)
+    public static bool TryGetSteppedBlock
+        (IWorldAccessor world
+        ,Block block
+        ,int delta
+        ,out Block nextBlock
+        ) => _singleton._tryGetSteppedBlock(world, block, delta, out nextBlock);
+
+    private bool _tryGetSteppedBlock
+        (IWorldAccessor world
+        ,Block block
+        ,int delta
+        ,out Block nextBlock
+        )
     {
-        float fertility = this[fertilityCode];
-        return new[] { fertility, fertility, fertility };
+        nextBlock = null;
+
+        string? currentCode = GetCode(block);
+        string? nextCode = StepCode(currentCode, delta);
+        if (nextCode is null
+        ||  nextCode == currentCode
+        ||  block.Code is null
+            )
+            return false;
+
+        string[] codeParts = block.Code.Path.Split('-');
+        if (codeParts.Length == 0)
+            return false;
+
+        codeParts[^1] = nextCode;
+        AssetLocation nextBlockCode = new(block.Code.Domain, string.Join("-", codeParts));
+        nextBlock = world.GetBlock(nextBlockCode);
+        return nextBlock is not null
+            && nextBlock.Id != 0;
     }
     #endregion
 }
