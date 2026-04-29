@@ -11,11 +11,6 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
 
     public float[] Nutrients => _engine.Nutrients;
     public float Moisture01 => _engine.Moisture01;
-    public string? SupportCode => _engine.SupportCode;
-    public bool SupportIsValid => _engine.SupportIsValid;
-    public float SupportRetentionDays => _engine.SupportRetentionDays;
-    public float SupportWaterQuality01 => _engine.SupportWaterQuality01;
-    public string? SupportFertilityCode => _engine.SupportFertilityCode;
 
     #region Setup
     public override void Initialize(ICoreAPI api)

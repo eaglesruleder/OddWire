@@ -12,6 +12,7 @@ namespace OddWire.GameContent;
 
 public class ItemPlow : Item
 {
+    private PlowlandSettings Settings = new();
     private WorldInteraction[]? interactions;
 
     #region Setup
@@ -188,6 +189,33 @@ public class ItemPlow : Item
             return;
         #endregion
 
+        #region Revert farmland or plowland support to soil
+        if (supportBlock is BlockFarmland or BlockPlowland)
+        {
+            BlockEntity? supportBlockEntity = world.BlockAccessor.GetBlockEntity(supportPos);
+            float[] supportNutrients = ResolveCurrentNutrients(supportBlock, supportBlockEntity);
+
+            string? revertFertilityCode = FertilitySet.GetCode(supportBlock);
+            if (supportNutrients.Avg() < 100f
+            &&  api.World.Rand.NextSingle() < 0.5f
+                )
+                revertFertilityCode = FertilitySet.StepCode(revertFertilityCode, -1) ?? revertFertilityCode;
+
+            if (revertFertilityCode is not null)
+            {
+                AssetLocation soilCode = new("game", $"soil-{revertFertilityCode}");
+                Block soilBlock = world.GetBlock(soilCode);
+                if (soilBlock is not null
+                &&  soilBlock.Id != 0
+                    )
+                {
+                    world.BlockAccessor.ExchangeBlock(soilBlock.BlockId, supportPos);
+                    supportBlock = soilBlock;
+                }
+            }
+        }
+        #endregion
+
         #region Resolve current nutrients and fertility values
         string targetFertilityCode = FertilitySet.GetCode(targetBlock)!;
         int targetFertility = FertilitySet.Index(targetFertilityCode);
@@ -202,7 +230,8 @@ public class ItemPlow : Item
 
         #region Resolve fertility exchange chance
         float randChange = api.World.Rand.NextSingle() * 100f;
-        #region Drain richer fertility when target is underfed
+
+        #region Equalise toward support when underfed
         if (targetAvgNutrients < 100f)
         {
             if (targetAvgNutrients < randChange)
@@ -217,13 +246,13 @@ public class ItemPlow : Item
         }
         #endregion
         else
-        #region Feed poorer fertility when target is overfed
+        #region Damage support when overtilled
         {
             if (targetAvgNutrients - 100f > randChange)
             {
                 if (targetFertility < supportFertility
                 ||  supportFertility < 0
-                    )
+                   )
                     targetFertilityChange++;
                 else
                     supportFertilityChange++;
@@ -235,15 +264,15 @@ public class ItemPlow : Item
         #region Build the new nutrient state for the plowed target
         float[] resultNutrients = new float[targetNutrients.Length];
         for (int i = 0; i < targetNutrients.Length; i++)
-            resultNutrients[i] = Math.Min(150f, targetNutrients[i] + supportMax);
+            resultNutrients[i] = Math.Min(Settings.MaxFertilizedNutrient, targetNutrients[i] + supportMax);
         #endregion
 
         #region Build the new plowland block
         float targetMoisture01 = ResolveCurrentMoisture(targetBlockEntity);
         string targetMoistKey =
             targetMoisture01 > 0.10f
-        ?   PlowlandSettings.StateMoist
-        :   PlowlandSettings.StateDry;
+        ?   Settings.StateMoist
+        :   Settings.StateDry;
 
         if (targetFertilityChange != 0)
         {

@@ -2,12 +2,12 @@ namespace OddWire.GameContent;
 
 public sealed class PlowlandSettings
 {
-    public const string VariantState = "state";
-    public const string VariantFertility = "fertility";
+    public string VariantState = "state";
+    public string VariantFertility = "fertility";
 
-    public const string StateDry = "dry";
-    public const string StateMoist = "moist";
-    public const string DefaultFertility = FertilitySet.Low;
+    public string StateDry = "dry";
+    public string StateMoist = "moist";
+    public string DefaultFertility = FertilitySet.Low;
 
     public float MoistVisibleThreshold = 0.10f;
     public float DefaultRetentionDays = 4f;
