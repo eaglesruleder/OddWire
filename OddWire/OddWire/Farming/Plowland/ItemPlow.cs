@@ -85,12 +85,6 @@ public class ItemPlow : Item
             return;
         #endregion
 
-        #region Require valid support block
-        Block supportBlock = world.BlockAccessor.GetBlock(targetPos.DownCopy());
-        if (!IsValidSupportBlock(supportBlock))
-            return;
-        #endregion
-
         #region Begin held plow use
         byEntity.Attributes.SetInt("didplow", 0);
         handHandling = EnumHandHandling.PreventDefault;
@@ -126,10 +120,7 @@ public class ItemPlow : Item
 
         #region Require still-valid target
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
-        Block supportBlock = world.BlockAccessor.GetBlock(targetPos.DownCopy());
-        if (!CanPlowTarget(targetBlock)
-        ||  !IsValidSupportBlock(supportBlock)
-            )
+        if (!CanPlowTarget(targetBlock))
             return false;
         #endregion
 
@@ -182,11 +173,6 @@ public class ItemPlow : Item
         BlockEntity? targetBlockEntity = world.BlockAccessor.GetBlockEntity(targetPos);
         BlockPos supportPos = targetPos.DownCopy();
         Block supportBlock = world.BlockAccessor.GetBlock(supportPos);
-        #endregion
-
-        #region Require valid support block
-        if (!IsValidSupportBlock(supportBlock))
-            return;
         #endregion
 
         #region Revert farmland or plowland support to soil
