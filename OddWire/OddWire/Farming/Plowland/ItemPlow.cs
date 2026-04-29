@@ -190,30 +190,7 @@ public class ItemPlow : Item
         #endregion
 
         #region Revert farmland or plowland support to soil
-        if (supportBlock is BlockFarmland or BlockPlowland)
-        {
-            BlockEntity? supportBlockEntity = world.BlockAccessor.GetBlockEntity(supportPos);
-            float[] supportNutrients = ResolveCurrentNutrients(supportBlock, supportBlockEntity);
-
-            string? revertFertilityCode = FertilitySet.GetCode(supportBlock);
-            if (supportNutrients.Avg() < 100f
-            &&  api.World.Rand.NextSingle() < 0.5f
-                )
-                revertFertilityCode = FertilitySet.StepCode(revertFertilityCode, -1) ?? revertFertilityCode;
-
-            if (revertFertilityCode is not null)
-            {
-                AssetLocation soilCode = new("game", $"soil-{revertFertilityCode}");
-                Block soilBlock = world.GetBlock(soilCode);
-                if (soilBlock is not null
-                &&  soilBlock.Id != 0
-                    )
-                {
-                    world.BlockAccessor.ExchangeBlock(soilBlock.BlockId, supportPos);
-                    supportBlock = soilBlock;
-                }
-            }
-        }
+        supportBlock = RevertSupportToSoil(world, supportPos, supportBlock);
         #endregion
 
         #region Resolve current nutrients and fertility values
@@ -322,6 +299,38 @@ public class ItemPlow : Item
         world.BlockAccessor.MarkBlockDirty(supportPos);
         world.BlockAccessor.MarkBlockDirty(targetPos);
         #endregion
+    }
+    #endregion
+
+    #region RevertSupportToSoil
+    private Block RevertSupportToSoil(IWorldAccessor world, BlockPos supportPos, Block supportBlock)
+    {
+        if (supportBlock is not (BlockFarmland or BlockPlowland))
+            return supportBlock;
+
+        BlockEntity? supportBlockEntity = world.BlockAccessor.GetBlockEntity(supportPos);
+        float supportNutrients = ResolveCurrentNutrients(supportBlock, supportBlockEntity).Avg();
+
+        string? revertFertilityCode = FertilitySet.GetCode(supportBlock);
+        if (supportNutrients < 100f
+        &&  api.World.Rand.NextSingle() < supportNutrients / 100
+            )
+            revertFertilityCode = FertilitySet.StepCode(revertFertilityCode, -1) ?? revertFertilityCode;
+
+        if (revertFertilityCode is null)
+            return supportBlock;
+        
+        AssetLocation soilCode = new("game", $"soil-{revertFertilityCode}");
+        Block soilBlock = world.GetBlock(soilCode);
+        if (soilBlock is not null
+        &&  soilBlock.Id != 0
+            )
+        {
+            world.BlockAccessor.ExchangeBlock(soilBlock.BlockId, supportPos);
+            return soilBlock;
+        }
+
+        return supportBlock;
     }
     #endregion
 
