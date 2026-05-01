@@ -12,15 +12,13 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
     public float[] Nutrients => _engine.Nutrients;
     public float Moisture01 => _engine.Moisture01;
 
-    #region Setup
+    #region Initialize & OnEvery3Seconds
     public override void Initialize(ICoreAPI api)
     {
         base.Initialize(api);
-
-        #region Server tick
+        
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery3Seconds, 3000);
-        #endregion
     }
 
     public void Initialise
@@ -35,15 +33,7 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
             );
         MarkDirty(true);
     }
-
-    public void SetOriginalFertility(string fertilityCode)
-    {
-        _engine.SetOriginalFertility(fertilityCode);
-        MarkDirty(true);
-    }
-    #endregion
-
-    #region Tick
+    
     private void OnEvery3Seconds(float dt)
     {
         if (_engine.Update(this))

@@ -18,9 +18,8 @@ public class BlockPlowland : Block
             return false;
         
         if (blockFace == BlockFacing.UP
-        && (block is BlockCrop
-        ||  block is BlockDeadCrop
-           ))
+        &&  block is BlockCrop or BlockDeadCrop
+           )
             return true;
 
         return base.CanAttachBlockAt(world, block, pos, blockFace, attachmentArea);
