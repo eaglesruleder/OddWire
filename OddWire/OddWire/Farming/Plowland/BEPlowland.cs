@@ -3,7 +3,6 @@ using System.Text;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
 
@@ -28,105 +27,22 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
     public double PrevTimeMoistureUpdated = -1;
     public double PrevTimeNutrientsUpdated = -1;
     #endregion
-
-    #region Lifecycle
-    public override void Initialize(ICoreAPI api)
-    {
-        base.Initialize(api);
-
-        if (api.Side == EnumAppSide.Server)
-            RegisterGameTickListener(OnEvery3Seconds, 3000);
-    }
-
-    public void Initialise
-        (float[]? nutrients = null
-        ,float? moisture01 = null
-        )
-    {
-        #region Reset support from block below
-        if (Api is null)
-            UpdateSupportFromBlock(null);
-        else
-            UpdateSupportFromBlock(Api.World.BlockAccessor.GetBlock(Pos.DownCopy()));
-        #endregion
-
-        #region Reset nutrients from plowland fertility
-        float original = FertilitySet.Value(Block);
-        for (int i = 0; i < 3; i++)
-        {
-            OriginalNutrients[i] = GameMath.Clamp(original, 0f, Settings.MaxFertilizedNutrient);
-            Nutrients[i] = nutrients != null && nutrients.Length > i
-                ? GameMath.Clamp(nutrients[i], 0f, Settings.MaxFertilizedNutrient)
-                : OriginalNutrients[i];
-            SlowReleaseNutrients[i] = 0f;
-        }
-        #endregion
-
-        #region Reset dynamic state
-        Moisture01 = GameMath.Clamp(moisture01 ?? (SupportIsValid ? 1f : 0f), 0f, 1f);
-        LastWaterDistance = 99f;
-        PrevTimeMoistureUpdated = -1;
-        PrevTimeNutrientsUpdated = -1;
-        #endregion
-    }
-
-    public void SetOriginalFertility(string fertilityCode)
-    {
-        if (!FertilitySet.Contains(fertilityCode))
-            return;
-
-        float fertility = FertilitySet.Value(fertilityCode);
-        for (int i = 0; i < 3; i++)
-        {
-            OriginalNutrients[i] = fertility;
-            Nutrients[i] = Math.Min(Nutrients[i], fertility);
-        }
-    }
-
-    private void OnEvery3Seconds(float dt)
-    {
-        if (Update())
-            MarkDirty(true);
-    }
-    #endregion
-
-    #region Tick
-    private bool Update()
-    {
-        bool changed = false;
-
-        #region Require valid world state
-        if (Api?.Side != EnumAppSide.Server)
-            return false;
-        #endregion
-
-        #region Refresh support from the block below
-        changed |= RefreshSupport();
-        #endregion
-
-        #region Update moisture and nutrients
-        changed |= UpdateMoisture();
-        changed |= UpdateNutrients();
-        #endregion
-
-        return changed;
-    }
-    #endregion
-
+    
     #region PlayerActions
     public void Water(float dt)
     {
-        float prev = Moisture01;
-        Moisture01 = Math.Min(1f, Moisture01 + dt / 2f);
-        if (Math.Abs(Moisture01 - prev) > 0.001f)
-            MarkDirty(true);
+        float newMoisture01 = Math.Min(1f, Moisture01 + dt / 2f);
+        if (newMoisture01.Approx(Moisture01))
+            return;
+        Moisture01 = newMoisture01;
+        MarkDirty(true);
     }
 
     public bool TryFertilize(ItemSlot slot, out int consumed)
     {
         consumed = 0;
 
-        #region Require held item fertilizer props
+        #region if(!slot.Attributes["fertilizerProps"]) return;
         JsonObject? obj = slot.Itemstack?.Collectible?.Attributes?["fertilizerProps"];
         if (obj == null || !obj.Exists)
             return false;
@@ -147,78 +63,148 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         return true;
     }
     #endregion
-
-    #region BlockInfo
-    public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
+    
+    #region Lifecycle
+    public override void Initialize(ICoreAPI api)
     {
-        dsc.AppendLine($"Moisture: {(Moisture01 * 100f):0}%");
-        dsc.AppendLine($"Support: {SupportCode ?? "none"}");
-        dsc.AppendLine($"Retention: {SupportRetentionDays:0.0} days");
-        dsc.AppendLine($"NPK: {MathF.Round(Nutrients[0], 1)} / {MathF.Round(Nutrients[1], 1)} / {MathF.Round(Nutrients[2], 1)}");
-    }
-    #endregion
+        base.Initialize(api);
 
-    #region UpdateMoisture
+        if (api.Side == EnumAppSide.Server)
+            RegisterGameTickListener(OnEvery3Seconds, 3000);
+    }
+
+    public void Initialise
+        (float[]? nutrients = null
+        ,float? moisture01 = null
+        )
+    {
+        Reset();
+        UpdateSupport();
+
+        Moisture01 = GameMath.Clamp(moisture01 ?? (SupportIsValid ? 1f : 0f), 0f, 1f);
+
+        #region Nutrients = Clamp(nutrients ?? OriginalNutrients, 0, MaxFertilizedNutrient)
+        float original = FertilitySet.Value(Block);
+        for (int i = 0; i < 3; i++)
+        {
+            OriginalNutrients[i] = GameMath.Clamp(original, 0f, Settings.MaxFertilizedNutrient);
+            Nutrients[i] = nutrients?.Length > i
+            ?   GameMath.Clamp(nutrients[i], 0f, Settings.MaxFertilizedNutrient)
+            :   OriginalNutrients[i];
+            SlowReleaseNutrients[i] = 0f;
+        }
+        #endregion
+    }
+
+    private void Reset()
+    {
+        Moisture01 = 1;
+        LastWaterDistance = 99f;
+        PrevTimeMoistureUpdated = -1;
+        PrevTimeNutrientsUpdated = -1;
+    }
+
+    private void ResetSupport()
+    {
+        SupportCode = null;
+        SupportFertilityCode = null;
+        SupportRetentionDays = 0;
+        SupportIsValid = false;
+    }
+
+    private void OnEvery3Seconds(float dt)
+    {
+        if (Api?.Side != EnumAppSide.Server)
+            return;
+
+        if (UpdateSupport()
+        |   UpdateMoisture()
+        |   UpdateNutrients()
+            )
+            MarkDirty(true);
+    }
+
+    private bool UpdateSupport()
+    {
+        Block supportBlock = Api.World.BlockAccessor.GetBlock(Pos.DownCopy());
+        if (supportBlock is null || supportBlock.Id == 0
+        ||  supportBlock.IsLiquid()
+        ||  supportBlock.BlockMaterial != EnumBlockMaterial.Soil
+           )
+        {
+            if (SupportCode is null && SupportFertilityCode is null)
+                return false;
+            ResetSupport();
+            return true;
+        }
+
+        string? newSupportCode = supportBlock.Code?.ToShortString();
+        string? newSupportFertilityCode = FertilitySet.GetCode(supportBlock);
+
+        if (newSupportCode == SupportCode
+        &&  newSupportFertilityCode == SupportFertilityCode
+           )
+            return false;
+
+        SupportCode = newSupportCode;
+        SupportFertilityCode = newSupportFertilityCode;
+        SupportIsValid = true;
+        SupportRetentionDays = Settings.DefaultRetentionDays * (FertilitySet.Value(SupportFertilityCode) / 100f);
+        return true;
+    }
+    
     private bool UpdateMoisture()
     {
+        #region if (hoursPassed <= 0) return false;
         double totalHours = Api.World.Calendar.TotalHours;
         if (PrevTimeMoistureUpdated < 0)
         {
             PrevTimeMoistureUpdated = totalHours;
             return false;
         }
-
-        #region Resolve elapsed time
+        
         double hoursPassed = totalHours - PrevTimeMoistureUpdated;
         if (hoursPassed <= 0)
             return false;
-
         PrevTimeMoistureUpdated = totalHours;
         #endregion
-
-        #region Resolve nearby water floor
+        
         float waterDistance = ResolveNearbyWaterDistance(out bool deferred);
         if (deferred)
             return false;
 
         LastWaterDistance = waterDistance;
-        float minMoisture = ResolveMinMoisture(waterDistance);
-        #endregion
 
-        #region Dry toward support retention
-        float prev = Moisture01;
         float totalRetentionHours = Math.Max(0.25f, SupportRetentionDays) * Api.World.Calendar.HoursPerDay;
-        Moisture01 = Math.Max(minMoisture, Moisture01 - (float)hoursPassed / totalRetentionHours);
-        #endregion
-
-        #region Swap block variant when moisture crosses visible threshold
-        if ((prev > Settings.MoistVisibleThreshold) != (Moisture01 > Settings.MoistVisibleThreshold))
-            TrySwapMoistureVariant(Moisture01 > Settings.MoistVisibleThreshold);
-        #endregion
-
-        return Math.Abs(Moisture01 - prev) > 0.001f;
+        float newMoisture01 = Math.Max(ResolveMinMoisture(waterDistance), Moisture01 - (float)hoursPassed / totalRetentionHours);
+        if (newMoisture01.Approx(Moisture01))
+            return false;
+        
+        if (Moisture01 > Settings.MoistVisibleThreshold
+        !=  newMoisture01 > Settings.MoistVisibleThreshold
+            )
+            TrySwapMoistureVariant(newMoisture01 > Settings.MoistVisibleThreshold);
+        
+        Moisture01 = newMoisture01;
+        return true;
     }
-    #endregion
-
-    #region UpdateNutrients
+    
     private bool UpdateNutrients()
     {
+        #region if (hoursPassed <= 0) return false;
         double totalHours = Api.World.Calendar.TotalHours;
         if (PrevTimeNutrientsUpdated < 0)
         {
             PrevTimeNutrientsUpdated = totalHours;
             return false;
         }
-
-        #region Resolve elapsed time
+        
         double hoursPassed = totalHours - PrevTimeNutrientsUpdated;
         if (hoursPassed <= 0)
             return false;
-
         PrevTimeNutrientsUpdated = totalHours;
         #endregion
-
-        #region Recover toward original and release fertilizer
+        
         bool changed = false;
         for (int i = 0; i < 3; i++)
         {
@@ -234,120 +220,38 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
                 SlowReleaseNutrients[i] = Math.Max(0f, SlowReleaseNutrients[i] - release);
             }
 
-            changed |= Math.Abs(Nutrients[i] - prev) > 0.001f;
+            changed |= !Nutrients[i].Approx(prev);
         }
-        #endregion
-
         return changed;
     }
     #endregion
-
-    #region Support
-    public static bool IsValidSupportBlock(Block? supportBlock) =>
-        TryResolveSupportState
-            (supportBlock
-            ,out _
-            ,out _
-            ,out _
-            );
-
-    private bool RefreshSupport()
-    {
-        Block supportBlock = Api.World.BlockAccessor.GetBlock(Pos.DownCopy());
-
-        string? prevSupportCode = SupportCode;
-        bool prevSupportIsValid = SupportIsValid;
-        float prevSupportRetentionDays = SupportRetentionDays;
-        string? prevSupportFertilityCode = SupportFertilityCode;
-
-        UpdateSupportFromBlock(supportBlock);
-
-        return prevSupportCode != SupportCode
-            ||  prevSupportIsValid != SupportIsValid
-            ||  Math.Abs(prevSupportRetentionDays - SupportRetentionDays) > 0.001f
-            ||  prevSupportFertilityCode != SupportFertilityCode;
-    }
-
-    private void UpdateSupportFromBlock(Block? supportBlock)
-    {
-        if (TryResolveSupportState
-            (supportBlock
-            ,out string? supportCode
-            ,out float supportRetentionDays
-            ,out string? supportFertilityCode
-            ))
-        {
-            SupportCode = supportCode;
-            SupportIsValid = true;
-            SupportRetentionDays = supportRetentionDays;
-            SupportFertilityCode = supportFertilityCode;
-            return;
-        }
-
-        SupportCode = null;
-        SupportIsValid = false;
-        SupportRetentionDays = Settings.DefaultRetentionDays;
-        SupportFertilityCode = null;
-    }
-
-    private static bool TryResolveSupportState
-        (Block? supportBlock
-        ,out string? supportCode
-        ,out float supportRetentionDays
-        ,out string? supportFertilityCode
-        )
-    {
-        supportCode = null;
-        supportRetentionDays = Settings.DefaultRetentionDays;
-        supportFertilityCode = null;
-
-        if (supportBlock is null
-        ||  supportBlock.Id == 0
-        ||  supportBlock.IsLiquid()
-            )
-            return false;
-
-        if (supportBlock.BlockMaterial != EnumBlockMaterial.Soil)
-            return false;
-
-        supportFertilityCode = FertilitySet.GetCode(supportBlock);
-        float fertilityValue = FertilitySet.Value(supportFertilityCode);
-
-        supportCode = supportBlock.Code?.ToShortString();
-        supportRetentionDays = Settings.DefaultRetentionDays * (fertilityValue / 100f);
-        return true;
-    }
-    #endregion
-
+    
     #region WaterSearch
     private float ResolveNearbyWaterDistance(out bool deferred)
     {
         float waterDistance = 99f;
 
         bool chunkMissing = false;
-        Api.World.BlockAccessor.SearchFluidBlocks(
-            new BlockPos(Pos.X - Settings.WaterSearchRadius, Pos.Y, Pos.Z - Settings.WaterSearchRadius),
-            new BlockPos(Pos.X + Settings.WaterSearchRadius, Pos.Y, Pos.Z + Settings.WaterSearchRadius),
-            (block, pos) =>
+        Api.World.BlockAccessor.SearchFluidBlocks
+            (new BlockPos(Pos.X - Settings.WaterSearchRadius, Pos.Y, Pos.Z - Settings.WaterSearchRadius)
+            ,new BlockPos(Pos.X + Settings.WaterSearchRadius, Pos.Y, Pos.Z + Settings.WaterSearchRadius)
+            ,(block, pos) =>
             {
                 if (block.LiquidCode == "water")
                     waterDistance = Math.Min(waterDistance, Math.Max(Math.Abs(pos.X - Pos.X), Math.Abs(pos.Z - Pos.Z)));
                 return true;
-            },
-            (cx, cy, cz) => chunkMissing = true
-        );
-
+            }
+            ,(cx, cy, cz) => chunkMissing = true
+            );
         deferred = chunkMissing;
+        
         return deferred ? 99f : waterDistance;
     }
 
-    private float ResolveMinMoisture(float waterDistance)
-    {
-        if (!SupportIsValid)
-            return 0f;
-
-        return GameMath.Clamp(1f - waterDistance / Settings.WaterSearchRadius, 0f, 1f);
-    }
+    private float ResolveMinMoisture(float waterDistance) =>
+        SupportIsValid
+    ?   GameMath.Clamp(1f - waterDistance / Settings.WaterSearchRadius, 0, 1)
+    :   0;
 
     private void TrySwapMoistureVariant(bool isMoist)
     {
@@ -366,6 +270,14 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
             Api.World.BlockAccessor.ExchangeBlock(newBlock.BlockId, Pos);
     }
     #endregion
+    
+    public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
+    {
+        dsc.AppendLine($"Moisture: {(Moisture01 * 100f):0}%");
+        dsc.AppendLine($"Support: {SupportCode ?? "none"}");
+        dsc.AppendLine($"Retention: {SupportRetentionDays:0.0} days");
+        dsc.AppendLine($"NPK: {MathF.Round(Nutrients[0], 1)} / {MathF.Round(Nutrients[1], 1)} / {MathF.Round(Nutrients[2], 1)}");
+    }
 
     #region Persistence
     public override void ToTreeAttributes(ITreeAttribute tree)
