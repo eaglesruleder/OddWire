@@ -67,6 +67,11 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
     {
         UpdateSupport();
         _moisture.Reset(GameMath.Clamp(moisture01 ?? (SupportIsValid ? 1f : 0f), 0f, 1f));
+        _npk.SetRules
+            (Settings.MaxFertilizedNutrient
+            ,Settings.FertilityRecoveryPerTick
+            ,Settings.FertilizerReleasePerTick
+            );
         _npk.Initialise(FertilitySet.Value(Block), nutrients);
     }
 

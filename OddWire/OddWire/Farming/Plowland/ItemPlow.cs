@@ -279,9 +279,14 @@ public class ItemPlow : Item
             return;
         
         NPK resultNutrients = new();
-        resultNutrients['N'] = Math.Min(Settings.MaxFertilizedNutrient, targetNutrients[0] + supportMax);
-        resultNutrients['P'] = Math.Min(Settings.MaxFertilizedNutrient, targetNutrients[1] + supportMax);
-        resultNutrients['K'] = Math.Min(Settings.MaxFertilizedNutrient, targetNutrients[2] + supportMax);
+        resultNutrients.SetRules
+            (Settings.MaxFertilizedNutrient
+            ,Settings.FertilityRecoveryPerTick
+            ,Settings.FertilizerReleasePerTick
+            );
+        resultNutrients['N'] = Math.Min(resultNutrients.MaxFertilizedNutrient, targetNutrients[0] + supportMax);
+        resultNutrients['P'] = Math.Min(resultNutrients.MaxFertilizedNutrient, targetNutrients[1] + supportMax);
+        resultNutrients['K'] = Math.Min(resultNutrients.MaxFertilizedNutrient, targetNutrients[2] + supportMax);
         #endregion
 
         if (supportFertilityChange != 0
