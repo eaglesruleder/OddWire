@@ -46,6 +46,8 @@ public class ItemPlow : Item
             clone[i] = nutrients[i];
         return clone;
     }
+
+    private static float[] CloneNutrients(NPK npk) => new[] { npk['N'], npk['P'], npk['K'] };
     #endregion
     
     private static bool CanPlow(Block? block)
@@ -276,11 +278,12 @@ public class ItemPlow : Item
             )
             return;
         
-        float[] resultNutrients = new float[targetNutrients.Length];
-        for (int i = 0; i < targetNutrients.Length; i++)
-            resultNutrients[i] = Math.Min(Settings.MaxFertilizedNutrient, targetNutrients[i] + supportMax);
+        NPK resultNutrients = new();
+        resultNutrients['N'] = Math.Min(Settings.MaxFertilizedNutrient, targetNutrients[0] + supportMax);
+        resultNutrients['P'] = Math.Min(Settings.MaxFertilizedNutrient, targetNutrients[1] + supportMax);
+        resultNutrients['K'] = Math.Min(Settings.MaxFertilizedNutrient, targetNutrients[2] + supportMax);
         #endregion
-        
+
         if (supportFertilityChange != 0
         &&  FertilitySet.TryGetSteppedBlock(world, supportBlock, supportFertilityChange, out Block nextBlock)
             )
