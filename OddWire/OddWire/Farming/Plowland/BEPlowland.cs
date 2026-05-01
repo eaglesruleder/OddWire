@@ -7,20 +7,35 @@ using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
 
-public sealed class BlockEntityPlowland : BlockEntity, IWaterable
+public sealed class BlockEntityPlowland : BlockEntity, IWaterable, IFarmlandBlockEntity
 {
     private static readonly PlowlandSettings Settings = new();
     private readonly Moisture _moisture = new();
     private readonly NPK _npk = new();
+    private readonly CropGrowth _crop = new();
 
     public float Moisture01 => _moisture.Moisture01;
     public NPK Nutrients => _npk;
+    public float MoistureLevel { get; }
+    public bool IsVisiblyMoist { get; }
+    public int[] OriginalFertility { get; }
+
+    #region IFarmlandBlockEntity
+    BlockPos IFarmlandBlockEntity.Pos => Pos;
+    public BlockPos UpPos { get; }
+    public ITreeAttribute CropAttributes { get; } = new TreeAttribute();
+    public double TotalHoursForNextStage => _crop.TotalHoursForNextStage;
+    public double TotalHoursFertilityCheck => throw new NotImplementedException();
+
+    float[] IFarmlandBlockEntity.Nutrients => _nutrients;
+    #endregion
 
     #region StoredState
     public string? SupportCode;
     public bool SupportIsValid;
     public float SupportRetentionDays = 4f;
     public string? SupportFertilityCode;
+    private float[] _nutrients;
     #endregion
 
     #region PlayerActions
@@ -67,6 +82,7 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
     public override void Initialize(ICoreAPI api)
     {
         base.Initialize(api);
+        _crop.Init(Pos);
 
         if (api.Side == EnumAppSide.Server)
             RegisterGameTickListener(OnEvery3Seconds, 3000);
@@ -94,6 +110,8 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
             ,Settings.ReleasePerTick
             );
         _npk.Initialise(FertilitySet.Value(Block), nutrients);
+        
+        _crop.SetRules(Settings.GrowthRateMul);
     }
 
     private void ResetSupport()
@@ -114,10 +132,13 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         ||  _npk.Tick(Api.World.Calendar.TotalHours);
 
         if (_moisture.Tick(Api.World, Pos, SupportRetentionDays))
-        {   
+        {
             UpdateMoistureVariant();
             dirty = true;
         }
+
+        if (TickCrop())
+            dirty = true;
 
         if (dirty)
             MarkDirty(true);
@@ -173,6 +194,37 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         Api.World.BlockAccessor.MarkBlockDirty(Pos);
         return true;
     }
+    
+    private bool TickCrop()
+    {
+        Block? cropBlock = _crop.GetCrop(Api.World);
+        if (cropBlock?.CropProps is null)
+            return false;
+
+        char nutrientKey = cropBlock.CropProps.RequiredNutrient.ToString()[0];
+        float growthRate  = GameMath.Clamp(_npk[nutrientKey] / 100f, 0f, 2f);
+
+        if(!_crop.Tick
+            (Api.World.Calendar.TotalHours
+            ,0.0
+            ,_moisture.Moisture01
+            ,false
+            ,Api.World
+            ,this
+            ,growthRate
+            ,out EnumSoilNutrient consumedNutrient
+            ,out float consumedAmount
+            ))
+            return false;
+
+        if (consumedAmount > 0)
+        {
+            char key = consumedNutrient.ToString()[0];
+            _npk[key] = Math.Max(0f, _npk[key] - consumedAmount);
+        }
+
+        return true;
+    }
     #endregion
 
     #region BlockInfo
@@ -182,6 +234,13 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         dsc.AppendLine($"Support: {SupportCode ?? "none"}");
         dsc.AppendLine($"Retention: {SupportRetentionDays:0.0} days");
         dsc.AppendLine($"NPK: {MathF.Round(_npk['N'], 1)} / {MathF.Round(_npk['P'], 1)} / {MathF.Round(_npk['K'], 1)}");
+
+        Block? cropBlock = _crop.GetCrop(Api.World);
+        if (cropBlock?.CropProps is not null)
+        {
+            dsc.AppendLine($"Crop: {cropBlock.GetPlacedBlockName(Api.World, _crop.UpPos)}");
+            dsc.AppendLine($"Stage: {_crop.GetCropStage(cropBlock)} / {cropBlock.CropProps.GrowthStages}");
+        }
     }
     #endregion
 
@@ -191,6 +250,7 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         base.ToTreeAttributes(tree);
         _moisture.ToTreeAttributes(tree);
         _npk.ToTreeAttributes(tree);
+        _crop.ToTreeAttributes(tree);
 
         tree.SetString("supportCode", SupportCode);
         tree.SetBool("supportIsValid", SupportIsValid);
@@ -203,6 +263,7 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         base.FromTreeAttributes(tree, worldForResolving);
         _moisture.FromTreeAttributes(tree);
         _npk.FromTreeAttributes(tree);
+        _crop.FromTreeAttributes(tree);
 
         SupportCode = tree.GetString("supportCode");
         SupportIsValid = tree.GetBool("supportIsValid");

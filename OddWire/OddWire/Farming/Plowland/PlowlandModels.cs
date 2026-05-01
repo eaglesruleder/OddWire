@@ -18,4 +18,6 @@ public sealed class PlowlandSettings
     public float RecoveryPerTick = 0.25f;
     public float ReleasePerTick = 0.25f;
     public float Max = 150f;
+
+    public float GrowthRateMul = 1f;
 }
