@@ -15,9 +15,9 @@ public sealed class NPK
     public static readonly char[] Keys = ['N', 'P', 'K']; // add 'C','O' here later
     private readonly float[,] _v = new float[Keys.Length, LayerCount];
 
-    public float MaxFertilizedNutrient = 150f;
-    public float FertilityRecoveryPerTick = 0.25f;
-    public float FertilizerReleasePerTick = 0.25f;
+    public float Max = 150f;
+    public float RecoveryPerTick = 0.25f;
+    public float ReleasePerTick = 0.25f;
     public double PrevTimeUpdated = -1;
 
     public float this[char key] { get => this[key, Current]; set => this[key, Current] = value; }
@@ -27,14 +27,14 @@ public sealed class NPK
     }
 
     public void SetRules
-        (float maxFertilizedNutrient
-        ,float fertilityRecoveryPerTick
-        ,float fertilizerReleasePerTick
+        (float max
+        ,float recoveryPerTick
+        ,float releasePerTick
         )
     {
-        MaxFertilizedNutrient = Math.Max(0f, maxFertilizedNutrient);
-        FertilityRecoveryPerTick = Math.Max(0f, fertilityRecoveryPerTick);
-        FertilizerReleasePerTick = Math.Max(0f, fertilizerReleasePerTick);
+        Max = Math.Max(0f, max);
+        RecoveryPerTick = Math.Max(0f, recoveryPerTick);
+        ReleasePerTick = Math.Max(0f, releasePerTick);
     }
 
     private static int GetKeyIndex(char key)
@@ -59,24 +59,17 @@ public sealed class NPK
     {
         foreach (char key in Keys)
         {
-            this[key, Original] = GameMath.Clamp(originalValue, 0f, MaxFertilizedNutrient);
+            this[key, Original] = GameMath.Clamp(originalValue, 0f, Max);
             this[key, Current] = nutrients is null
             ?   this[key, Original]
-            :   GameMath.Clamp(nutrients[key], 0f, MaxFertilizedNutrient);
+            :   GameMath.Clamp(nutrients[key], 0f, Max);
             this[key, OverTime] = 0f;
         }
         PrevTimeUpdated = -1;
     }
 
-    public void Fertilize(FertilizerProps props)
-    {
-        AddOverTime('N', props.N);
-        AddOverTime('P', props.P);
-        AddOverTime('K', props.K);
-    }
-
-    private void AddOverTime(char key, float value) => 
-        this[key, OverTime] += Math.Min(Math.Max(0f, MaxFertilizedNutrient - this[key, OverTime]), value);
+    public void AddOverTime(char key, float value) =>
+        this[key, OverTime] += Math.Min(Math.Max(0f, Max - this[key, OverTime]), Math.Max(0f, value));
     
     public bool Tick(double totalHours)
     {
@@ -94,19 +87,22 @@ public sealed class NPK
         bool changed = false;
         foreach (char key in Keys)
         {
-            float prev = this[key, Current];
+            float prevCurrent = this[key, Current];
+            float prevOverTime = this[key, OverTime];
 
             if (this[key, Current] < this[key, Original])
-                this[key, Current] = Math.Min(this[key, Original], this[key, Current] + FertilityRecoveryPerTick * (float)hoursPassed / 3f);
+                this[key, Current] = Math.Min(this[key, Original], this[key, Current] + RecoveryPerTick * (float)hoursPassed / 3f);
 
             if (this[key, OverTime] > 0)
             {
-                float release = Math.Min(FertilizerReleasePerTick * (float)hoursPassed / 3f, this[key, OverTime]);
-                this[key, Current] = Math.Min(MaxFertilizedNutrient, this[key, Current] + release);
+                float release = Math.Min(ReleasePerTick * (float)hoursPassed / 3f, this[key, OverTime]);
+                this[key, Current] = Math.Min(Max, this[key, Current] + release);
                 this[key, OverTime] = Math.Max(0f, this[key, OverTime] - release);
             }
 
-            changed |= !this[key, Current].Approx(prev);
+            changed |=
+               !this[key, Current].Approx(prevCurrent)
+            || !this[key, OverTime].Approx(prevOverTime);
         }
         return changed;
     }
@@ -115,9 +111,9 @@ public sealed class NPK
     public void ToTreeAttributes(ITreeAttribute tree)
     {
         tree.SetDouble("prevTimeNutrientsUpdated", PrevTimeUpdated);
-        tree.SetFloat("maxFertilizedNutrient", MaxFertilizedNutrient);
-        tree.SetFloat("fertilityRecoveryPerTick", FertilityRecoveryPerTick);
-        tree.SetFloat("fertilizerReleasePerTick", FertilizerReleasePerTick);
+        tree.SetFloat("max", Max);
+        tree.SetFloat("recoveryPerTick", RecoveryPerTick);
+        tree.SetFloat("releasePerTick", ReleasePerTick);
         for(int i = 0; i < Keys.Length; i++)
             for(int j = 0; j < LayerCount; j++)
                 tree.SetFloat($"{Keys[i]}{j}", this[Keys[i], j]);
@@ -127,9 +123,9 @@ public sealed class NPK
     {
         PrevTimeUpdated = tree.GetDouble("prevTimeNutrientsUpdated", -1);
         SetRules
-            (tree.GetFloat("maxFertilizedNutrient", MaxFertilizedNutrient)
-            ,tree.GetFloat("fertilityRecoveryPerTick", FertilityRecoveryPerTick)
-            ,tree.GetFloat("fertilizerReleasePerTick", FertilizerReleasePerTick)
+            (tree.GetFloat("max", tree.GetFloat("maxFertilizedNutrient", Max))
+            ,tree.GetFloat("recoveryPerTick", tree.GetFloat("fertilityRecoveryPerTick", RecoveryPerTick))
+            ,tree.GetFloat("releasePerTick", tree.GetFloat("fertilizerReleasePerTick", ReleasePerTick))
             );
         for(int i = 0; i < Keys.Length; i++)
             for(int j = 0; j < LayerCount; j++)

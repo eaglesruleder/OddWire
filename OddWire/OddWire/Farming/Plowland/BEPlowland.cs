@@ -30,7 +30,7 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
             MarkDirty(true);
     }
 
-    public bool TryFertilize(ItemSlot slot, out int consumed)
+    public bool TryFertilise(ItemSlot slot, out int consumed)
     {
         consumed = 0;
 
@@ -44,10 +44,17 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
             return false;
         #endregion
 
-        _npk.Fertilize(props);
+        Fertilise(props);
         consumed = 1;
         MarkDirty(true);
         return true;
+    }
+
+    private void Fertilise(FertilizerProps props)
+    {
+        _npk.AddOverTime('N', props.N);
+        _npk.AddOverTime('P', props.P);
+        _npk.AddOverTime('K', props.K);
     }
     #endregion
 
@@ -68,9 +75,9 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         UpdateSupport();
         _moisture.Reset(GameMath.Clamp(moisture01 ?? (SupportIsValid ? 1f : 0f), 0f, 1f));
         _npk.SetRules
-            (Settings.MaxFertilizedNutrient
-            ,Settings.FertilityRecoveryPerTick
-            ,Settings.FertilizerReleasePerTick
+            (Settings.Max
+            ,Settings.RecoveryPerTick
+            ,Settings.ReleasePerTick
             );
         _npk.Initialise(FertilitySet.Value(Block), nutrients);
     }

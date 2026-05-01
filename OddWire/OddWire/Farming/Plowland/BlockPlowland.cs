@@ -31,7 +31,7 @@ public class BlockPlowland : Block
         if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityPlowland be)
         {
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
-            if (be.TryFertilize(slot, out int consumed)
+            if (be.TryFertilise(slot, out int consumed)
             &&  consumed > 0
                 )
             {

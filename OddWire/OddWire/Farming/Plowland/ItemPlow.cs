@@ -280,13 +280,13 @@ public class ItemPlow : Item
         
         NPK resultNutrients = new();
         resultNutrients.SetRules
-            (Settings.MaxFertilizedNutrient
-            ,Settings.FertilityRecoveryPerTick
-            ,Settings.FertilizerReleasePerTick
+            (Settings.Max
+            ,Settings.RecoveryPerTick
+            ,Settings.ReleasePerTick
             );
-        resultNutrients['N'] = Math.Min(resultNutrients.MaxFertilizedNutrient, targetNutrients[0] + supportMax);
-        resultNutrients['P'] = Math.Min(resultNutrients.MaxFertilizedNutrient, targetNutrients[1] + supportMax);
-        resultNutrients['K'] = Math.Min(resultNutrients.MaxFertilizedNutrient, targetNutrients[2] + supportMax);
+        resultNutrients['N'] = Math.Min(resultNutrients.Max, targetNutrients[0] + supportMax);
+        resultNutrients['P'] = Math.Min(resultNutrients.Max, targetNutrients[1] + supportMax);
+        resultNutrients['K'] = Math.Min(resultNutrients.Max, targetNutrients[2] + supportMax);
         #endregion
 
         if (supportFertilityChange != 0
@@ -332,7 +332,7 @@ public class ItemPlow : Item
 
         string? revertFertilityCode = FertilitySet.GetCode(supportBlock);
         if (supportNutrientAvg < 100f
-        &&  api.World.Rand.NextSingle() < supportNutrientAvg / 100
+        &&  api.World.Rand.NextSingle() > supportNutrientAvg / 100f
             )
             revertFertilityCode = FertilitySet.StepCode(revertFertilityCode, -1) ?? revertFertilityCode;
 

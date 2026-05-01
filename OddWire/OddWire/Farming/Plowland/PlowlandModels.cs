@@ -11,8 +11,8 @@ public sealed class PlowlandSettings
 
     public float MoistVisibleThreshold = 0.10f;
     public float DefaultRetentionDays = 4f;
-    public float FertilityRecoveryPerTick = 0.25f;
-    public float FertilizerReleasePerTick = 0.25f;
-    public float MaxFertilizedNutrient = 150f;
+    public float RecoveryPerTick = 0.25f;
+    public float ReleasePerTick = 0.25f;
+    public float Max = 150f;
     public int WaterSearchRadius = 4;
 }
