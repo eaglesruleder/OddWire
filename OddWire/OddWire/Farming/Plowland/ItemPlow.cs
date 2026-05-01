@@ -19,10 +19,15 @@ public class ItemPlow : Item
     private static float[] ResolveCurrentNutrients(Block targetBlock, BlockEntity? targetBlockEntity)
     {
         if (targetBlockEntity is BlockEntityFarmland beFarmland)
-            return CloneNutrients(beFarmland.Nutrients);
+        {
+            float[] clone = new float[beFarmland.Nutrients.Length];
+            for (int i = 0; i < beFarmland.Nutrients.Length; i++)
+                clone[i] = beFarmland.Nutrients[i];
+            return clone;
+        }
 
         if (targetBlockEntity is BlockEntityPlowland bePlowland)
-            return CloneNutrients(bePlowland.Nutrients);
+            return new[]{ bePlowland.Nutrients['N'], bePlowland.Nutrients['P'], bePlowland.Nutrients['K'] };
 
         float fertility = FertilitySet.Value(targetBlock);
         return new[] { fertility, fertility, fertility };
@@ -38,34 +43,22 @@ public class ItemPlow : Item
 
         return 0f;
     }
-
-    private static float[] CloneNutrients(float[] nutrients)
-    {
-        float[] clone = new float[nutrients.Length];
-        for (int i = 0; i < nutrients.Length; i++)
-            clone[i] = nutrients[i];
-        return clone;
-    }
-
-    private static float[] CloneNutrients(NPK npk) => new[] { npk['N'], npk['P'], npk['K'] };
     #endregion
     
     private static bool CanPlow(Block? block)
     {
         if (block is null
-            ||  block.Id == 0
-            ||  block.IsLiquid()
+        ||  block.Id == 0
+        ||  block.IsLiquid()
            )
             return false;
 
         if (block is BlockPlowland or BlockFarmland)
             return true;
 
-        string? targetFertilityCode = FertilitySet.GetCode(block);
-        if (targetFertilityCode is null)
-            return false;
-        
-        return block.BlockMaterial == EnumBlockMaterial.Soil;
+        return 
+            FertilitySet.GetCode(block) is not null
+        &&  block.BlockMaterial == EnumBlockMaterial.Soil;
     }
     
     
@@ -111,8 +104,9 @@ public class ItemPlow : Item
         ,ref EnumHandHandling handHandling
         )
     {
+        #region if(blockSel is null || !firstEvent || Shift&&Ctrl) return;
         if (blockSel is null
-        ||  !firstEvent
+        || !firstEvent
             )
             return;
         
@@ -123,6 +117,7 @@ public class ItemPlow : Item
             base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handHandling);
             return;
         }
+        #endregion
 
         #region if(covered) TriggerIngameError
         IWorldAccessor world = byEntity.World;
@@ -196,19 +191,19 @@ public class ItemPlow : Item
     
     public virtual void DoPlow(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel)
     {
+        #region if (blockSel is null || !CanPlow(targetBlock)) return;
         if (blockSel is null)
             return;
-
-        #region targetBlock = GetBlock(targetPos)
+        
         IWorldAccessor world = byEntity.World;
         BlockPos targetPos = blockSel.Position;
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
-        #endregion
-
+        
         if (!CanPlow(targetBlock))
             return;
+        #endregion
         
-        #region supportBlock = GetBlock(supportPos)
+        #region supportBlock = GetBlock(targetPos.DownCopy())
         BlockEntity? targetBlockEntity = world.BlockAccessor.GetBlockEntity(targetPos);
         BlockPos supportPos = targetPos.DownCopy();
         Block supportBlock = world.BlockAccessor.GetBlock(supportPos);
@@ -229,7 +224,7 @@ public class ItemPlow : Item
         
         float randChange = api.World.Rand.NextSingle() * 100f;
         if (targetAvgNutrients < 100f)
-        #region Loose Fertility when Underfed
+        #region Loose Fert when Underfed
         {
             if (targetAvgNutrients < randChange)
             {
@@ -260,7 +255,7 @@ public class ItemPlow : Item
         #region Build plowland
         float targetMoisture01 = ResolveCurrentMoisture(targetBlockEntity);
         string targetMoistKey =
-            targetMoisture01 > 0.10f
+            targetMoisture01 > Settings.MoistVisibleThreshold
         ?   Settings.StateMoist
         :   Settings.StateDry;
 

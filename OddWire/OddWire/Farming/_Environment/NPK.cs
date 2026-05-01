@@ -87,22 +87,19 @@ public sealed class NPK
         bool changed = false;
         foreach (char key in Keys)
         {
-            float prevCurrent = this[key, Current];
-            float prevOverTime = this[key, OverTime];
-
             if (this[key, Current] < this[key, Original])
+            {
                 this[key, Current] = Math.Min(this[key, Original], this[key, Current] + RecoveryPerTick * (float)hoursPassed / 3f);
+                changed = true;
+            }
 
             if (this[key, OverTime] > 0)
             {
                 float release = Math.Min(ReleasePerTick * (float)hoursPassed / 3f, this[key, OverTime]);
                 this[key, Current] = Math.Min(Max, this[key, Current] + release);
                 this[key, OverTime] = Math.Max(0f, this[key, OverTime] - release);
+                changed = true;
             }
-
-            changed |=
-               !this[key, Current].Approx(prevCurrent)
-            || !this[key, OverTime].Approx(prevOverTime);
         }
         return changed;
     }

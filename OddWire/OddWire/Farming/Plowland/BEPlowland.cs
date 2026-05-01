@@ -10,7 +10,7 @@ namespace OddWire.GameContent;
 public sealed class BlockEntityPlowland : BlockEntity, IWaterable
 {
     private static readonly PlowlandSettings Settings = new();
-    private readonly PlowlandMoisture _moisture = new();
+    private readonly Moisture _moisture = new();
     private readonly NPK _npk = new();
 
     public float Moisture01 => _moisture.Moisture01;
@@ -26,8 +26,13 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
     #region PlayerActions
     public void Water(float dt)
     {
-        if (_moisture.Water(dt))
-            MarkDirty(true);
+        float prevMoisture = _moisture.Moisture01;
+        _moisture.Water(dt);
+        if(prevMoisture.Approx(_moisture.Moisture01))
+            return;
+
+        UpdateMoistureVariant();
+        MarkDirty(true);
     }
 
     public bool TryFertilise(ItemSlot slot, out int consumed)
@@ -36,7 +41,7 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
 
         #region if(!slot.Attributes["fertilizerProps"]) return;
         JsonObject? obj = slot.Itemstack?.Collectible?.Attributes?["fertilizerProps"];
-        if (obj == null || !obj.Exists)
+        if (obj?.Exists != true)
             return false;
 
         FertilizerProps? props = obj.AsObject<FertilizerProps>();
@@ -73,7 +78,16 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         )
     {
         UpdateSupport();
+        
         _moisture.Reset(GameMath.Clamp(moisture01 ?? (SupportIsValid ? 1f : 0f), 0f, 1f));
+        _moisture.SetRules
+            (Settings.MoistVisibleThreshold
+            ,Settings.WaterSearchRadius
+            ,Settings.MinRetentionDays
+            ,Settings.WaterPerSecond
+            );
+        UpdateMoistureVariant();
+        
         _npk.SetRules
             (Settings.Max
             ,Settings.RecoveryPerTick
@@ -95,10 +109,17 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         if (Api?.Side != EnumAppSide.Server)
             return;
 
-        if (UpdateSupport()
-        |   _moisture.Tick(this, SupportIsValid, SupportRetentionDays)
-        |   _npk.Tick(Api.World.Calendar.TotalHours)
-            )
+        bool dirty =
+            UpdateSupport()
+        ||  _npk.Tick(Api.World.Calendar.TotalHours);
+
+        if (_moisture.Tick(Api.World, Pos, SupportRetentionDays))
+        {   
+            UpdateMoistureVariant();
+            dirty = true;
+        }
+
+        if (dirty)
             MarkDirty(true);
     }
 
@@ -128,6 +149,28 @@ public sealed class BlockEntityPlowland : BlockEntity, IWaterable
         SupportFertilityCode = newSupportFertilityCode;
         SupportIsValid = true;
         SupportRetentionDays = Settings.DefaultRetentionDays * (FertilitySet.Value(SupportFertilityCode) / 100f);
+        return true;
+    }
+
+    private bool UpdateMoistureVariant()
+    {
+        string? fertilityCode = FertilitySet.GetCode(Block);
+        if (fertilityCode is null
+        ||  Block.Code is null
+            )
+            return false;
+
+        string moistureCode = _moisture.IsVisiblyMoist ? Settings.StateMoist : Settings.StateDry;
+        AssetLocation newCode = new(Block.Code.Domain, $"plowland-{moistureCode}-{fertilityCode}");
+        Block newBlock = Api.World.GetBlock(newCode);
+        if (newBlock is null
+        ||  newBlock.Id == 0
+        ||  newBlock.Id == Block.Id
+            )
+            return false;
+
+        Api.World.BlockAccessor.ExchangeBlock(newBlock.BlockId, Pos);
+        Api.World.BlockAccessor.MarkBlockDirty(Pos);
         return true;
     }
     #endregion

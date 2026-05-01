@@ -27,7 +27,7 @@ public class BlockPlowland : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        #region Forward held fertilizer into BE
+        #region if(blockSel is BlockEntityPlowland be) return be.TryFertilise;
         if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityPlowland be)
         {
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
