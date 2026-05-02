@@ -14,20 +14,18 @@ public class ItemPlow : Item
 {
     private PlowlandSettings Settings = new();
     private WorldInteraction[]? interactions;
-    
+
     #region FertilityHelpers
     private static float[] ResolveCurrentNutrients(Block targetBlock, BlockEntity? targetBlockEntity)
     {
-        if (targetBlockEntity is BlockEntityFarmland beFarmland)
+        // Both BlockEntityFarmland and BlockEntityPlowland inherit BlockEntitySoilNutrition
+        if (targetBlockEntity is BlockEntitySoilNutrition beNutrition)
         {
-            float[] clone = new float[beFarmland.Nutrients.Length];
-            for (int i = 0; i < beFarmland.Nutrients.Length; i++)
-                clone[i] = beFarmland.Nutrients[i];
+            float[] clone = new float[beNutrition.Nutrients.Length];
+            for (int i = 0; i < beNutrition.Nutrients.Length; i++)
+                clone[i] = beNutrition.Nutrients[i];
             return clone;
         }
-
-        if (targetBlockEntity is BlockEntityPlowland bePlowland)
-            return new[]{ bePlowland.Nutrients['N'], bePlowland.Nutrients['P'], bePlowland.Nutrients['K'] };
 
         float fertility = FertilitySet.Value(targetBlock);
         return new[] { fertility, fertility, fertility };
@@ -35,16 +33,13 @@ public class ItemPlow : Item
 
     private static float ResolveCurrentMoisture(BlockEntity? targetBlockEntity)
     {
-        if (targetBlockEntity is BlockEntityFarmland beFarmland)
-            return beFarmland.MoistureLevel;
-
-        if (targetBlockEntity is BlockEntityPlowland bePlowland)
-            return bePlowland.Moisture01;
+        if (targetBlockEntity is BlockEntitySoilNutrition beNutrition)
+            return beNutrition.MoistureLevel;
 
         return 0f;
     }
     #endregion
-    
+
     private static bool CanPlow(Block? block)
     {
         if (block is null
@@ -56,12 +51,12 @@ public class ItemPlow : Item
         if (block is BlockPlowland or BlockFarmland)
             return true;
 
-        return 
+        return
             FertilitySet.GetCode(block) is not null
         &&  block.BlockMaterial == EnumBlockMaterial.Soil;
     }
-    
-    
+
+
     public override void OnLoaded(ICoreAPI api)
     {
         base.OnLoaded(api);
@@ -79,8 +74,8 @@ public class ItemPlow : Item
             return new[]
                 {new WorldInteraction
                     {ActionLangCode = "heldhelp-plow"
-                    ,MouseButton = EnumMouseButton.Right
-                    ,Itemstacks = stacks.ToArray()
+                    ,MouseButton    = EnumMouseButton.Right
+                    ,Itemstacks     = stacks.ToArray()
                     }
                 };
         });
@@ -94,7 +89,7 @@ public class ItemPlow : Item
         ?   baseInteractions
         :   interactions.Append(baseInteractions);
     }
-    
+
     public override void OnHeldInteractStart
         (ItemSlot slot
         ,EntityAgent byEntity
@@ -104,12 +99,12 @@ public class ItemPlow : Item
         ,ref EnumHandHandling handHandling
         )
     {
-        #region if(blockSel is null || !firstEvent || Shift&&Ctrl) return;
+        #region Require valid interact conditions
         if (blockSel is null
         || !firstEvent
             )
             return;
-        
+
         if (byEntity.Controls.ShiftKey
         &&  byEntity.Controls.CtrlKey
             )
@@ -129,11 +124,11 @@ public class ItemPlow : Item
             return;
         }
         #endregion
-        
+
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
         if (!CanPlow(targetBlock))
             return;
-        
+
         byEntity.Attributes.SetInt("didplow", 0);
         handHandling = EnumHandHandling.PreventDefault;
     }
@@ -148,18 +143,18 @@ public class ItemPlow : Item
     {
         if (blockSel is null)
             return false;
-        
+
         if (byEntity.Controls.ShiftKey
         &&  byEntity.Controls.CtrlKey
             )
             return false;
 
-        #region if(covered || !CanPlowTarget) return false
+        #region Require target still valid
         IWorldAccessor world = byEntity.World;
         BlockPos targetPos = blockSel.Position;
         if (world.BlockAccessor.GetBlock(targetPos.UpCopy()).Id != 0)
             return false;
-        
+
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
         if (!CanPlow(targetBlock))
             return false;
@@ -175,7 +170,7 @@ public class ItemPlow : Item
             DoPlow(slot, byEntity, blockSel);
         }
         #endregion
-        
+
         return secondsUsed < 1f;
     }
 
@@ -188,49 +183,50 @@ public class ItemPlow : Item
         ,EnumItemUseCancelReason cancelReason
         ) => false;
     #endregion
-    
+
     public virtual void DoPlow(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel)
     {
-        #region if (blockSel is null || !CanPlow(targetBlock)) return;
+        #region Require valid plow target
         if (blockSel is null)
             return;
-        
+
         IWorldAccessor world = byEntity.World;
         BlockPos targetPos = blockSel.Position;
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
-        
+
         if (!CanPlow(targetBlock))
             return;
         #endregion
-        
-        #region supportBlock = GetBlock(targetPos.DownCopy())
+
+        #region Resolve support block
         BlockEntity? targetBlockEntity = world.BlockAccessor.GetBlockEntity(targetPos);
         BlockPos supportPos = targetPos.DownCopy();
-        Block supportBlock = world.BlockAccessor.GetBlock(supportPos);
+        Block supportBlock  = world.BlockAccessor.GetBlock(supportPos);
         supportBlock = RevertSupportToSoil(world, supportPos, supportBlock);
         #endregion
 
-        #region Get nutrientState
-        string targetFertilityCode = FertilitySet.GetCode(targetBlock)!;
-        int targetFertility = FertilitySet.Index(targetFertilityCode);
-        float[] targetNutrients = ResolveCurrentNutrients(targetBlock, targetBlockEntity);
-        float targetAvgNutrients = targetNutrients.Avg();
-        int targetFertilityChange = 0;
+        #region Resolve nutrient state
+        string? targetFertilityCode = FertilitySet.GetCode(targetBlock);
+        if (targetFertilityCode is null)
+            return;
 
-        int supportFertility = FertilitySet.Index(supportBlock);
-        float supportMax = FertilitySet.Value(supportBlock);
-        int supportFertilityChange = 0;
+        int   targetFertility        = FertilitySet.Index(targetFertilityCode);
+        float[] targetNutrients      = ResolveCurrentNutrients(targetBlock, targetBlockEntity);
+        float targetAvgNutrients     = targetNutrients.Avg();
+        int   targetFertilityChange  = 0;
+
+        int   supportFertility       = FertilitySet.Index(supportBlock);
+        float supportMax             = FertilitySet.Value(supportBlock);
+        int   supportFertilityChange = 0;
         #endregion
-        
+
         float randChange = api.World.Rand.NextSingle() * 100f;
         if (targetAvgNutrients < 100f)
-        #region Loose Fert when Underfed
+        #region Lose fertility when underfed
         {
             if (targetAvgNutrients < randChange)
             {
-                if (targetFertility > supportFertility
-                ||  supportFertility < 0
-                    )
+                if (targetFertility > supportFertility || supportFertility < 0)
                     targetFertilityChange--;
                 else
                     supportFertilityChange--;
@@ -238,13 +234,11 @@ public class ItemPlow : Item
         }
         #endregion
         else
-        #region Gain Fert when Overfed
+        #region Gain fertility when overfed
         {
             if (targetAvgNutrients - 100f > randChange)
             {
-                if (targetFertility < supportFertility
-                ||  supportFertility < 0
-                   )
+                if (targetFertility < supportFertility || supportFertility < 0)
                     targetFertilityChange++;
                 else
                     supportFertilityChange++;
@@ -252,9 +246,9 @@ public class ItemPlow : Item
         }
         #endregion
 
-        #region Build plowland
+        #region Build plowland block
         float targetMoisture01 = ResolveCurrentMoisture(targetBlockEntity);
-        string targetMoistKey =
+        string targetMoistKey  =
             targetMoisture01 > Settings.MoistVisibleThreshold
         ?   Settings.StateMoist
         :   Settings.StateDry;
@@ -266,22 +260,16 @@ public class ItemPlow : Item
                 targetFertilityCode = nextTargetCode;
         }
 
-        AssetLocation plowlandCode = new(Code.Domain, $"plowland-{targetMoistKey}-{targetFertilityCode}");
-        Block plowlandBlock = world.GetBlock(plowlandCode);
-        if (plowlandBlock is null
-        ||  plowlandBlock.Id == 0
-            )
+        AssetLocation plowlandCode  = new(Code.Domain, $"plowland-{targetMoistKey}-{targetFertilityCode}");
+        Block plowlandBlock         = world.GetBlock(plowlandCode);
+        if (plowlandBlock is null || plowlandBlock.Id == 0)
             return;
-        
-        NPK resultNutrients = new();
-        resultNutrients.SetRules
-            (Settings.Max
-            ,Settings.RecoveryPerTick
-            ,Settings.ReleasePerTick
-            );
-        resultNutrients['N'] = Math.Min(resultNutrients.Max, targetNutrients[0] + supportMax);
-        resultNutrients['P'] = Math.Min(resultNutrients.Max, targetNutrients[1] + supportMax);
-        resultNutrients['K'] = Math.Min(resultNutrients.Max, targetNutrients[2] + supportMax);
+
+        float[] resultNutrients =
+        {   Math.Min(Settings.Max, targetNutrients[0] + supportMax)
+        ,   Math.Min(Settings.Max, targetNutrients[1] + supportMax)
+        ,   Math.Min(Settings.Max, targetNutrients[2] + supportMax)
+        };
         #endregion
 
         if (supportFertilityChange != 0
@@ -289,7 +277,7 @@ public class ItemPlow : Item
             )
             world.BlockAccessor.ExchangeBlock(nextBlock.BlockId, supportPos);
 
-        #region Place & init plowland
+        #region Place and init plowland
         world.BlockAccessor.SetBlock(plowlandBlock.BlockId, targetPos);
         if (world.BlockAccessor.GetBlockEntity(targetPos) is not BlockEntityPlowland bePlowland)
             return;
@@ -316,14 +304,14 @@ public class ItemPlow : Item
         world.BlockAccessor.MarkBlockDirty(targetPos);
         #endregion
     }
-    
+
     private Block RevertSupportToSoil(IWorldAccessor world, BlockPos supportPos, Block supportBlock)
     {
         if (supportBlock is not (BlockFarmland or BlockPlowland))
             return supportBlock;
 
-        BlockEntity? supportBlockEntity = world.BlockAccessor.GetBlockEntity(supportPos);
-        float supportNutrientAvg = ResolveCurrentNutrients(supportBlock, supportBlockEntity).Avg();
+        BlockEntity? supportBlockEntity  = world.BlockAccessor.GetBlockEntity(supportPos);
+        float supportNutrientAvg         = ResolveCurrentNutrients(supportBlock, supportBlockEntity).Avg();
 
         string? revertFertilityCode = FertilitySet.GetCode(supportBlock);
         if (supportNutrientAvg < 100f
@@ -333,12 +321,10 @@ public class ItemPlow : Item
 
         if (revertFertilityCode is null)
             return supportBlock;
-        
+
         AssetLocation soilCode = new("game", $"soil-{revertFertilityCode}");
-        Block soilBlock = world.GetBlock(soilCode);
-        if (soilBlock is not null
-        &&  soilBlock.Id != 0
-            )
+        Block soilBlock        = world.GetBlock(soilCode);
+        if (soilBlock is not null && soilBlock.Id != 0)
         {
             world.BlockAccessor.ExchangeBlock(soilBlock.BlockId, supportPos);
             return soilBlock;

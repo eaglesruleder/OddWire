@@ -11,12 +11,12 @@ public class BlockPlowland : Block
 
     public override bool SideIsSolid(BlockPos pos, int faceIndex) =>
         faceIndex == BlockFacing.indexDOWN;
-    
+
     public override bool CanAttachBlockAt(IBlockAccessor world, Block block, BlockPos pos, BlockFacing blockFace, Cuboidi attachmentArea = null)
     {
         if (blockFace.IsHorizontal)
             return false;
-        
+
         if (blockFace == BlockFacing.UP
         &&  block is BlockCrop or BlockDeadCrop
            )
@@ -27,22 +27,17 @@ public class BlockPlowland : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        #region if(Side.Server && blockSel is BlockEntityPlowland be) return be.TryFertilise;
+        // Server-side guard: OnBlockInteract handles slot.TakeOut internally.
+        // Crop planting does not go through here — BlockCrop detects IFarmlandBlockEntity
+        // on the BE and calls TryPlant directly when placed above plowland.
         if (world.Side != EnumAppSide.Server)
             return base.OnBlockInteractStart(world, byPlayer, blockSel);
-        
-        if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityPlowland be)
-        {
-            ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
-            if (be.TryFertilise(slot, out int consumed)
-            &&  consumed > 0
-                )
-            {
-                slot.TakeOut(consumed);
-                slot.MarkDirty();
-                return true;
-            }
-        }
+
+        #region Route fertilise to block entity
+        if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityPlowland be
+        &&  be.OnBlockInteract(byPlayer)
+           )
+            return true;
         #endregion
 
         return base.OnBlockInteractStart(world, byPlayer, blockSel);
