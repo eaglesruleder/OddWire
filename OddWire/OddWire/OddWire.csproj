@@ -56,10 +56,4 @@
         </Content>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="assets\oddwire\recipes\barrelfail\farming\" />
-      <Folder Include="assets\oddwire\recipes\barrel\farming\" />
-      <Folder Include="assets\oddwire\shapes\smithing\fuel\" />
-    </ItemGroup>
-
 </Project>

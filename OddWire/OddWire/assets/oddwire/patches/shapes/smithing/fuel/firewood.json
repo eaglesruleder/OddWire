@@ -1,8 +1,0 @@
-[
-  {
-    "file": "game:itemtypes/resource/firewood",
-    "op": "addmerge",
-    "path": "/attributes/shapeFuelStackRoot",
-    "value": "oddwire:shapes/smithing/fuel/firewood"
-  }
-]
