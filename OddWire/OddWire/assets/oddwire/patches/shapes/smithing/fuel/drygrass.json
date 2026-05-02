@@ -1,8 +1,0 @@
-[
-  {
-    "file": "game:itemtypes/resource/drygrass",
-    "op": "addmerge",
-    "path": "/attributes/shapeFuelStackRoot",
-    "value": "oddwire:shapes/smithing/fuel/drygrass"
-  }
-]

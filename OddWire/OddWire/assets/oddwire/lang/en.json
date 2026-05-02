@@ -3,22 +3,4 @@
     "blockdesc-compostpile-*": "Turns Food, Rot, and Grass into Compost over time.",
     "oddwire:block-handbooktitle-oddwire:compostpile-*": "Use:",
     "oddwire:block-handbooktext-oddwire:compostpile-*": "Construct a starter pile in the crafting grid.<br>Once placed, add Rot or Compost to seed it, Food to feed it, and Dry Grass to build bulk and improve airflow.<br>Composting works best when the pile is warm, damp, and well supplied. Temperature is best around 20-55°C; greenhouse warmth, sheltered placement, and nearby heat sources can help, but too much heat will harm it.<br>Moisture is best when kept damp but not soaked. Rain and watering restore moisture, while long dry periods slow the pile down.<br>Aeration is restored when adding material, but collapses over time, especially if the pile is boxed in by nearby blocks.<br>When the pile yields Compost or has collapsed, dig it up. Some Compost Pile is returned so it can be rebuilt and turned back into the process.",
-    
-    "block-brazier-short-copper-*": "Brazier (Copper)",
-    "block-brazier-tall-copper-*": "Tall Brazier (Copper)",
-    "block-brazier-short-tinbronze-*": "Brazier (Tin Bronze)",
-    "block-brazier-tall-tinbronze-*": "Tall Brazier (Tin Bronze)",
-    "block-brazier-short-bismuthbronze-*": "Brazier (Bismuth Bronze)",
-    "block-brazier-tall-bismuthbronze-*": "Tall Brazier (Bismuth Bronze)",
-    "block-brazier-short-blackbronze-*": "Brazier (Black Bronze)",
-    "block-brazier-tall-blackbronze-*": "Tall Brazier (Black Bronze)",
-    "block-brazier-short-iron-*": "Brazier (Iron)",
-    "block-brazier-tall-iron-*": "Tall Brazier (Iron)",
-    "block-brazier-short-meteoriciron-*": "Brazier (Meteoric Iron)",
-    "block-brazier-tall-meteoriciron-*": "Tall Brazier (Meteoric Iron)",
-    "block-brazier-short-steel-*": "Brazier (Steel)",
-    "block-brazier-tall-steel-*": "Tall Brazier (Steel)",
-    "blockhelp-brazier-open":  "Open",
-    "blockhelp-brazier-ignite": "Ignite",
-    "blockhelp-brazier-refuel":  "Refuel"
 }

@@ -15,14 +15,12 @@ public partial class OddWireRegistrySystem : ModSystem
     
     public override void Start(ICoreAPI api)
     {
-        Start_Farming(api);
         base.Start(api);
     }
     
     public override void AssetsLoaded(ICoreAPI api)
     {
         base.AssetsLoaded(api);
-        AssetsLoaded_Farming(api);
     }
 }
 
@@ -35,8 +33,7 @@ public class OddWireRecipeLoader : ModSystem
     {
         if (!(api is ICoreServerAPI sapi))
             return;
-
-        sapi.LoadFarmingRecipes();
+        
     }
 }
 
