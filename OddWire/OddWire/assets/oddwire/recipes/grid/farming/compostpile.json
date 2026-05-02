@@ -4,32 +4,6 @@
     "ingredients": {
       "O": {
         "type": "item",
-        "code": "sourcompost",
-        "quantity": 16
-      },
-      "C": {
-        "type": "item",
-        "code": "game:compost",
-        "quantity": 1
-      },
-      "G": {
-        "type": "item",
-        "code": "game:drygrass",
-        "quantity": 16
-      }
-    },
-    "width": 3,
-    "height": 2,
-    "output": {
-      "type": "block",
-      "code": "compostpile-#1"
-    }
-  },
-  {
-    "ingredientPattern": "_O_,CGC",
-    "ingredients": {
-      "O": {
-        "type": "item",
         "code": "game:fruit-*",
         "quantity": 16
       },
