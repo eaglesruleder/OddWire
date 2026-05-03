@@ -1,0 +1,254 @@
+{
+	"code": "brazier",
+	class: "oddwiresmithing.brazier.block",
+	entityClass: "oddwiresmithing.brazier.blockentity",
+	entityBehaviors: [
+		{ name: "FirepitAmbient" }
+	],
+	creativeinventory: { general: ["brazier-*-*-clean"], decorative: ["brazier-*-*-clean"] },
+	"attributes": {
+		"reinforcable": true,
+		"humanoidTraversalCost": 100,
+		"fuelBonusCapacityByType": 
+			{"*-short-*": 1
+			,"*-tall-*": 3
+			},
+		fuelRendererProps:
+			[{
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
+				"ModelKey": "normal",
+				"ShowEmbers": true,
+				"Transform": {translation: { x: 0, y: 0.1875, z: 0 }}
+			},
+				{
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
+				"ModelKey": "wide",
+				"ShowEmbers": true,
+				"Transform": {translation: { x: 0, y: 0.1875, z: 0 }}
+			},
+			{
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
+				"ModelKey": "normal",
+				"Transform":
+				   {translation: { x: 0, y: 0.5, z: 0 },
+					rotation: { x: 0, y: 90, z: 0 }
+				   }
+			},
+			{
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
+				"ModelKey": "wide",
+				"Transform":
+				   {translation: { x: 0, y: 0.5, z: 0 },
+					rotation: { x: 0, y: 90, z: 0 }
+				   }
+			},
+			{
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
+				"ModelKey": "normal",
+				"Transform":
+				{translation: { x: 0, y: 0.8125, z: 0 },
+				 rotation: { x: 0, y: 180, z: 0 }
+				}
+			},
+			{
+				"DefaultShapeRoot": "oddwire:shapes/smithing/fuel/",
+				"ModelKey": "wide",
+				"Transform":
+				{translation: { x: 0, y: 0.8125, z: 0 },
+				 rotation: { x: 0, y: 180, z: 0 }
+				}
+			}
+			]
+		},
+	"maxStackSize": 1,
+	"enabled": true,
+	"variantgroups": [
+		{ code:"height", states: ["short", "tall"] },
+		{ "code":"material", "states": ["copper", "tinbronze", "bismuthbronze", "blackbronze", "iron", "meteoriciron", "steel"] },
+		{ code:"burnstate", states: ["clean", "lit", "extinct", "cold"] },
+	],
+	behaviors: [{ name: "Lockable" }, {name: "Container"}, {name: "Unstable"}, { name: "Ignitable" }, { name: "HeatSource" }],
+	"renderpass": "OpaqueNoCull",
+	"shape": { "base": "smithing/brazier/brazier-{height}" },
+	"faceCullMode": "NeverCull",
+	"textures": {
+		"metal": { base: "game:block/metal/sheet-plain/{material}3" },
+		
+		"birch": { base: "game:block/wood/debarked/birch" },
+		"walnut-h": { base: "game:block/wood/bark/walnut-h" },
+		"ember": { base: "game:block/coal/ember" },
+		"ashes": { base: "game:block/wood/firepit/ground" },
+		"fire": { base: "game:block/wood/firepit/fire" },
+
+		"charred": { base: "game:block/wood/charred" },
+		"aged": { base: "game:block/wood/debarked/aged" },
+		
+		"peat": { base: "game:block/soil/peat" },
+		"bundle": { base: "game:block/hay/bundle" },
+		"string": { base: "game:item/tool/material/string" }
+	},
+	"blockmaterial": "Metal",
+	"lightAbsorption": 0,
+	"lightHsvByType": {
+		"*-extinct": [7, 7, 3],
+		"*-lit": [7, 7, 16],
+	},
+	"particlePropertiesByType": {
+		"*-short-*-extinct": [
+			{
+				hsvaColor: [{ avg: 0, var: 0 }, { avg: 0, var: 0 }, { avg: 70, var: 30 },  { avg: 220, var: 50 }],
+				opacityEvolve: { transform: "quadratic", factor: -16 },
+				gravityEffect: { avg: 0, var: 0 },
+				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0, var: 0 }, { avg: 0, var: 0.2 }],
+				velocity: [ { avg: 0.1, var: 0.05 }, { avg: 0.01, var: 0.05 }, { avg: 0.1, var: 0.05 }],
+				quantity: { avg: 0.02 },
+				size: { avg: 0.3, var: 0.15 },
+				sizeEvolve: { transform: "linear", factor: 1.5 },
+				particleModel: "Quad",
+				windAffectednes: 0.7
+			}
+		],
+		"*-short-*-lit": [
+			{
+				// Ember cubicles
+				hsvaColor: [{ avg: 30, var: 20 }, { avg: 255, var: 50 }, { avg: 255, var: 50 },  { avg: 255, var: 0 }],
+				gravityEffect: { dist: "invexp", avg: -0.1, var: 0.4 },
+				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0, var: 0 }, { avg: 0, var: 0.2 }],
+				velocity: [ { avg: 0.3, var: 0.15 }, { avg: 1.0, var: 0.1 }, { avg: 0.3, var: 0.15 }],
+				quantity: { avg: 0.02, var: 0.01 },
+				size: { avg: 0.4, var: 0 },
+				sizeEvolve: { transform: "quadratic", factor: -0.7 },
+				lifeLength: { avg: 1.5 },
+				vertexFlags: 128,
+				windAffectednes: 0.2
+			},
+			{
+				// Smoke quads
+				hsvaColor: [{ avg: 0, var: 0 }, { avg: 0, var: 0 }, { avg: 70, var: 30 },  { avg: 220, var: 50 }],
+				opacityEvolve: { transform: "linear", factor: -255 },
+				gravityEffect: { avg: 0, var: 0 },
+				posOffset: [ { avg: 0, var: 0.2 }, { avg: 0, var: 0 }, { avg: 0, var: 0.2 }],
+				velocity: [ { avg: 0.05, var: 0.025 }, { avg: 0.3, var: 0.05 }, { avg: 0.05, var: 0.025 }],
+				quantity: { avg: 0.2, var: 0.1 },
+				size: { avg: 0.3, var: 0.05 },
+				sizeEvolve: { transform: "linear", factor: 1.5 },
+				particleModel: "Quad",
+				lifeLength: { avg: 18 },
+				selfPropelled: true,
+				windAffectednes: 0.7
+			},
+			{
+				// Fire quads
+				hsvaColor: [{ avg: 20, var: 20 }, { avg: 255, var: 50 }, { avg: 255, var: 50 },  { avg: 255, var: 0 }],
+				opacityEvolve: { transform: "quadratic", factor: -16 },
+				gravityEffect: { avg: 0, var: 0 },
+				posOffset: [ { avg: 0, var: 0.1 }, { avg: 0, var: 0 }, { avg: 0, var: 0.1 }],
+				velocity: [ { avg: 0.2, var: 0.1 }, { avg: 0.2, var: 0.05 }, { avg: 0.2, var: 0.1 }],
+				quantity: { avg: 2, "var": 1 },
+				size: { avg: 0.35, var: 0.05 },
+				lifeLength: { avg: 0.25 },
+				sizeEvolve: { transform: "linear", factor: 0.25 },
+				particleModel: "Quad",
+				vertexFlags: 128,
+				windAffectednes: 0.5
+			},
+		],
+		"*-tall-*-extinct": [
+			{
+				hsvaColor: [{ avg: 0, var: 0 }, { avg: 0, var: 0 }, { avg: 70, var: 30 },  { avg: 220, var: 50 }],
+				opacityEvolve: { transform: "quadratic", factor: -16 },
+				gravityEffect: { avg: 0, var: 0 },
+				posOffset: [ { avg: 0, var: 0.6 }, { avg: 0, var: 0 }, { avg: 0, var: 0.6 }],
+				velocity: [ { avg: 0.1, var: 0.05 }, { avg: 0.01, var: 0.05 }, { avg: 0.1, var: 0.05 }],
+				quantity: { avg: 0.02 },
+				size: { avg: 0.3, var: 0.15 },
+				sizeEvolve: { transform: "linear", factor: 1.5 },
+				particleModel: "Quad",
+				windAffectednes: 0.7
+			}
+		],
+		"*-tall-*-lit": [
+			{
+				// Ember cubicles
+				hsvaColor: [{ avg: 30, var: 20 }, { avg: 255, var: 50 }, { avg: 255, var: 50 },  { avg: 255, var: 0 }],
+				gravityEffect: { dist: "invexp", avg: -0.1, var: 0.4 },
+				posOffset: [ { avg: 0, var: 0.6 }, { avg: 0, var: 0 }, { avg: 0, var: 0.6 }],
+				velocity: [ { avg: 0.3, var: 0.15 }, { avg: 1.0, var: 0.1 }, { avg: 0.3, var: 0.15 }],
+				quantity: { avg: 0.02, var: 0.01 },
+				size: { avg: 0.4, var: 0 },
+				sizeEvolve: { transform: "quadratic", factor: -0.7 },
+				lifeLength: { avg: 1.5 },
+				vertexFlags: 128,
+				windAffectednes: 0.2
+			},
+			{
+				// Smoke quads
+				hsvaColor: [{ avg: 0, var: 0 }, { avg: 0, var: 0 }, { avg: 70, var: 30 },  { avg: 220, var: 50 }],
+				opacityEvolve: { transform: "linear", factor: -255 },
+				gravityEffect: { avg: 0, var: 0 },
+				posOffset: [ { avg: 0, var: 0.6 }, { avg: 0, var: 0 }, { avg: 0, var: 0.6 }],
+				velocity: [ { avg: 0.05, var: 0.025 }, { avg: 0.3, var: 0.05 }, { avg: 0.05, var: 0.025 }],
+				quantity: { avg: 0.2, var: 0.1 },
+				size: { avg: 0.3, var: 0.05 },
+				sizeEvolve: { transform: "linear", factor: 1.5 },
+				particleModel: "Quad",
+				lifeLength: { avg: 18 },
+				selfPropelled: true,
+				windAffectednes: 0.7
+			},
+			{
+				// Fire quads
+				hsvaColor: [{ avg: 20, var: 20 }, { avg: 255, var: 50 }, { avg: 255, var: 50 },  { avg: 255, var: 0 }],
+				opacityEvolve: { transform: "quadratic", factor: -16 },
+				gravityEffect: { avg: 0, var: 0 },
+				posOffset: [ { avg: 0, var: 0.45 }, { avg: 0, var: 0 }, { avg: 0, var: 0.45 }],
+				velocity: [ { avg: 0.2, var: 0.1 }, { avg: 0.2, var: 0.05 }, { avg: 0.2, var: 0.1 }],
+				quantity: { avg: 2, "var": 1 },
+				size: { avg: 0.35, var: 0.05 },
+				lifeLength: { avg: 0.25 },
+				sizeEvolve: { transform: "linear", factor: 0.25 },
+				particleModel: "Quad",
+				vertexFlags: 128,
+				windAffectednes: 0.5
+			},
+		]
+	},
+	"sidesolid": {
+		"all": false
+	},
+	"sideopaque": {
+		"all": false
+	},
+	"replaceable": 300,
+	"resistance": 2,
+	collisionboxBytype: {
+		"*-short-*": { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.5, z2: 1 },
+		"*-tall-*": { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.8, z2: 1 }
+	},
+	selectionboxBytype: {
+		"*-short-*": { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.5, z2: 1 },
+		"*-tall-*": { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.8, z2: 1 }
+	},
+	"guiTransform": {
+		"translation": { x: 0, y: 2, z: 0 },
+		"origin": { x: 0.5, y: 0.25, z: 0.5 },
+		"scale": 1.5
+	},
+	"heldTpIdleAnimation": "holdbothhands",
+	tpHandTransform: {
+		translation: { x: -0.8, y: -0.55, z: -0.35 },
+		rotation: { x: -51, y: 11, z: -106 },
+		scale: 0.8
+	},
+	fpHandTransform: {
+		rotation: { x: 12, y: -22, z: 0 },
+		origin: { x: 0.5, y: 0.3, z: 0.5 }
+	},
+	"materialDensity": 600,
+	"sounds": {
+		"place": "game:block/anvil",
+		"break": "game:block/anvil",
+		"hit": "game:block/anvil",
+		"walk": "game:walk/stone*"
+	}
+}

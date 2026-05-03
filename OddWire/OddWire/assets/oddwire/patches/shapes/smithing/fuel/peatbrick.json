@@ -1,0 +1,8 @@
+[
+  {
+    "file": "game:blocktypes/soil/peatbrick",
+    "op": "addmerge",
+    "path": "/attributes/shapeFuelStackRoot",
+    "value": "oddwire:shapes/smithing/fuel/peatbrick"
+  }
+]
