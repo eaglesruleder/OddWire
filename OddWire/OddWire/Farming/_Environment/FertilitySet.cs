@@ -61,7 +61,13 @@ public sealed class FertilitySet
     public static string? GetCode(Block? block) => _singleton._getCode(block);
     private string? _getCode(Block? block)
     {
-        string? fertilityCode = block?.LastCodePart();
+        if (block?.Code is null)
+            return null;
+        
+        string fertilityCode = block.LastCodePart();
+        if (block.Code.PathStartsWith("soil"))
+            fertilityCode = block.LastCodePart(1);
+        
         return
             Contains(fertilityCode)
         ?   fertilityCode

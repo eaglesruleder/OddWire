@@ -148,17 +148,22 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
     protected override void UpdateFarmlandBlock()
     {
-        if (Api?.World is null)
+        if (Api?.World is null
+        ||  Block.Code is null
+            )
             return;
 
         string? fertilityCode = FertilitySet.GetCode(Block);
-        if (fertilityCode is null || Block.Code is null)
+        if (fertilityCode is null)
             return;
 
         string        moistureCode = moistureLevel > 0.1f ? Settings.StateMoist : Settings.StateDry;
         AssetLocation newCode      = new(Block.Code.Domain, $"plowland-{moistureCode}-{fertilityCode}");
         Block         newBlock     = Api.World.GetBlock(newCode);
-        if (newBlock is null || newBlock.Id == 0 || newBlock.Id == Block.Id)
+        if (newBlock is null
+        ||  newBlock.Id == 0
+        ||  newBlock.Id == Block.Id
+            )
             return;
 
         Api.World.BlockAccessor.ExchangeBlock(newBlock.BlockId, Pos);

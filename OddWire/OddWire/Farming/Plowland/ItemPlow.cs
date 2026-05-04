@@ -261,15 +261,16 @@ public class ItemPlow : Item
         }
 
         AssetLocation plowlandCode  = new(Code.Domain, $"plowland-{targetMoistKey}-{targetFertilityCode}");
-        Block plowlandBlock         = world.GetBlock(plowlandCode);
+        Block plowlandBlock = world.GetBlock(plowlandCode);
         if (plowlandBlock is null || plowlandBlock.Id == 0)
             return;
 
+        float targetFertMax = FertilitySet.Value(targetFertilityCode);
         float[] resultNutrients =
-        {   Math.Min(Settings.Max, targetNutrients[0] + supportMax)
-        ,   Math.Min(Settings.Max, targetNutrients[1] + supportMax)
-        ,   Math.Min(Settings.Max, targetNutrients[2] + supportMax)
-        };
+            {Math.Min(targetFertMax, targetNutrients[0] + supportMax)
+            ,Math.Min(targetFertMax, targetNutrients[1] + supportMax)
+            ,Math.Min(targetFertMax, targetNutrients[2] + supportMax)
+            };
         #endregion
 
         if (supportFertilityChange != 0
