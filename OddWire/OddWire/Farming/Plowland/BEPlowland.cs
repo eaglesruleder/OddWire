@@ -52,6 +52,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         nutrients[2] = GameMath.Clamp(initNutrients[2], 0f, Settings.Max);
 
         moistureLevel = GameMath.Clamp(moisture01, 0f, 1f);
+        lastMoistureLevelUpdateTotalDays = Api.World.Calendar.TotalDays;
 
         UpdateSupport();
         UpdateFarmlandBlock();
