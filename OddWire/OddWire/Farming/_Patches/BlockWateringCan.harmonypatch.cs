@@ -53,13 +53,9 @@ public static class BlockWateringCan_OnHeldInteractStep_Patch
         }
         #endregion
 
-        #region IWaterable.Water()
-        IWaterable? waterable = world.BlockAccessor
+        world.BlockAccessor
             .GetBlock(targetPos)
-           ?.GetInterface<IWaterable>(world, targetPos);
-        if (waterable is not null)
-            waterable.Water(dt);
-        
-        #endregion
+           ?.GetInterface<IWaterable>(world, targetPos)
+           ?.Water(dt);
     }
 }

@@ -7,7 +7,7 @@ using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
 
-public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, IFarmlandBlockEntity
+public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, ICropland, IFarmlandBlockEntity
 {
     private static readonly PlowlandSettings Settings = new();
     private readonly CropGrowth    _crop      = new();
@@ -20,10 +20,22 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     public double         TotalHoursForNextStage   => _crop.TotalHoursForNextStage;
     public double         TotalHoursFertilityCheck => totalHoursLastUpdate;
     #endregion
+    
+    public void Water(float dt)
+    {
+        WaterFarmland(dt);
+        MarkDirty();
+    }
+    
+    public bool TryPlant(Block cropBlock, ItemSlot itemslot, EntityAgent byEntity, BlockSelection blockSel)
+    {
+        if (Api.World.BlockAccessor.GetBlock(upPos).Id != 0)
+            return false;
 
-    #region IWaterable
-    public void Water(float dt) => WaterFarmland(dt);
-    #endregion
+        Api.World.BlockAccessor.SetBlock(cropBlock.BlockId, upPos);
+        MarkDirty(true);
+        return true;
+    }
 
     #region StoredState
     public string? SupportCode;
@@ -33,6 +45,13 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     #endregion
 
     #region Lifecycle
+    public override void OnBlockPlaced(ItemStack byItemStack = null)
+    {
+        base.OnBlockPlaced(byItemStack);
+        float fertility = FertilitySet.Value(Block);
+        Initialise(new[] { fertility, fertility, fertility }, 0f);
+    }
+    
     public override void Initialize(ICoreAPI api)
     {
         base.Initialize(api); // sets msFarming, upPos, growthRateMul from world config, tick listener
@@ -55,7 +74,9 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         lastMoistureLevelUpdateTotalDays = Api.World.Calendar.TotalDays;
 
         UpdateSupport();
+        tryUpdateMoistureLevel(Api.World.Calendar.TotalDays, true);
         UpdateFarmlandBlock();
+        
         MarkDirty(true);
     }
 
@@ -169,6 +190,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
         Api.World.BlockAccessor.ExchangeBlock(newBlock.BlockId, Pos);
         Api.World.BlockAccessor.MarkBlockDirty(Pos);
+        MarkDirty(true);
     }
     #endregion
 
