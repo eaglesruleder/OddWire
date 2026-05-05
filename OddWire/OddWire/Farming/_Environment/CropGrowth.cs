@@ -9,10 +9,15 @@ namespace OddWire.GameContent;
 public sealed class CropGrowth
 {
     public float GrowthRateMul = 1f;
-    
+
     public BlockPos UpPos;
-    public double TotalHoursForNextStage = -1;
-    
+    public double   TotalHoursForNextStage = -1;
+
+    // Crop stress flags — set by CheckDamage each interval, cleared on harvest
+    public bool RipeCropColdDamaged;
+    public bool UnripeCropColdDamaged;
+    public bool UnripeHeatDamaged;
+
     public void Init(BlockPos bePos) => UpPos = bePos.UpCopy();
     public void SetRules(float growthRateMul) => GrowthRateMul = Math.Max(0.01f, growthRateMul);
 
@@ -64,8 +69,9 @@ public sealed class CropGrowth
         world.BlockAccessor.SetBlock(block.BlockId, UpPos);
         TotalHoursForNextStage = world.Calendar.TotalHours + GetHoursForNextStage(block, world, growthRate);
 
-        foreach (CropBehavior behavior in block.CropProps.Behaviors)
-            behavior.OnPlanted(world.Api, slot, byEntity, blockSel);
+        if (block.CropProps.Behaviors is not null)
+            foreach (CropBehavior behavior in block.CropProps.Behaviors)
+                behavior.OnPlanted(world.Api, slot, byEntity, blockSel);
 
         return true;
     }
@@ -131,7 +137,32 @@ public sealed class CropGrowth
         return true;
     }
 
-    public void OnCropBlockBroken() => TotalHoursForNextStage = -1;
+    public void OnCropBlockBroken()
+    {
+        TotalHoursForNextStage = -1;
+        RipeCropColdDamaged    = false;
+        UnripeCropColdDamaged  = false;
+        UnripeHeatDamaged      = false;
+    }
+
+    public void CheckDamage(ClimateCondition conds, IWorldAccessor world)
+    {
+        Block crop = GetCrop(world);
+        if (crop?.CropProps is null) return;
+
+        bool isRipe = GetCropStage(crop) >= crop.CropProps.GrowthStages;
+
+        if (conds.Temperature < crop.CropProps.ColdDamageBelow)
+        {
+            if (isRipe)
+                RipeCropColdDamaged   = true;
+            else
+                UnripeCropColdDamaged = true;
+        }
+
+        if (conds.Temperature > crop.CropProps.HeatDamageAbove)
+            UnripeHeatDamaged = true;
+    }
     #endregion
 
     #region Tick
@@ -216,13 +247,21 @@ public sealed class CropGrowth
     public void ToTreeAttributes(ITreeAttribute tree)
     {
         tree.SetDouble("totalHoursForNextStage", TotalHoursForNextStage);
-        tree.SetFloat("growthRateMul", GrowthRateMul);
+        tree.SetFloat ("growthRateMul",           GrowthRateMul);
+
+        tree.SetBool("ripeCropColdDamaged",   RipeCropColdDamaged);
+        tree.SetBool("unripeCropColdDamaged", UnripeCropColdDamaged);
+        tree.SetBool("unripeHeatDamaged",     UnripeHeatDamaged);
     }
 
     public void FromTreeAttributes(ITreeAttribute tree)
     {
         TotalHoursForNextStage = tree.GetDouble("totalHoursForNextStage", -1);
         SetRules(tree.GetFloat("growthRateMul", GrowthRateMul));
+
+        RipeCropColdDamaged   = tree.GetBool("ripeCropColdDamaged");
+        UnripeCropColdDamaged = tree.GetBool("unripeCropColdDamaged");
+        UnripeHeatDamaged     = tree.GetBool("unripeHeatDamaged");
     }
     #endregion
 }

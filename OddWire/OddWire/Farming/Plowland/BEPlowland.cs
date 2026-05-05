@@ -5,7 +5,6 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using Vintagestory.API.Server;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
@@ -60,7 +59,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         BlockEntityDeadCrop beDeadCrop = Api.World.BlockAccessor.GetBlockEntity(upPos) as BlockEntityDeadCrop;
         bool isDead = beDeadCrop != null;
 
-        if (!RipeCropColdDamaged && !UnripeCropColdDamaged && !UnripeHeatDamaged && !isDead)
+        if (!_crop.RipeCropColdDamaged && !_crop.UnripeCropColdDamaged && !_crop.UnripeHeatDamaged && !isDead)
             return drops;
         if (!Api.World.Config.GetString("harshWinters").ToBool(true))
             return drops;
@@ -71,9 +70,9 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             return drops;
 
         float mul = 1f;
-        if (RipeCropColdDamaged)
+        if (_crop.RipeCropColdDamaged)
             mul = cropProps.ColdDamageRipeMul;
-        if (UnripeHeatDamaged || UnripeCropColdDamaged)
+        if (_crop.UnripeHeatDamaged || _crop.UnripeCropColdDamaged)
             mul = cropProps.DamageGrowthStuntMul;
         if (isDead)
             mul = beDeadCrop.deathReason == EnumCropStressType.Eaten
@@ -139,11 +138,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     public string? SupportCode;
     public float   SupportRetentionDays = Settings.DefaultRetentionDays;
     public string? SupportFertilityCode;
-
-    // Crop damage flags — populated by updateCropDamage equivalent (pending CropGrowth source)
-    protected bool RipeCropColdDamaged;
-    protected bool UnripeCropColdDamaged;
-    protected bool UnripeHeatDamaged;
+    // Crop damage flags owned by CropGrowth — persisted via _crop.ToTreeAttributes
     #endregion
 
     #region Lifecycle
@@ -187,10 +182,8 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
     public override void OnCropBlockBroken()
     {
-        RipeCropColdDamaged   = false;
-        UnripeCropColdDamaged = false;
-        UnripeHeatDamaged     = false;
-        base.OnCropBlockBroken();
+        _crop.OnCropBlockBroken(); // resets growth timer and damage flags
+        base.OnCropBlockBroken();  // resets damageAccum
     }
 
     public override void OnBlockRemoved()
@@ -222,6 +215,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             // UpdateSupport first — sets totalHoursWaterRetention before base moisture update runs
             UpdateSupport();
             baseInterval?.Invoke(hourInterval, conds, lightGrowthSpeedFactor, growthPaused);
+            _crop.CheckDamage(conds, Api.World);
             TickCrop(hourInterval, lightGrowthSpeedFactor, growthPaused);
         };
 
@@ -340,29 +334,21 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     public override void ToTreeAttributes(ITreeAttribute tree)
     {
         base.ToTreeAttributes(tree);
-        _crop.ToTreeAttributes(tree);
+        _crop.ToTreeAttributes(tree); // includes growth timer and damage flags
 
         tree.SetString("supportCode",         SupportCode);
         tree.SetFloat ("supportRetentionDays", SupportRetentionDays);
         tree.SetString("supportFertilityCode", SupportFertilityCode);
-
-        tree.SetBool("ripeCropColdDamaged",   RipeCropColdDamaged);
-        tree.SetBool("unripeCropColdDamaged", UnripeCropColdDamaged);
-        tree.SetBool("unripeHeatDamaged",     UnripeHeatDamaged);
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
     {
         base.FromTreeAttributes(tree, worldForResolving);
-        _crop.FromTreeAttributes(tree);
+        _crop.FromTreeAttributes(tree); // includes growth timer and damage flags
 
         SupportCode          = tree.GetString("supportCode");
         SupportRetentionDays = tree.GetFloat ("supportRetentionDays", Settings.DefaultRetentionDays);
         SupportFertilityCode = tree.GetString("supportFertilityCode");
-
-        RipeCropColdDamaged   = tree.GetBool("ripeCropColdDamaged");
-        UnripeCropColdDamaged = tree.GetBool("unripeCropColdDamaged");
-        UnripeHeatDamaged     = tree.GetBool("unripeHeatDamaged");
 
         // Restore retention floor after load — UpdateSupport recalculates on next tick
         if (Api?.World is not null)
