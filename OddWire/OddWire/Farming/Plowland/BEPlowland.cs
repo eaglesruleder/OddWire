@@ -1,13 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
+using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
 
-public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, ICropland, IFarmlandBlockEntity
+public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, IFarmlandBlockEntity, ICropland, IAnimalFoodSource
 {
     private static readonly PlowlandSettings Settings = new();
     private readonly CropGrowth    _crop      = new();
@@ -18,45 +22,146 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     BlockPos              IFarmlandBlockEntity.Pos => Pos;
     public ITreeAttribute CropAttributes           => _cropAttrs;
     public double         TotalHoursForNextStage   => _crop.TotalHoursForNextStage;
+    // Vanilla BEFarmland throws NotImplementedException here — returning last update time is safe
     public double         TotalHoursFertilityCheck => totalHoursLastUpdate;
     #endregion
-    
+
+    #region IWaterable
     public void Water(float dt)
     {
-        WaterFarmland(dt);
-        MarkDirty();
+        // waterNeighbours: false — mirrors vanilla's one-level spread intent.
+        // Spread TO plowland is handled by BlockEntitySoilNutrition_WaterFarmland_Patch on the source block.
+        // Plowland receives spread but does not re-initiate it.
+        WaterFarmland(dt, false);
+        MarkDirty(true); // BESN's guard (> 0.05 delta) never fires at watering-can dt rates
     }
-    
+    #endregion
+
+    #region ICropland
     public bool TryPlant(Block cropBlock, ItemSlot itemslot, EntityAgent byEntity, BlockSelection blockSel)
     {
-        if (Api.World.BlockAccessor.GetBlock(upPos).Id != 0)
+        if (cropBlock.CropProps is null)
+            return false;
+        if (Api.World.BlockAccessor.GetBlock(upPos).BlockMaterial != EnumBlockMaterial.Air)
             return false;
 
         Api.World.BlockAccessor.SetBlock(cropBlock.BlockId, upPos);
+
+        if (cropBlock.CropProps.Behaviors is not null)
+            foreach (CropBehavior behavior in cropBlock.CropProps.Behaviors)
+                behavior.OnPlanted(Api, itemslot, byEntity, blockSel);
+
         MarkDirty(true);
         return true;
     }
 
+    public ItemStack[] GetDrops(ItemStack[] drops)
+    {
+        BlockEntityDeadCrop beDeadCrop = Api.World.BlockAccessor.GetBlockEntity(upPos) as BlockEntityDeadCrop;
+        bool isDead = beDeadCrop != null;
+
+        if (!RipeCropColdDamaged && !UnripeCropColdDamaged && !UnripeHeatDamaged && !isDead)
+            return drops;
+        if (!Api.World.Config.GetString("harshWinters").ToBool(true))
+            return drops;
+
+        List<ItemStack> stacks    = new();
+        var             cropProps = _crop.GetCrop(Api.World)?.CropProps;
+        if (cropProps is null)
+            return drops;
+
+        float mul = 1f;
+        if (RipeCropColdDamaged)
+            mul = cropProps.ColdDamageRipeMul;
+        if (UnripeHeatDamaged || UnripeCropColdDamaged)
+            mul = cropProps.DamageGrowthStuntMul;
+        if (isDead)
+            mul = beDeadCrop.deathReason == EnumCropStressType.Eaten
+            ?   0
+            :   Math.Max(cropProps.ColdDamageRipeMul, cropProps.DamageGrowthStuntMul);
+
+        string[] debuffUnaffected = Block.Attributes?["debuffUnaffectedDrops"].AsArray<string>();
+
+        for (int i = 0; i < drops.Length; i++)
+        {
+            ItemStack stack = drops[i];
+            if (WildcardUtil.Match(debuffUnaffected, stack.Collectible.Code.ToShortString()))
+            {
+                stacks.Add(stack);
+                continue;
+            }
+
+            float q    = stack.StackSize * mul;
+            float frac = q - (int)q;
+            stack.StackSize = (int)q + (Api.World.Rand.NextDouble() > frac ? 1 : 0);
+
+            if (stack.StackSize > 0)
+                stacks.Add(stack);
+        }
+
+        MarkDirty(true);
+        return stacks.ToArray();
+    }
+    #endregion
+
+    #region IAnimalFoodSource
+    public bool IsSuitableFor(Entity entity, CreatureDiet diet)
+    {
+        if (diet is null) return false;
+        Block? cropBlock = _crop.GetCrop(Api.World);
+        if (cropBlock is null) return false;
+        string[] foodTags = cropBlock.Attributes?["foodTags"].AsArray<string>([]) ?? [];
+        return diet.Matches(EnumFoodCategory.NoNutrition, foodTags);
+    }
+
+    public float ConsumeOnePortion(Entity entity)
+    {
+        Block? cropBlock = _crop.GetCrop(Api.World);
+        if (cropBlock is null) return 0;
+
+        Block deadCropBlock = Api.World.GetBlock(new AssetLocation("deadcrop"));
+        if (deadCropBlock is null || deadCropBlock.Id == 0) return 0;
+
+        Api.World.BlockAccessor.SetBlock(deadCropBlock.Id, upPos);
+        if (Api.World.BlockAccessor.GetBlockEntity(upPos) is BlockEntityDeadCrop beDead)
+        {
+            beDead.Inventory[0].Itemstack = new ItemStack(cropBlock);
+            beDead.deathReason            = EnumCropStressType.Eaten;
+        }
+        return 1f;
+    }
+
+    public Vec3d Position => Pos.ToVec3d().Add(0.5, 1, 0.5);
+    public string Type    => "food";
+    #endregion
+
     #region StoredState
     public string? SupportCode;
-    public bool    SupportIsValid;
     public float   SupportRetentionDays = Settings.DefaultRetentionDays;
     public string? SupportFertilityCode;
+
+    // Crop damage flags — populated by updateCropDamage equivalent (pending CropGrowth source)
+    protected bool RipeCropColdDamaged;
+    protected bool UnripeCropColdDamaged;
+    protected bool UnripeHeatDamaged;
     #endregion
 
     #region Lifecycle
-    public override void OnBlockPlaced(ItemStack byItemStack = null)
-    {
-        base.OnBlockPlaced(byItemStack);
-        float fertility = FertilitySet.Value(Block);
-        Initialise(new[] { fertility, fertility, fertility }, 0f);
-    }
-    
     public override void Initialize(ICoreAPI api)
     {
         base.Initialize(api); // sets msFarming, upPos, growthRateMul from world config, tick listener
         _crop.Init(Pos);
         _crop.SetRules(growthRateMul);
+
+        if (api is ICoreServerAPI)
+            api.ModLoader.GetModSystem<POIRegistry>().AddPOI(this);
+    }
+
+    public override void OnBlockPlaced(ItemStack byItemStack = null)
+    {
+        base.OnBlockPlaced(byItemStack);
+        float fertility = FertilitySet.Value(Block);
+        Initialise(new[] { fertility, fertility, fertility }, 0f);
     }
 
     public void Initialise(float[] initNutrients, float moisture01)
@@ -73,11 +178,33 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         moistureLevel = GameMath.Clamp(moisture01, 0f, 1f);
         lastMoistureLevelUpdateTotalDays = Api.World.Calendar.TotalDays;
 
-        UpdateSupport();
-        tryUpdateMoistureLevel(Api.World.Calendar.TotalDays, true);
+        UpdateSupport(); // must run first — sets totalHoursWaterRetention
+        tryUpdateMoistureLevel(Api.World.Calendar.TotalDays, true); // water scan — sets lastWaterDistance, floors moistureLevel
+
         UpdateFarmlandBlock();
-        
         MarkDirty(true);
+    }
+
+    public override void OnCropBlockBroken()
+    {
+        RipeCropColdDamaged   = false;
+        UnripeCropColdDamaged = false;
+        UnripeHeatDamaged     = false;
+        base.OnCropBlockBroken();
+    }
+
+    public override void OnBlockRemoved()
+    {
+        base.OnBlockRemoved();
+        if (Api.Side == EnumAppSide.Server)
+            Api.ModLoader.GetModSystem<POIRegistry>().RemovePOI(this);
+    }
+
+    public override void OnBlockUnloaded()
+    {
+        base.OnBlockUnloaded();
+        if (Api?.Side == EnumAppSide.Server)
+            Api.ModLoader.GetModSystem<POIRegistry>().RemovePOI(this);
     }
 
     protected override void beginIntervalledUpdate
@@ -125,7 +252,6 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
         SupportCode          = newSupportCode;
         SupportFertilityCode = newSupportFertilityCode;
-        SupportIsValid       = true;
         SupportRetentionDays = Settings.DefaultRetentionDays * (FertilitySet.Value(SupportFertilityCode) / 100f);
 
         // Drive vanilla's retention rate from our support block fertility
@@ -138,7 +264,6 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         SupportCode          = null;
         SupportFertilityCode = null;
         SupportRetentionDays = 0;
-        SupportIsValid       = false;
         totalHoursWaterRetention = Api.World.Calendar.HoursPerDay * Settings.MinRetentionDays;
     }
 
@@ -190,7 +315,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
         Api.World.BlockAccessor.ExchangeBlock(newBlock.BlockId, Pos);
         Api.World.BlockAccessor.MarkBlockDirty(Pos);
-        MarkDirty(true);
+        MarkDirty(true); // ensure current state is serialized during transition
     }
     #endregion
 
@@ -218,9 +343,12 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         _crop.ToTreeAttributes(tree);
 
         tree.SetString("supportCode",         SupportCode);
-        tree.SetBool  ("supportIsValid",       SupportIsValid);
         tree.SetFloat ("supportRetentionDays", SupportRetentionDays);
         tree.SetString("supportFertilityCode", SupportFertilityCode);
+
+        tree.SetBool("ripeCropColdDamaged",   RipeCropColdDamaged);
+        tree.SetBool("unripeCropColdDamaged", UnripeCropColdDamaged);
+        tree.SetBool("unripeHeatDamaged",     UnripeHeatDamaged);
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
@@ -229,9 +357,12 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         _crop.FromTreeAttributes(tree);
 
         SupportCode          = tree.GetString("supportCode");
-        SupportIsValid       = tree.GetBool  ("supportIsValid");
         SupportRetentionDays = tree.GetFloat ("supportRetentionDays", Settings.DefaultRetentionDays);
         SupportFertilityCode = tree.GetString("supportFertilityCode");
+
+        RipeCropColdDamaged   = tree.GetBool("ripeCropColdDamaged");
+        UnripeCropColdDamaged = tree.GetBool("unripeCropColdDamaged");
+        UnripeHeatDamaged     = tree.GetBool("unripeHeatDamaged");
 
         // Restore retention floor after load — UpdateSupport recalculates on next tick
         if (Api?.World is not null)
