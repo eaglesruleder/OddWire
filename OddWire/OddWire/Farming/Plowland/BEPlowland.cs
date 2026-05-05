@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
@@ -41,66 +39,17 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     {
         if (cropBlock.CropProps is null)
             return false;
-        if (Api.World.BlockAccessor.GetBlock(upPos).BlockMaterial != EnumBlockMaterial.Air)
+
+        float growthRate = GetGrowthRate(cropBlock.CropProps.RequiredNutrient);
+        if (!_crop.TryPlant(cropBlock, itemslot, byEntity, blockSel, Api.World, growthRate))
             return false;
-
-        Api.World.BlockAccessor.SetBlock(cropBlock.BlockId, upPos);
-
-        if (cropBlock.CropProps.Behaviors is not null)
-            foreach (CropBehavior behavior in cropBlock.CropProps.Behaviors)
-                behavior.OnPlanted(Api, itemslot, byEntity, blockSel);
 
         MarkDirty(true);
         return true;
     }
 
-    public ItemStack[] GetDrops(ItemStack[] drops)
-    {
-        BlockEntityDeadCrop beDeadCrop = Api.World.BlockAccessor.GetBlockEntity(upPos) as BlockEntityDeadCrop;
-        bool isDead = beDeadCrop != null;
-
-        if (!_crop.RipeCropColdDamaged && !_crop.UnripeCropColdDamaged && !_crop.UnripeHeatDamaged && !isDead)
-            return drops;
-        if (!Api.World.Config.GetString("harshWinters").ToBool(true))
-            return drops;
-
-        List<ItemStack> stacks    = new();
-        var             cropProps = _crop.GetCrop(Api.World)?.CropProps;
-        if (cropProps is null)
-            return drops;
-
-        float mul = 1f;
-        if (_crop.RipeCropColdDamaged)
-            mul = cropProps.ColdDamageRipeMul;
-        if (_crop.UnripeHeatDamaged || _crop.UnripeCropColdDamaged)
-            mul = cropProps.DamageGrowthStuntMul;
-        if (isDead)
-            mul = beDeadCrop.deathReason == EnumCropStressType.Eaten
-            ?   0
-            :   Math.Max(cropProps.ColdDamageRipeMul, cropProps.DamageGrowthStuntMul);
-
-        string[] debuffUnaffected = Block.Attributes?["debuffUnaffectedDrops"].AsArray<string>();
-
-        for (int i = 0; i < drops.Length; i++)
-        {
-            ItemStack stack = drops[i];
-            if (WildcardUtil.Match(debuffUnaffected, stack.Collectible.Code.ToShortString()))
-            {
-                stacks.Add(stack);
-                continue;
-            }
-
-            float q    = stack.StackSize * mul;
-            float frac = q - (int)q;
-            stack.StackSize = (int)q + (Api.World.Rand.NextDouble() > frac ? 1 : 0);
-
-            if (stack.StackSize > 0)
-                stacks.Add(stack);
-        }
-
-        MarkDirty(true);
-        return stacks.ToArray();
-    }
+    public ItemStack[] GetDrops(ItemStack[] drops) =>
+        _crop.GetDrops(drops, Api.World, Block.Attributes);
     #endregion
 
     #region IAnimalFoodSource
@@ -138,7 +87,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     public string? SupportCode;
     public float   SupportRetentionDays = Settings.DefaultRetentionDays;
     public string? SupportFertilityCode;
-    // Crop damage flags owned by CropGrowth — persisted via _crop.ToTreeAttributes
+    // Crop state (damage flags, growth timer) owned by CropGrowth — persisted via _crop.ToTreeAttributes
     #endregion
 
     #region Lifecycle

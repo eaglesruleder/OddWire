@@ -2,6 +2,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
+using OddWire.System;
 
 namespace OddWire.GameContent;
 
@@ -121,4 +122,46 @@ public sealed class FertilitySet
             && nextBlock.Id != 0;
     }
     #endregion
+    
+    public static float[] ResolveNutrients(Block block, BlockEntity? blockEntity)
+    {
+        if (blockEntity is BlockEntitySoilNutrition beNutrition)
+        {
+            float[] clone = new float[beNutrition.Nutrients.Length];
+            for (int i = 0; i < beNutrition.Nutrients.Length; i++)
+                clone[i] = beNutrition.Nutrients[i];
+            return clone;
+        }
+
+        float fertility = Value(block);
+        return new[] { fertility, fertility, fertility };
+    }
+
+    public static Block RevertSupportToSoil(IWorldAccessor world, BlockPos supportPos, Block supportBlock)
+    {
+        if (supportBlock is not (BlockFarmland or BlockPlowland))
+            return supportBlock;
+
+        BlockEntity? supportBlockEntity = world.BlockAccessor.GetBlockEntity(supportPos);
+        float supportNutrientAvg        = ResolveNutrients(supportBlock, supportBlockEntity).Avg();
+
+        string? revertFertilityCode = GetCode(supportBlock);
+        if (supportNutrientAvg < 100f
+            &&  world.Rand.NextSingle() > supportNutrientAvg / 100f
+           )
+            revertFertilityCode = StepCode(revertFertilityCode, -1) ?? revertFertilityCode;
+
+        if (revertFertilityCode is null)
+            return supportBlock;
+
+        AssetLocation soilCode = new("game", $"soil-{revertFertilityCode}");
+        Block soilBlock        = world.GetBlock(soilCode);
+        if (soilBlock is not null && soilBlock.Id != 0)
+        {
+            world.BlockAccessor.ExchangeBlock(soilBlock.BlockId, supportPos);
+            return soilBlock;
+        }
+
+        return supportBlock;
+    }
 }

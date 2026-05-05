@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
@@ -162,6 +164,53 @@ public sealed class CropGrowth
 
         if (conds.Temperature > crop.CropProps.HeatDamageAbove)
             UnripeHeatDamaged = true;
+    }
+
+    public ItemStack[] GetDrops(ItemStack[] drops, IWorldAccessor world, JsonObject blockAttributes)
+    {
+        BlockEntityDeadCrop beDeadCrop = world.BlockAccessor.GetBlockEntity(UpPos) as BlockEntityDeadCrop;
+        bool isDead = beDeadCrop != null;
+
+        if (!RipeCropColdDamaged && !UnripeCropColdDamaged && !UnripeHeatDamaged && !isDead)
+            return drops;
+        if (!world.Config.GetString("harshWinters").ToBool(true))
+            return drops;
+
+        var cropProps = GetCrop(world)?.CropProps;
+        if (cropProps is null)
+            return drops;
+
+        float mul = 1f;
+        if (RipeCropColdDamaged)
+            mul = cropProps.ColdDamageRipeMul;
+        if (UnripeHeatDamaged || UnripeCropColdDamaged)
+            mul = cropProps.DamageGrowthStuntMul;
+        if (isDead)
+            mul = beDeadCrop.deathReason == EnumCropStressType.Eaten
+            ?   0
+            :   Math.Max(cropProps.ColdDamageRipeMul, cropProps.DamageGrowthStuntMul);
+
+        string[] debuffUnaffected = blockAttributes?["debuffUnaffectedDrops"].AsArray<string>();
+
+        List<ItemStack> stacks = new();
+        for (int i = 0; i < drops.Length; i++)
+        {
+            ItemStack stack = drops[i];
+            if (WildcardUtil.Match(debuffUnaffected, stack.Collectible.Code.ToShortString()))
+            {
+                stacks.Add(stack);
+                continue;
+            }
+
+            float q    = stack.StackSize * mul;
+            float frac = q - (int)q;
+            stack.StackSize = (int)q + (world.Rand.NextDouble() > frac ? 1 : 0);
+
+            if (stack.StackSize > 0)
+                stacks.Add(stack);
+        }
+
+        return stacks.ToArray();
     }
     #endregion
 
