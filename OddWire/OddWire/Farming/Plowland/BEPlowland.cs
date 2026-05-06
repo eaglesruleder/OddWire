@@ -4,6 +4,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
@@ -11,26 +12,21 @@ namespace OddWire.GameContent;
 public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, IFarmlandBlockEntity, ICropland, IAnimalFoodSource
 {
     private static readonly PlowlandSettings Settings = new();
-    private readonly CropGrowth    _crop      = new();
+    private readonly CropGrowth _crop = new();
     private readonly TreeAttribute _cropAttrs = new();
 
     #region IFarmlandBlockEntity
-    // Nutrients, MoistureLevel, OriginalFertility, UpPos — all from BlockEntitySoilNutrition
-    BlockPos              IFarmlandBlockEntity.Pos => Pos;
-    public ITreeAttribute CropAttributes           => _cropAttrs;
-    public double         TotalHoursForNextStage   => _crop.TotalHoursForNextStage;
-    // Vanilla BEFarmland throws NotImplementedException here — returning last update time is safe
-    public double         TotalHoursFertilityCheck => totalHoursLastUpdate;
+    BlockPos IFarmlandBlockEntity.Pos => Pos;
+    public ITreeAttribute CropAttributes => _cropAttrs;
+    public double TotalHoursForNextStage => _crop.TotalHoursForNextStage;
+    public double TotalHoursFertilityCheck => totalHoursLastUpdate;
     #endregion
 
     #region IWaterable
     public void Water(float dt)
     {
-        // waterNeighbours: false — mirrors vanilla's one-level spread intent.
-        // Spread TO plowland is handled by BlockEntitySoilNutrition_WaterFarmland_Patch on the source block.
-        // Plowland receives spread but does not re-initiate it.
         WaterFarmland(dt, false);
-        MarkDirty(true); // BESN's guard (> 0.05 delta) never fires at watering-can dt rates
+        MarkDirty(true);
     }
     #endregion
 
@@ -53,11 +49,18 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     #endregion
 
     #region IAnimalFoodSource
+    public string Type => "food";
+    public Vec3d Position => Pos.ToVec3d().Add(0.5, 1, 0.5);
+    
     public bool IsSuitableFor(Entity entity, CreatureDiet diet)
     {
-        if (diet is null) return false;
+        if (diet is null)
+            return false;
+        
         Block? cropBlock = _crop.GetCrop(Api.World);
-        if (cropBlock is null) return false;
+        if (cropBlock is null)
+            return false;
+        
         string[] foodTags = cropBlock.Attributes?["foodTags"].AsArray<string>([]) ?? [];
         return diet.Matches(EnumFoodCategory.NoNutrition, foodTags);
     }
@@ -65,35 +68,34 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     public float ConsumeOnePortion(Entity entity)
     {
         Block? cropBlock = _crop.GetCrop(Api.World);
-        if (cropBlock is null) return 0;
+        if (cropBlock is null)
+            return 0;
 
         Block deadCropBlock = Api.World.GetBlock(new AssetLocation("deadcrop"));
-        if (deadCropBlock is null || deadCropBlock.Id == 0) return 0;
+        if (deadCropBlock?.Id >= 0)
+            return 0;
 
         Api.World.BlockAccessor.SetBlock(deadCropBlock.Id, upPos);
         if (Api.World.BlockAccessor.GetBlockEntity(upPos) is BlockEntityDeadCrop beDead)
         {
             beDead.Inventory[0].Itemstack = new ItemStack(cropBlock);
-            beDead.deathReason            = EnumCropStressType.Eaten;
+            beDead.deathReason = EnumCropStressType.Eaten;
         }
         return 1f;
     }
-
-    public Vec3d Position => Pos.ToVec3d().Add(0.5, 1, 0.5);
-    public string Type    => "food";
     #endregion
 
     #region StoredState
     public string? SupportCode;
-    public float   SupportRetentionDays = Settings.DefaultRetentionDays;
+    public float SupportRetentionDays = Settings.DefaultRetentionDays;
     public string? SupportFertilityCode;
-    // Crop state (damage flags, growth timer) owned by CropGrowth — persisted via _crop.ToTreeAttributes
     #endregion
 
     #region Lifecycle
     public override void Initialize(ICoreAPI api)
     {
-        base.Initialize(api); // sets msFarming, upPos, growthRateMul from world config, tick listener
+        base.Initialize(api);
+        
         _crop.Init(Pos);
         _crop.SetRules(growthRateMul);
 
@@ -104,13 +106,14 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     public override void OnBlockPlaced(ItemStack byItemStack = null)
     {
         base.OnBlockPlaced(byItemStack);
+        
         float fertility = FertilitySet.Value(Block);
         Initialise(new[] { fertility, fertility, fertility }, 0f);
     }
 
     public void Initialise(float[] initNutrients, float moisture01)
     {
-        float originalVal    = FertilitySet.Value(Block);
+        float originalVal = FertilitySet.Value(Block);
         originalFertility[0] = (int)originalVal;
         originalFertility[1] = (int)originalVal;
         originalFertility[2] = (int)originalVal;
@@ -122,17 +125,17 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         moistureLevel = GameMath.Clamp(moisture01, 0f, 1f);
         lastMoistureLevelUpdateTotalDays = Api.World.Calendar.TotalDays;
 
-        UpdateSupport(); // must run first — sets totalHoursWaterRetention
-        tryUpdateMoistureLevel(Api.World.Calendar.TotalDays, true); // water scan — sets lastWaterDistance, floors moistureLevel
-
+        UpdateSupport();
+        tryUpdateMoistureLevel(Api.World.Calendar.TotalDays, true);
+        
         UpdateFarmlandBlock();
         MarkDirty(true);
     }
 
     public override void OnCropBlockBroken()
     {
-        _crop.OnCropBlockBroken(); // resets growth timer and damage flags
-        base.OnCropBlockBroken();  // resets damageAccum
+        _crop.OnCropBlockBroken();
+        base.OnCropBlockBroken();
     }
 
     public override void OnBlockRemoved()
@@ -157,17 +160,15 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         base.beginIntervalledUpdate(out onInterval, out onEnd);
 
         var baseInterval = onInterval;
-        var baseEnd      = onEnd;
+        var baseEnd = onEnd;
 
         onInterval = (hourInterval, conds, lightGrowthSpeedFactor, growthPaused) =>
         {
-            // UpdateSupport first — sets totalHoursWaterRetention before base moisture update runs
             UpdateSupport();
             baseInterval?.Invoke(hourInterval, conds, lightGrowthSpeedFactor, growthPaused);
             _crop.CheckDamage(conds, Api.World);
             TickCrop(hourInterval, lightGrowthSpeedFactor, growthPaused);
         };
-
         onEnd = () => baseEnd?.Invoke();
     }
 
@@ -179,32 +180,33 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         ||  supportBlock.BlockMaterial != EnumBlockMaterial.Soil
            )
         {
-            if (SupportCode is null && SupportFertilityCode is null)
+            if (SupportCode is null
+            &&  SupportFertilityCode is null
+                )
                 return false;
             ResetSupport();
             return true;
         }
-
-        string? newSupportCode          = supportBlock.Code?.ToShortString();
+        
+        string? newSupportCode = supportBlock.Code?.ToShortString();
         string? newSupportFertilityCode = FertilitySet.GetCode(supportBlock);
 
-        if (newSupportCode          == SupportCode
+        if (newSupportCode == SupportCode
         &&  newSupportFertilityCode == SupportFertilityCode
            )
             return false;
 
-        SupportCode          = newSupportCode;
+        SupportCode = newSupportCode;
         SupportFertilityCode = newSupportFertilityCode;
         SupportRetentionDays = Settings.DefaultRetentionDays * (FertilitySet.Value(SupportFertilityCode) / 100f);
-
-        // Drive vanilla's retention rate from our support block fertility
+        
         totalHoursWaterRetention = Api.World.Calendar.HoursPerDay * Math.Max(Settings.MinRetentionDays, SupportRetentionDays);
         return true;
     }
 
     private void ResetSupport()
     {
-        SupportCode          = null;
+        SupportCode = null;
         SupportFertilityCode = null;
         SupportRetentionDays = 0;
         totalHoursWaterRetention = Api.World.Calendar.HoursPerDay * Settings.MinRetentionDays;
@@ -215,20 +217,19 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         Block? cropBlock = _crop.GetCrop(Api.World);
         if (cropBlock?.CropProps is null)
             return;
-
-        // GetGrowthRate includes the 1.22 moisture curve — no separate moisture check needed here
+        
         float growthRate = GetGrowthRate(cropBlock.CropProps.RequiredNutrient) * (float)lightGrowthSpeedFactor;
 
         if (!_crop.Tick
-            (totalHoursLastUpdate
-            ,hourInterval
-            ,moistureLevel
-            ,growthPaused
-            ,Api.World
-            ,this
-            ,growthRate
-            ,out EnumSoilNutrient consumedNutrient
-            ,out float            consumedAmount
+                (totalHoursLastUpdate
+                ,hourInterval
+                ,moistureLevel
+                ,growthPaused
+                ,Api.World
+                ,this
+                ,growthRate
+                ,out EnumSoilNutrient consumedNutrient
+                ,out float consumedAmount
             ))
             return;
 
@@ -247,9 +248,9 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         if (fertilityCode is null)
             return;
 
-        string        moistureCode = moistureLevel > 0.1f ? Settings.StateMoist : Settings.StateDry;
-        AssetLocation newCode      = new(Block.Code.Domain, $"plowland-{moistureCode}-{fertilityCode}");
-        Block         newBlock     = Api.World.GetBlock(newCode);
+        string moistureCode = moistureLevel > 0.1f ? Settings.StateMoist : Settings.StateDry;
+        AssetLocation newCode = new(Block.Code.Domain, $"plowland-{moistureCode}-{fertilityCode}");
+        Block newBlock = Api.World.GetBlock(newCode);
         if (newBlock is null
         ||  newBlock.Id == 0
         ||  newBlock.Id == Block.Id
@@ -258,11 +259,10 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
         Api.World.BlockAccessor.ExchangeBlock(newBlock.BlockId, Pos);
         Api.World.BlockAccessor.MarkBlockDirty(Pos);
-        MarkDirty(true); // ensure current state is serialized during transition
+        MarkDirty(true);
     }
     #endregion
-
-    #region BlockInfo
+    
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
     {
         base.GetBlockInfo(forPlayer, dsc); // NPK, moisture, growth speed — all from vanilla
@@ -277,13 +277,11 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             dsc.AppendLine($"Stage: {_crop.GetCropStage(cropBlock)} / {cropBlock.CropProps.GrowthStages}");
         }
     }
-    #endregion
-
-    #region Persistence
+    
     public override void ToTreeAttributes(ITreeAttribute tree)
     {
         base.ToTreeAttributes(tree);
-        _crop.ToTreeAttributes(tree); // includes growth timer and damage flags
+        _crop.ToTreeAttributes(tree);
 
         tree.SetString("supportCode",         SupportCode);
         tree.SetFloat ("supportRetentionDays", SupportRetentionDays);
@@ -293,15 +291,13 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
     {
         base.FromTreeAttributes(tree, worldForResolving);
-        _crop.FromTreeAttributes(tree); // includes growth timer and damage flags
+        _crop.FromTreeAttributes(tree);
 
-        SupportCode          = tree.GetString("supportCode");
+        SupportCode = tree.GetString("supportCode");
         SupportRetentionDays = tree.GetFloat ("supportRetentionDays", Settings.DefaultRetentionDays);
         SupportFertilityCode = tree.GetString("supportFertilityCode");
-
-        // Restore retention floor after load — UpdateSupport recalculates on next tick
+        
         if (Api?.World is not null)
             totalHoursWaterRetention = Api.World.Calendar.HoursPerDay * Math.Max(Settings.MinRetentionDays, SupportRetentionDays);
     }
-    #endregion
 }

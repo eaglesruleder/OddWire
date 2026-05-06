@@ -27,18 +27,13 @@ public class BlockPlowland : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        // Server-side guard: OnBlockInteract handles slot.TakeOut internally.
-        // Crop planting does not go through here — BlockCrop detects IFarmlandBlockEntity
-        // on the BE and calls TryPlant directly when placed above plowland.
         if (world.Side != EnumAppSide.Server)
             return base.OnBlockInteractStart(world, byPlayer, blockSel);
-
-        #region Route fertilise to block entity
+        
         if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityPlowland be
         &&  be.OnBlockInteract(byPlayer)
            )
             return true;
-        #endregion
 
         return base.OnBlockInteractStart(world, byPlayer, blockSel);
     }

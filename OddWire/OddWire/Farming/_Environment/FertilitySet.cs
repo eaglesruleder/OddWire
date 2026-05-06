@@ -50,7 +50,6 @@ public sealed class FertilitySet
         return -1;
     }
     
-    
     public static float Value(Block? block) => _singleton[GetCode(block)];
     public static float Value(string? fertilityCode) => _singleton[fertilityCode];
     private float this[string? fertilityCode] =>
@@ -87,13 +86,8 @@ public sealed class FertilitySet
         return Order[GameMath.Clamp(nextIndex, 0, Order.Length - 1)];
     }
 
-    public static bool TryGetSteppedBlock
-        (IWorldAccessor world
-        ,Block block
-        ,int delta
-        ,out Block nextBlock
-        ) => _singleton._tryGetSteppedBlock(world, block, delta, out nextBlock);
-
+    public static bool TryGetSteppedBlock(IWorldAccessor world, Block block, int delta, out Block nextBlock) =>
+        _singleton._tryGetSteppedBlock(world, block, delta, out nextBlock);
     private bool _tryGetSteppedBlock
         (IWorldAccessor world
         ,Block block
@@ -118,8 +112,9 @@ public sealed class FertilitySet
         codeParts[^1] = nextCode;
         AssetLocation nextBlockCode = new(block.Code.Domain, string.Join("-", codeParts));
         nextBlock = world.GetBlock(nextBlockCode);
-        return nextBlock is not null
-            && nextBlock.Id != 0;
+        return
+            nextBlock is not null
+        &&  nextBlock.Id != 0;
     }
     #endregion
     
@@ -143,11 +138,11 @@ public sealed class FertilitySet
             return supportBlock;
 
         BlockEntity? supportBlockEntity = world.BlockAccessor.GetBlockEntity(supportPos);
-        float supportNutrientAvg        = ResolveNutrients(supportBlock, supportBlockEntity).Avg();
+        float supportNutrientAvg = ResolveNutrients(supportBlock, supportBlockEntity).Avg();
 
         string? revertFertilityCode = GetCode(supportBlock);
         if (supportNutrientAvg < 100f
-            &&  world.Rand.NextSingle() > supportNutrientAvg / 100f
+        &&  world.Rand.NextSingle() > supportNutrientAvg / 100f
            )
             revertFertilityCode = StepCode(revertFertilityCode, -1) ?? revertFertilityCode;
 
@@ -155,13 +150,12 @@ public sealed class FertilitySet
             return supportBlock;
 
         AssetLocation soilCode = new("game", $"soil-{revertFertilityCode}");
-        Block soilBlock        = world.GetBlock(soilCode);
-        if (soilBlock is not null && soilBlock.Id != 0)
+        Block soilBlock = world.GetBlock(soilCode);
+        if (soilBlock?.Id > 0)
         {
             world.BlockAccessor.ExchangeBlock(soilBlock.BlockId, supportPos);
             return soilBlock;
         }
-
         return supportBlock;
     }
 }
