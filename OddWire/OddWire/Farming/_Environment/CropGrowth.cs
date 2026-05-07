@@ -171,63 +171,40 @@ public sealed class CropGrowth
     {
         consumedNutrient = default;
         consumedAmount = 0f;
-        
+
         Block crop = GetCrop(world);
         if (crop is null)
             return false;
-        
+
         if (growthPaused)
         {
             TotalHoursForNextStage += hourInterval;
             return true;
         }
-        
+
         if (currentTotalHours < TotalHoursForNextStage
         ||  moisture01 < 0.1f
-        || !TryGrowCrop(currentTotalHours, world, host, growthRate, out consumedNutrient, out consumedAmount)
             )
             return false;
 
-        Block nextCrop = GetCrop(world) ?? crop;
-        TotalHoursForNextStage += GetHoursForNextStage(nextCrop, world, growthRate);
-
-        return true;
-    }
-    
-    public bool TryGrowCrop
-        (double currentTotalHours
-        ,IWorldAccessor world
-        ,IFarmlandBlockEntity host
-        ,float growthRate
-        ,out EnumSoilNutrient consumedNutrient
-        ,out float consumedAmount
-        )
-    {
-        consumedNutrient = EnumSoilNutrient.N;
-        consumedAmount   = 0f;
-
-        #region if(!GetCrop(world) || currentStage >= GrowthStages) return false;
-        Block block = GetCrop(world);
-        if (block is null)
+        #region if(currentStage >= GrowthStages || !nextBlock) return false;
+        int currentStage = GetCropStage(crop);
+        if (currentStage >= crop.CropProps.GrowthStages)
             return false;
 
-        int currentStage = GetCropStage(block);
-        if (currentStage >= block.CropProps.GrowthStages)
-            return false;
-        
-        int nextStage = currentStage + 1;
-        Block nextBlock = world.GetBlock(block.CodeWithParts("" + nextStage));
+        int nextStage  = currentStage + 1;
+        Block nextBlock = world.GetBlock(crop.CodeWithParts(nextStage.ToString()));
         if (nextBlock is null)
             return false;
         #endregion
 
         #region foreach(CropProps.Behaviors) TryGrowCrop()
-        if (block.CropProps.Behaviors is not null)
+        if (crop.CropProps.Behaviors is not null)
         {
             EnumHandling handled = EnumHandling.PassThrough;
-            bool behaviorResult  = false;
+            bool behaviorResult = false;
 
-            foreach (CropBehavior behavior in block.CropProps.Behaviors)
+            foreach (CropBehavior behavior in crop.CropProps.Behaviors)
             {
                 behaviorResult = behavior.TryGrowCrop(world.Api, host, currentTotalHours, nextStage, ref handled);
                 if (handled == EnumHandling.PreventSubsequent)
@@ -237,14 +214,17 @@ public sealed class CropGrowth
                 return behaviorResult;
         }
         #endregion
-        
+
         if (world.BlockAccessor.GetBlockEntity(UpPos) is null)
             world.BlockAccessor.SetBlock(nextBlock.BlockId, UpPos);
         else
             world.BlockAccessor.ExchangeBlock(nextBlock.BlockId, UpPos);
-        
-        consumedNutrient = block.CropProps.RequiredNutrient;
-        consumedAmount   = block.CropProps.NutrientConsumption / Math.Max(1, block.CropProps.GrowthStages - 1);
+
+        consumedNutrient = crop.CropProps.RequiredNutrient;
+        consumedAmount = crop.CropProps.NutrientConsumption / Math.Max(1, crop.CropProps.GrowthStages - 1);
+
+        Block nextCrop = GetCrop(world) ?? crop; // re-read: UpPos is now nextStage after ExchangeBlock
+        TotalHoursForNextStage += GetHoursForNextStage(nextCrop, world, growthRate);
 
         return true;
     }

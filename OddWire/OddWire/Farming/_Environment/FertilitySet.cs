@@ -56,7 +56,7 @@ public sealed class FertilitySet
         fertilityCode is not null
     &&  Values.TryGetValue(fertilityCode, out float fertility)
     ?   fertility
-    :   0f;
+    :   0;
 
     public static string? GetCode(Block? block) => _singleton._getCode(block);
     private string? _getCode(Block? block)
@@ -75,7 +75,7 @@ public sealed class FertilitySet
     }
     #endregion
 
-    #region Mutations
+    #region Step
     public static string? StepCode(string? fertilityCode, int delta) => _singleton._stepCode(fertilityCode, delta);
     private string? _stepCode(string? fertilityCode, int delta)
     {
@@ -105,12 +105,15 @@ public sealed class FertilitySet
             )
             return false;
 
+        #region nextBlockCode = block.Code.Split('-').replace(nextCode, ^1)
         string[] codeParts = block.Code.Path.Split('-');
         if (codeParts.Length == 0)
             return false;
 
         codeParts[^1] = nextCode;
         AssetLocation nextBlockCode = new(block.Code.Domain, string.Join("-", codeParts));
+        #endregion
+        
         nextBlock = world.GetBlock(nextBlockCode);
         return
             nextBlock is not null
@@ -132,30 +135,31 @@ public sealed class FertilitySet
         return new[] { fertility, fertility, fertility };
     }
 
-    public static Block RevertSupportToSoil(IWorldAccessor world, BlockPos supportPos, Block supportBlock)
+    public static Block RevertSupportToSoil(IWorldAccessor world, BlockPos pos, Block block)
     {
-        if (supportBlock is not (BlockFarmland or BlockPlowland))
-            return supportBlock;
+        if (block is not (BlockFarmland or BlockPlowland))
+            return block;
 
-        BlockEntity? supportBlockEntity = world.BlockAccessor.GetBlockEntity(supportPos);
-        float supportNutrientAvg = ResolveNutrients(supportBlock, supportBlockEntity).Avg();
-
-        string? revertFertilityCode = GetCode(supportBlock);
-        if (supportNutrientAvg < 100f
-        &&  world.Rand.NextSingle() > supportNutrientAvg / 100f
+        BlockEntity? blockEntity = world.BlockAccessor.GetBlockEntity(pos);
+        string? revertFertilityCode = GetCode(block);
+        
+        // Intent: if low NPK, chance to lose fertility 
+        float nutrientAvg = ResolveNutrients(block, blockEntity).Avg();
+        if (nutrientAvg < 100f
+        &&  world.Rand.NextSingle() > nutrientAvg / 100f
            )
             revertFertilityCode = StepCode(revertFertilityCode, -1) ?? revertFertilityCode;
 
         if (revertFertilityCode is null)
-            return supportBlock;
+            return block;
 
         AssetLocation soilCode = new("game", $"soil-{revertFertilityCode}");
         Block soilBlock = world.GetBlock(soilCode);
         if (soilBlock?.Id > 0)
         {
-            world.BlockAccessor.ExchangeBlock(soilBlock.BlockId, supportPos);
+            world.BlockAccessor.ExchangeBlock(soilBlock.BlockId, pos);
             return soilBlock;
         }
-        return supportBlock;
+        return block;
     }
 }

@@ -72,7 +72,9 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             return 0;
 
         Block deadCropBlock = Api.World.GetBlock(new AssetLocation("deadcrop"));
-        if (deadCropBlock?.Id >= 0)
+        if (deadCropBlock is null
+        ||  deadCropBlock.Id == 0
+            )
             return 0;
 
         Api.World.BlockAccessor.SetBlock(deadCropBlock.Id, upPos);
@@ -113,19 +115,17 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
     public void Initialise(float[] initNutrients, float moisture01)
     {
-        float originalVal = FertilitySet.Value(Block);
-        originalFertility[0] = (int)originalVal;
-        originalFertility[1] = (int)originalVal;
-        originalFertility[2] = (int)originalVal;
-
+        int originalVal = (int)FertilitySet.Value(Block);
+        originalFertility[0] = originalVal;
+        originalFertility[1] = originalVal;
+        originalFertility[2] = originalVal;
         nutrients[0] = GameMath.Clamp(initNutrients[0], 0f, Settings.Max);
         nutrients[1] = GameMath.Clamp(initNutrients[1], 0f, Settings.Max);
         nutrients[2] = GameMath.Clamp(initNutrients[2], 0f, Settings.Max);
-
+        
         moistureLevel = GameMath.Clamp(moisture01, 0f, 1f);
         lastMoistureLevelUpdateTotalDays = Api.World.Calendar.TotalDays;
-
-        UpdateSupport();
+        UpdateSupport(); // Precedes tryUpdateMoistureLevel(), sets totalHoursWaterRetention 
         tryUpdateMoistureLevel(Api.World.Calendar.TotalDays, true);
         
         UpdateFarmlandBlock();
