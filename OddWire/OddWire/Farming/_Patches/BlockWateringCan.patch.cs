@@ -7,7 +7,7 @@ using OddWire.GameContent;
 namespace OddWire.Patches;
 
 [HarmonyPatch(typeof(BlockWateringCan), "OnHeldInteractStep")]
-public static class BlockWateringCan_OnHeldInteractStep_Patch
+public static class BlockWateringCan_OnHeldInteractStep_CallsIWaterable_Patch
 {
     public static void Prefix(ItemSlot slot, ref float __state) =>
         __state = slot?.Itemstack?.TempAttributes?.GetFloat("secondsUsed") ?? 0f;

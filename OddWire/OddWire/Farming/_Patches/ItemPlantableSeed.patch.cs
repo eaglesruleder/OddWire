@@ -1,29 +1,26 @@
 using System.Collections.Generic;
-using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Config;
 using Vintagestory.GameContent;
+using HarmonyLib;
 using OddWire.GameContent;
 
 namespace OddWire.Patches;
 
-// ── Seed planting on plowland ─────────────────────────────────────────────────
-
 [HarmonyPatch(typeof(ItemPlantableSeed), "OnHeldInteractStart")]
-public static class ItemPlantableSeed_OnHeldInteractStart_Patch
+public static class ItemPlantableSeed_OnHeldInteractStart_PlantICropland_Patch
 {
     public static bool Prefix
         (ItemPlantableSeed __instance
-        ,ItemSlot          itemslot
-        ,EntityAgent       byEntity
-        ,BlockSelection    blockSel
-        ,EntitySelection   entitySel
-        ,bool              firstEvent
+        ,ItemSlot itemslot
+        ,EntityAgent byEntity
+        ,BlockSelection blockSel
+        ,EntitySelection entitySel
+        ,bool firstEvent
         ,ref EnumHandHandling handHandling
         )
     {
-        #region Require ICropland non-vanilla target
+        #region if(!blockSel is ICropland || blockSel is Farmland) return true;
         if (blockSel is null)
             return true;
 
@@ -33,7 +30,7 @@ public static class ItemPlantableSeed_OnHeldInteractStart_Patch
             return true;
         #endregion
 
-        #region Require valid crop
+        #region if(!Variant["type"] || !GetBlock("crop-{croptype}-1") return false;
         string? croptype = itemslot.Itemstack?.Collectible?.Variant?["type"];
         if (croptype is null)
             return false;
@@ -42,10 +39,8 @@ public static class ItemPlantableSeed_OnHeldInteractStart_Patch
         if (cropBlock is null)
             return false;
         #endregion
-
-        #region Plant and consume
+        
         IPlayer? byPlayer = (byEntity as EntityPlayer)?.Player;
-
         if (!target.TryPlant(cropBlock, itemslot, byEntity, blockSel))
             return false;
 
@@ -59,43 +54,44 @@ public static class ItemPlantableSeed_OnHeldInteractStart_Patch
         }
 
         handHandling = EnumHandHandling.PreventDefault;
-        #endregion
-
         return false;
     }
 }
-
-// ── Seed interaction hint includes plowland blocks ────────────────────────────
 
 [HarmonyPatch(typeof(ItemPlantableSeed), nameof(ItemPlantableSeed.OnLoaded))]
 public static class ItemPlantableSeed_OnLoaded_Patch
 {
     public static void Postfix(ItemPlantableSeed __instance, ICoreAPI api)
     {
-        if (api.Side != EnumAppSide.Client) return;
+        if (api.Side != EnumAppSide.Client)
+            return;
 
         if (AccessTools.Field(typeof(ItemPlantableSeed), "interactions")
-               .GetValue(__instance) is not WorldInteraction[] interactions
+                .GetValue(__instance) is not WorldInteraction[] interactions
         ||  interactions.Length == 0
            )
             return;
 
-        // Guard: shared cache — only add plowland stacks once
+        // Guard: Only add plowland stacks once
         if (interactions[0].Itemstacks != null)
         {
             foreach (ItemStack s in interactions[0].Itemstacks)
-                if (s.Block is BlockPlowland) return;
+                if (s.Block is BlockPlowland)
+                    return;
         }
 
         List<ItemStack> extra = new();
         foreach (Block block in api.World.Blocks)
         {
-            if (block?.Code is null || block.EntityClass is null) continue;
+            if (block?.Code is null || block.EntityClass is null)
+                continue;
+            
             if (api.World.ClassRegistry.GetBlockEntity(block.EntityClass) == typeof(BlockEntityPlowland))
                 extra.Add(new ItemStack(block));
         }
 
-        if (extra.Count == 0) return;
+        if (extra.Count == 0)
+            return;
         
         List<ItemStack> merged = new(interactions[0].Itemstacks ?? []);
         merged.AddRange(extra);
