@@ -21,21 +21,17 @@ public static class BlockWateringCan_OnHeldInteractStep_CallsIWaterable_Patch
         ,BlockSelection blockSel
         )
     {
-        #region Validate
+        float dt = secondsUsed - __state;
         if(!__result
+        ||  dt <= 0f
         ||  byEntity?.World?.Side != EnumAppSide.Server
         ||  blockSel is null
         ||  slot?.Itemstack is null
         ||  slot.Itemstack.TempAttributes.GetInt("refilled") > 0
            )
             return;
-        
-        float dt = secondsUsed - __state;
-        if (dt <= 0f)
-            return;
-        #endregion
 
-        #region Resolve watered block position
+        #region if(!block.CollisionBoxes && !block.IsLiquid) targetPos = targetPos.DownCopy();
         IWorldAccessor world = byEntity.World;
         BlockPos targetPos = blockSel.Position;
 

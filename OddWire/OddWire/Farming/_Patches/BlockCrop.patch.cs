@@ -88,9 +88,9 @@ public static class BlockCrop_GetPlacedBlockInfo_CallsBlockPlowland_Patch
         if (downBlock is BlockPlowland)
         {
             __result = downBlock.GetPlacedBlockInfo(world, pos.DownCopy(), forPlayer);
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 }
 
