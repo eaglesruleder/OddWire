@@ -5,7 +5,7 @@ This gpt_style..md file describes the expected response style, shaping how the a
 ## Purpose
 Write code in a style that reads like practical pseudocode implemented directly in C#.
 
-The goal is not abstract “clean code”.
+The goal is not abstract "clean code".
 The goal is code that is fast to read, easy to reason about, and shaped like intent.
 
 This style is written for **RAD development**.
@@ -13,8 +13,8 @@ That means:
 - direct implementation is often better than early abstraction
 - one file doing a lot of directly related work is acceptable
 - helper extraction is selective, not automatic
-- descriptive `#region`s are a valid readability tool in larger mechanic files
-- method-local `#region`s may also be used as **behaviour-step regions** when a method has several meaningful steps
+- `#region`s are a translation tool — use them only when the code needs translating
+- method-local `#region`s may be used as behaviour-step regions when a method has several meaningful steps that the code itself does not already name
 
 ---
 
@@ -30,7 +30,7 @@ Not like:
 A reader should be able to skim:
 - file regions for major concern grouping
 - method names for behaviour grouping
-- method-local regions for step grouping
+- method-local regions for step grouping, only where the code itself does not already tell the story
 - code lines for exact implementation
 
 ---
@@ -58,8 +58,7 @@ public bool TryAddFromHeldSlot(ItemSlot slot, out int accepted)
 }
 ```
 
-But do not extract helpers just for style.
-A short inline method is also good when it already reads clearly.
+When method names already tell the story, the method body IS the pseudocode. Do not wrap self-describing calls in regions just to create folds.
 
 ### 2. Prefer readable inline logic when it is already clear
 Good applied pseudocode is often a compact method with a few guards and one action.
@@ -112,11 +111,7 @@ Prefer:
 - `canRestoreAeration`
 
 Avoid:
-- `x`
-- `val`
-- `obj`
-- `tmp`
-- `result2`
+- `x`, `val`, `obj`, `tmp`, `result2`
 - `flag` when a real meaning exists
 
 Short local names are acceptable when they have common, meaningful usage in the environment:
@@ -134,9 +129,23 @@ Method names should sound like actions or decisions:
 
 That lets the caller read like rough English.
 
-### 6. Prefer explicit control flow
+### 6. Prefer explicit control flow — vertical chains are valid pseudocode
 Use readable `if`, `foreach`, and early returns.
 Do not compress meaningful logic into dense expressions just because it is shorter.
+
+**Vertical `||` / `&&` chains with one condition per line are explicit, not compressed.**
+Each line is one story beat. The chain as a whole states one outcome.
+
+```csharp
+if (currentTotalHours < TotalHoursForNextStage
+||  moisture01 < 0.1f
+|| !TryGrowCrop(currentTotalHours, world, host, growthRate, out consumedNutrient, out consumedAmount)
+    )
+    return false;
+```
+
+This reads as: not ready yet / too dry / grow failed → return false.
+That is a story, not a compression. Do not break it into separate guards unless the steps have meaningfully different outcomes or side effects.
 
 ### 7. Prefer vertical scanning
 Where it fits the codebase, line up compound conditions so they scan cleanly:
@@ -156,10 +165,17 @@ Do not write comments that just restate obvious code.
 
 Good comment use:
 - non-obvious domain rules
-- invariants
+- invariants — especially firing-order dependencies
 - engine quirks
-- intentionally weird behaviour that might be “fixed” by mistake
+- intentionally weird behaviour that might be "fixed" by mistake
 - communication notes requested by the user
+
+When a comment is needed for an invariant, prefer it inline on the relevant line over a region wrapper:
+
+```csharp
+UpdateSupport(); // must precede base interval — sets totalHoursWaterRetention
+baseInterval?.Invoke(hourInterval, conds, lightGrowthSpeedFactor, growthPaused);
+```
 
 ### 9. Use descriptive `#region`s at two levels
 When one file owns several directly related concerns, keep it navigable.
@@ -172,7 +188,9 @@ Use file-level `#region`s for major concern grouping, for example:
 - `StateUpdates`
 - `Persistence`
 
-Use method-level `#region`s only when a method has several meaningful steps and those steps are worth skimming as a mini-outline.
+Use method-level `#region`s only when the method body needs a label the code itself does not already provide.
+
+**Regions are a translator. When the code does not need translating, skip the region.**
 
 Preferred remedy order:
 1. improve names
@@ -183,70 +201,85 @@ Preferred remedy order:
 A large file should not fail just for being large.
 It should fail when the reader cannot quickly find the concern they need.
 
-### 10. Treat method-local `#region`s as behaviour-step regions
-Inside a longer method, a `#region` should mark one real step in the method story.
+### 10. Method-local regions — use only when the code needs a translator
 
-Good region use:
-- one guard block
-- one derived-value block
-- one mutation block
-- one return/finish block
+When a method's calls are already self-describing, the method body IS the pseudocode. Adding regions produces labels that say the same thing as the lines they wrap — noise with a token cost.
 
-Bad region use:
-- wrapping arbitrary lines just to create folds
-- titles that only describe syntax
-- titles that are too vague to tell what the step actually proves or changes
+```csharp
+// Self-describing — no regions needed
+UpdateSupport(); // must precede base interval — sets totalHoursWaterRetention
+baseInterval?.Invoke(hourInterval, conds, lightGrowthSpeedFactor, growthPaused);
+_crop.CheckDamage(conds, Api.World);
+TickCrop(hourInterval, lightGrowthSpeedFactor, growthPaused);
+```
 
-A method should be skimmable like:
-- require valid source
-- require room
-- resolve conversion rate
-- resolve consumable quantity
-- apply state mutation
-- return accepted quantity
+Use a method-local region when:
+- the body contains setup or logic that does not name itself
+- the region label would say something the lines cannot
+- the method is long enough that skim-reading needs anchors
 
-### 11. Region names should describe intent, not just fragments
-Prefer region titles that tell the reader what the step means.
+Do not use a method-local region when:
+- the body is one or two self-describing calls
+- the label would be a restatement of the code
+- adding it increases region count without adding story
 
-Prefer:
-- `Require nutrition props`
-- `Cap by nutrition room`
-- `Resolve nutrition per input`
-- `Resolve consumable input qty`
-- `Resolve nutrition output qty`
-- `Apply nutrition gain`
-- `Return consumed qty`
+**Prefer fewer, meaningful regions over many fine-grained ones.**
+Region count is a cost — each one adds noise to the fold map and tokens to context. Earn each region.
 
-Avoid:
-- `If we have NutritionProps,`
-- `Room,`
-- `A cost per input,`
-- `Atleast one input,`
-- `And return true out acceptedstackConsumedQty`
+### 11. Region labels should read like collapsed code
+Region labels are the pseudocode layer. They should read like the one-liner you would write if the body did not exist.
 
-The rough form is still useful during ideation, but final region names should read like stable behaviour-step language.
+Prefer code-shaped labels:
+- `#region if (!CanPlow(targetBlock)) return`
+- `#region supportBlock = world.GetBlock(supportPos)`
+- `#region ResolveCurrentNutrients(targetBlock / supportBlock)`
+- `#region plowlandBlock = GetBlock($"plowland-{moistKey}-{fertilityCode}")`
+- `#region SetBlock(plowlandBlock, targetPos).Initialise()`
+- `#region if(byPlayer is EntityPlayer) slot.DamageItem()`
 
-### 12. Each region should usually end with one of three outcomes
-A region should usually:
-- reject and return
-- compute and store a value needed by later regions
-- mutate state in one clear way
+Prose labels are acceptable for decision steps where no single line captures the outcome:
+- `#region Lose fertility when underfed`
+- `#region Gain fertility when overfed`
 
-If a line introduces a new semantic step, it usually deserves either:
-- its own region
-- or a better helper name
+Avoid labels that describe fragments or syntax without capturing the outcome:
+- `#region Room,`
+- `#region A cost per input,`
+- `#region And return true out acceptedstackConsumedQty`
 
-Do not leave the most important step as unlabelled math in the middle if the surrounding regions are carrying the story.
+The test: if you fold the region shut, does the label alone tell you what pseudocode line sits there?
+
+### 12. Embedded getting-there logic in guard regions is acceptable
+When setup code exists only to produce a value that determines whether to proceed, embedding it in the guard region is acceptable. The label captures the outcome, not every step to get there. This keeps region count low without losing the story.
+
+```csharp
+#region if(!GetCrop || currentStage >= GrowthStages) return false
+Block block = GetCrop(world);
+if (block is null)
+    return false;
+
+int currentStage = GetCropStage(block);
+if (currentStage >= block.CropProps.GrowthStages)
+    return false;
+
+int nextStage = currentStage + 1;
+Block nextBlock = world.GetBlock(block.CodeWithParts("" + nextStage));
+if (nextBlock is null)
+    return false;
+#endregion
+```
+
+`nextStage` and `nextBlock` are getting-there. Their only job is to fail or feed the next region.
+A separate region for them adds a label that says less than the lines already do.
 
 ### 13. Use regions to make IDE folding become a design outline
 In the editor, file regions and method-local regions should let the user skim the code as if it were a design note.
 
-That means the fold labels should tell a truthful story of the code.
+The fold labels should tell a truthful story of the code.
 If the fold labels are weak, the pseudocode layer is weak even if the implementation is correct.
 
 The ideal is:
 - fully expanded: exact code
-- partially folded: exact algorithm outline
+- partially folded: exact algorithm outline in collapsed-code shorthand
 - mostly folded: concern map of the class
 
 ### 14. Region-backed pseudocode is a valid collaboration format
@@ -255,19 +288,19 @@ A user may provide a skeleton like:
 ```csharp
 TryAddNewResource()
 {
-    #region Check we have room
+    #region if(!HasRoom) return false
     #endregion
 
-    #region Check we have valid input
+    #region if(!ValidInput) return false
     #endregion
 
-    #region Resolve conversion
+    #region resultNutrients = ResolveConversion(input)
     #endregion
 
-    #region Apply mutation
+    #region ApplyMutation(resultNutrients)
     #endregion
 
-    #region Return accepted qty
+    #region return acceptedQty
     #endregion
 }
 ```
@@ -277,7 +310,7 @@ That is a valid implementation handoff shape.
 When working from this kind of skeleton:
 - preserve the region order unless there is a real correctness issue
 - fill each region with the narrowest logic that matches the heading
-- tighten region names if needed, but keep the original intent
+- tighten region names to collapsed-code style if needed, but keep the original intent
 - do not silently replace the structure with a totally different abstraction unless clearly beneficial
 - mention when a region is missing a required step or mixes multiple steps
 
@@ -309,13 +342,15 @@ Write the top-level method so it reads like the intended process.
 ### 3. Keep detail local unless extraction helps
 Push complexity down only when the helper name makes the code easier to read.
 
-### 4. If the method gets medium-sized, add a truthful region outline
-Use method-local `#region`s when they improve skim-reading and future promptability.
+### 4. Ask: does the method need translating?
+If method names already tell the story, leave it flat.
+If the body has unlabelled setup or logic that does not name itself, add region labels in collapsed-code style.
+Prefer fewer regions. Earn each one.
 
 ### 5. Comment only where naming cannot carry intent
 Use comments for:
 - domain rules
-- invariants
+- invariants and firing-order dependencies
 - engine quirks
 - intentionally weird behaviour
 
@@ -327,7 +362,7 @@ When writing code in this language:
 - preserve surrounding style and formatting
 - do not refactor unrelated code
 - prefer narrow changes
-- avoid generic “utility” extraction unless it removes real duplication
+- avoid generic "utility" extraction unless it removes real duplication
 - avoid LINQ where possible
 - keep client/server concerns separated
 - do not invent abstractions unless the code actually needs them
@@ -353,7 +388,7 @@ Rules:
 
 Write code in an **applied pseudocode** style.
 
-I want the code to read like rough English or broken-English pseudocode, while still being real implementation code.
+I want the code to read like collapsed pseudocode while still being real implementation code.
 
 Rules:
 - make top-level methods read like process steps
@@ -361,11 +396,12 @@ Rules:
 - use helper methods only when the name adds real value
 - use variable names that carry meaning
 - keep one clear level of intent per method where practical
-- prefer explicit flow over clever compressed expressions
-- allow large files when the work is directly related
-- use descriptive `#region`s before recommending file splits
-- method-local `#region`s may be used as behaviour-step regions
-- region names should describe behaviour, not just fragments
+- vertical `||` / `&&` chains with one condition per line are explicit pseudocode — do not break them into separate guards unless outcomes differ
+- regions are a translator — skip them when the code already names itself
+- use collapsed-code region labels: `#region if(!CanPlow) return` not `#region Validate plow target`
+- embed getting-there logic in the guard region that depends on it — keep region count low
+- prefer fewer, meaningful regions over many fine-grained ones
 - when given a region skeleton, preserve it and implement to that structure where practical
+- invariants and firing-order dependencies go in inline comments, not region wrappers
 - ask early when missing details would materially change the answer
 - if a best-effort answer is still useful, give the narrowest useful answer and state assumptions plainly
