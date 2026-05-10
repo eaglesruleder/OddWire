@@ -7,11 +7,20 @@
 		liquidBarrierOnSides: [ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]
 	},
 	variantgroups: [
+		{ code:"side", loadFromProperties: "abstract/horizontalorientation" },
 		{ code: "state", states: ["dry", "moist"] },
 		{ loadFromProperties: "abstract/fertility" }
 	],
-	creativeinventory: { "general": ["plowland-dry-*"], "flora": ["plowland-dry-*"] },
-	shape: { base: "farming/plowland" },
+	behaviors: [
+		{name: "HorizontalOrientable"}
+	],
+	shapeByType: {
+		"*-north-*": { base: "farming/plowland", rotateY:0 },
+		"*-east-*": { base: "farming/plowland", rotateY:270 },
+		"*-south-*": { base: "farming/plowland", rotateY:180 },
+		"*-west-*": { base: "farming/plowland", rotateY:90 },
+	},
+	creativeinventory: { "general": ["plowland-north-dry-*"], "flora": ["plowland-north-dry-*"] },
 	faceCullMode: "FlushExceptTop",
 	blockmaterial: "Soil",
 	textures: {

@@ -321,11 +321,14 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             return;
 
         string? fertilityCode = FertilitySet.GetCode(Block);
-        if (fertilityCode is null)
+        string? sideCode = Block.Variant["side"];
+        if (fertilityCode is null
+        ||  sideCode is null
+            )
             return;
 
         string moistureCode = moistureLevel > 0.1f ? Settings.StateMoist : Settings.StateDry;
-        AssetLocation newCode = new(Block.Code.Domain, $"plowland-{moistureCode}-{fertilityCode}");
+        AssetLocation newCode = new(Block.Code.Domain, $"plowland-{sideCode}-{moistureCode}-{fertilityCode}");
         Block newBlock = Api.World.GetBlock(newCode);
         if (newBlock is null
         ||  newBlock.Id == 0

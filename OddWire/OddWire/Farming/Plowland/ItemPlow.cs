@@ -228,7 +228,8 @@ public class ItemPlow : Item
                 targetFertilityCode = nextTargetCode;
         }
 
-        AssetLocation plowlandCode  = new(Code.Domain, $"plowland-{targetMoistKey}-{targetFertilityCode}");
+        string sideCode = BlockFacing.HorizontalFromAngle(byEntity.SidedPos.Yaw).Code;
+        AssetLocation plowlandCode  = new(Code.Domain, $"plowland-{sideCode}-{targetMoistKey}-{targetFertilityCode}");
         Block plowlandBlock = world.GetBlock(plowlandCode);
         if (plowlandBlock is null || plowlandBlock.Id == 0)
             return;
