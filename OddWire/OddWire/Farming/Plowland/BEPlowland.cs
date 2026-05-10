@@ -234,7 +234,83 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             return;
 
         if (consumedAmount > 0)
-            ConsumeNutrients(consumedNutrient, consumedAmount);
+            ConsumeNutrientsDistributed(consumedNutrient, consumedAmount);
+    }
+    
+    private static readonly Vec3i[] HorizontalOffsets = new Vec3i[]{new(1,0,0),new(-1,0,0),new(0,0,1),new(0,0,-1)};
+    private static readonly Vec3i[] HorizontalAndDiagonalOffsets = new Vec3i[]{new(1,0,0),new(-1,0,0),new(0,0,1),new(0,0,-1),new(1,0,1),new(1,0,-1),new(-1,0,1),new(-1,0,-1)};
+    public void ConsumeNutrientsDistributed(EnumSoilNutrient nutrient, float amount, int loadQty = 2, bool diagonal = false)
+    {
+        int nutrientIndex = (int)nutrient;
+        
+        Vec3i[] checkCoords;
+        if (diagonal)
+            checkCoords = HorizontalAndDiagonalOffsets;
+        else
+            checkCoords = HorizontalOffsets;
+        
+        #region loadBlocks = GetBESoil(checkCoords).Where(!Crop).Sort()
+        loadQty = Math.Clamp(loadQty, 0, diagonal ? 8 : 4);
+        BlockEntitySoilNutrition?[] loadBESN = new BlockEntitySoilNutrition[loadQty];
+        foreach (Vec3i offset in checkCoords)
+        {
+            BlockPos adjacentPos = Pos.AddCopy(offset);
+            if (Api.World.BlockAccessor.GetBlockEntity(adjacentPos) is not BlockEntitySoilNutrition adjacentBESN
+            ||  Api.World.BlockAccessor.GetBlock(adjacentPos.UpCopy()).CropProps != null
+                )
+                continue;
+
+            float adjacentNutrient = adjacentBESN.Nutrients[nutrientIndex];
+            for (int i = 0; i < loadBESN.Length; i++)
+            {
+                if (loadBESN[i] != null
+                &&  adjacentNutrient <= loadBESN[i].Nutrients[nutrientIndex]
+                    )
+                    continue;
+
+                for (int j = loadBESN.Length - 1; j > i; j--)
+                    loadBESN[j] = loadBESN[j - 1];
+
+                loadBESN[i] = adjacentBESN;
+                break;
+            }
+        }
+        #endregion
+        
+        #region if(nutrientTotal <= 0) { UpdateFarmlandBlock(); return; }
+        float nutrientTotal = nutrients[nutrientIndex];
+        foreach (var besn in loadBESN)
+        {
+            if (besn is null)
+                break;
+            nutrientTotal += besn.Nutrients[nutrientIndex];
+        }
+
+        if (nutrientTotal <= 0f)
+        {
+            nutrients[nutrientIndex] = 0f;
+            UpdateFarmlandBlock();
+            MarkDirty(true);
+            return;
+        }
+        #endregion
+        
+        #region foreach(loadBESN+this) Nutrients -= amount*Nutrients/nutrientTotal
+        float thisWeight = nutrients[nutrientIndex] / nutrientTotal;
+        nutrients[nutrientIndex] = Math.Max(0f, nutrients[nutrientIndex] - amount * thisWeight);
+
+        foreach (var besn in loadBESN)
+        { 
+            if (besn is null)
+                break;
+            float lbWeight = besn.Nutrients[nutrientIndex] / nutrientTotal;
+            besn.Nutrients[nutrientIndex] = Math.Max(0f, besn.Nutrients[nutrientIndex] - amount * lbWeight);
+            besn.MarkDirty(true);
+        }
+        #endregion
+        
+        UpdateFarmlandBlock();
+        MarkDirty(true);
     }
 
     protected override void UpdateFarmlandBlock()
@@ -262,7 +338,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         MarkDirty(true);
     }
     #endregion
-    
+
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
     {
         base.GetBlockInfo(forPlayer, dsc); // NPK, moisture, growth speed — all from vanilla
