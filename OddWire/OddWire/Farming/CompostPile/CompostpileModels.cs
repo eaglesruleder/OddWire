@@ -4,6 +4,8 @@ namespace OddWire.GameContent;
 
 public class CompostpileSettings
 {
+    public const int ShapeSizeLevels = 5;
+
     public class Ingredient
     {
         public string Name { get; internal set; }
@@ -27,7 +29,7 @@ public class CompostpileSettings
     {
         Name = "browns",
         InitialQty = 16,
-        SizeBonusQty = 44,
+        SizeBonusQty = (64 * 3 - 16) / (ShapeSizeLevels - 1),
         MaxQty = 64 * 3,
         MaxInputPerAdd = 16,
         Aeration01PerInput = 1f / (64 * 3),
@@ -44,8 +46,8 @@ public class CompostpileSettings
     public Ingredient Nutrition { get; private set; } = new()
     {
         Name = "nutrition",
-        InitialQty = 16,
-        SizeBonusQty = 12,
+        InitialQty = 0,
+        SizeBonusQty = (64 - 0) / (ShapeSizeLevels - 1),
         MaxQty = 64,
         MaxInputPerAdd = 8,
         Aeration01PerInput = 1f / 64,
@@ -55,8 +57,8 @@ public class CompostpileSettings
     public Ingredient Inoculum { get; private set; } = new()
     {
         Name = "inoculum",
-        InitialQty = 2,
-        SizeBonusQty = 8,
+        InitialQty = 4,
+        SizeBonusQty = (64 - 4) / (ShapeSizeLevels - 1),
         MaxQty = 64,
         MaxInputPerAdd = 4,
         Aeration01PerInput = 1f / 16,

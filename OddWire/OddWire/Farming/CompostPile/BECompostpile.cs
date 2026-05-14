@@ -88,7 +88,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (Api.Side != EnumAppSide.Server)
             return;
         
-        int variantSize = Math.Clamp((int)Math.Ceiling((float)stackSize / 64), 1, 5);
+        int variantSize = Math.Clamp((int)Math.Ceiling((float)stackSize / 64), 1, CompostpileSettings.ShapeSizeLevels);
         AssetLocation loc = Block.CodeWithVariant("size", $"#{variantSize:0}");
         Block block = Api.World.GetBlock(loc);
         if (block == null
