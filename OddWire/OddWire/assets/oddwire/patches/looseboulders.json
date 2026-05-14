@@ -1,0 +1,14 @@
+[
+    {
+        "file": "game:blocktypes/stone/looseboulders",
+        "op": "add",
+        "path": "/behaviors/-",
+        "value": { "name": "RightClickPickup" }
+    },
+    {
+        "file": "game:blocktypes/stone/looseboulders",
+        "op": "add",
+        "path": "/maxstacksize",
+        "value": 8
+    }
+]
