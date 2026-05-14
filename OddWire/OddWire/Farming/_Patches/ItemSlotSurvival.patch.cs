@@ -4,7 +4,7 @@ using HarmonyLib;
 namespace OddWire.Patches;
 
 [HarmonyPatch(typeof(ItemSlotSurvival), nameof(ItemSlotSurvival.CanHold))]
-public static class ItemSlotSurvival_CanHold_AllowSmallBag_Patch
+static class ItemSlotSurvival_CanHold_AllowSmallBag_Patch
 {
     static bool Prefix(ItemSlot sourceSlot, ref bool __result, ItemSlotSurvival __instance)
     {
