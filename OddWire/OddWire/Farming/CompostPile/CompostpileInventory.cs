@@ -765,7 +765,7 @@ public sealed class CompostpileInventory
 
     private bool UpdateMoisture(BlockEntity be, double totalHours)
     {
-        #region if(0 > PrevTimeUpdated > totalHours) { PrevTimeUpdated = totalHours; return true; }
+        #region if(0 > PrevTimeUpdated || > totalHours) { PrevTimeUpdated = totalHours; return true; }
         if (PrevTimeMoistureUpdated < 0
         ||  PrevTimeMoistureUpdated > totalHours
            )
@@ -800,7 +800,7 @@ public sealed class CompostpileInventory
 
     private bool UpdateAeration(BlockEntity be, double totalHours)
     {
-        #region if(0 > _prevTimeAerationUpdated > totalHours) return true;
+        #region if(0 > _prevTimeAerationUpdated || > totalHours) return true;
         if (_prevTimeAerationUpdated < 0
         ||  _prevTimeAerationUpdated > totalHours
            )
@@ -846,7 +846,7 @@ public sealed class CompostpileInventory
 
     private bool UpdateTemperature(BlockEntity be, double totalHours)
     {
-        #region if(0 > _prevTimeUpdated > totalHours) return true;
+        #region if(0 > _prevTimeUpdated || > totalHours) return true;
         if (_prevTimeTemperatureUpdated < 0
         ||  _prevTimeTemperatureUpdated > totalHours
            )
@@ -886,7 +886,7 @@ public sealed class CompostpileInventory
 
     private bool UpdateStress(BlockEntity be, double totalHours)
     {
-        #region if(0 > _prevTimeUpdated > totalHours) return true;
+        #region if(0 > _prevTimeUpdated || > totalHours) return true;
         if (_prevTimeStressUpdated < 0
         ||  _prevTimeStressUpdated > totalHours
            )
