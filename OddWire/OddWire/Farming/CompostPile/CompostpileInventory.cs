@@ -654,6 +654,7 @@ public sealed class CompostpileInventory
                 continue;
             }
 
+            // Intent: Removal chance scales per its share of nutritionRemaining
             int removeWeight = (int)Math.Ceiling(rand.NextSingle() * stackQty / nutritionRemaining);
             int maxRemove = Math.Min(removeWeight, remaining);
             if (maxRemove < 1)
@@ -704,14 +705,13 @@ public sealed class CompostpileInventory
         return true;
     }
     
-    
     public bool Update(BlockEntity be, double totalHours)
     {
         if (be.Api is ICoreServerAPI sapi
         && !sapi.World.IsFullyLoadedChunk(be.Pos)
            )
             return false;
-
+        
         return
             UpdateState(be, totalHours)
         |   ProcessCompost(be, totalHours);
@@ -724,27 +724,22 @@ public sealed class CompostpileInventory
     private bool _inGreenhouse;
     private float _insulation01;
     #endregion
+
     private void PreUpdateState(BlockEntity be, double totalHours, bool forceRecalc = false)
     {
-        #region Resolve exposure change
         bool nowSkyExposed = be.Api.World.BlockAccessor.IsSkyExposed(be.Pos);
         forceRecalc |= nowSkyExposed ^ _skyExposed;
-        #endregion
         
-        #region Reuse fresh cached environment
         if (_lastPreUpdatedHours + 1 > totalHours
         && !forceRecalc
             )
             return;
-        #endregion
-
-        #region Refresh cached environment
+        
         _skyExposed = nowSkyExposed;
         _envTemp = be.Api.GetEnvironmentTemperatureC(be.Pos, totalHours, _skyExposed, Settings.GreenhouseHeat, out _inGreenhouse);
         UpdateInsulation01();
         
         _lastPreUpdatedHours = totalHours;
-        #endregion
     }
     
     private void UpdateInsulation01()
@@ -760,6 +755,7 @@ public sealed class CompostpileInventory
     private bool UpdateState(BlockEntity be, double totalHours)
     {
         PreUpdateState(be, totalHours);
+        
         return
             UpdateMoisture   (be, totalHours)
         |   UpdateAeration   (be, totalHours)
@@ -769,7 +765,7 @@ public sealed class CompostpileInventory
 
     private bool UpdateMoisture(BlockEntity be, double totalHours)
     {
-        #region Initialise moisture timestamp
+        #region if(0 > PrevTimeUpdated > totalHours) { PrevTimeUpdated = totalHours; return true; }
         if (PrevTimeMoistureUpdated < 0
         ||  PrevTimeMoistureUpdated > totalHours
            )
@@ -779,42 +775,32 @@ public sealed class CompostpileInventory
         }
         #endregion
         
-        #region Resolve elapsed moisture time
         float dtMoistureDays = (float)((totalHours - PrevTimeMoistureUpdated) / be.Api.World.Calendar.HoursPerDay);
         if (dtMoistureDays <= 0)
             return false;
-        #endregion
         
-        #region Collect rainfall exposure
         float rainfallHours = 0;
-
         if (_skyExposed)
         {
             _weather ??= be.Api.ModLoader.GetModSystem<WeatherSystemBase>();
             rainfallHours = _weather?.GetTotalRainfallSince(be.Pos, PrevTimeMoistureUpdated, totalHours) ?? 0f;
         }
-        #endregion
-        
-        #region Apply rainfall and drying
         if (rainfallHours > 0f)
             Moisture01 += rainfallHours * Settings.Moisture01GainPerRainyDay / be.Api.World.Calendar.HoursPerDay;
         
         float ambientDrying01 = Math.Clamp(_envTemp / 20f, 0.05f, 1.75f);
         Moisture01 -= ambientDrying01 * dtMoistureDays / Settings.MoistureAmbientRetentionDays;
-        #endregion
         
-        #region Clamp by passive retention
         float retention01 = GameMath.Lerp(0.05f, 0.50f, _insulation01);
         Moisture01 = Math.Clamp(Math.Max(Moisture01, retention01), 0f, 1f);
         
         PrevTimeMoistureUpdated = totalHours;
         return true;
-        #endregion
     }
 
     private bool UpdateAeration(BlockEntity be, double totalHours)
     {
-        #region Initialise aeration timestamp
+        #region if(0 > _prevTimeAerationUpdated > totalHours) return true;
         if (_prevTimeAerationUpdated < 0
         ||  _prevTimeAerationUpdated > totalHours
            )
@@ -823,24 +809,22 @@ public sealed class CompostpileInventory
             return true;
         }
         #endregion
-
-        #region Resolve elapsed aeration time
+        
         float dtAerationDays = (float)((totalHours - _prevTimeAerationUpdated) / be.Api.World.Calendar.HoursPerDay);
         if (dtAerationDays <= 0)
             return false;
-        #endregion
 
-        #region Apply aeration decay
+        #region _aeration01 -= compaction01 * airflowPenalty * dtDays / RetentionDays;
         float compaction01 = GameMath.Lerp(0.45f, 1.0f, GetFullness01());
         float airflowPenalty = 1f + _adjacentBlockCount * Settings.AerationBlockedPenalty;
         _aeration01 = Math.Clamp
             (_aeration01
-         -   dtAerationDays * compaction01 * airflowPenalty / Settings.AerationRetentionDays
+         -   compaction01 * airflowPenalty * dtAerationDays / Settings.AerationRetentionDays
             ,0,1);
         _prevTimeAerationUpdated = totalHours;
+        #endregion
 
         return true;
-        #endregion
     }
 
     private float GetInternalHeat()
@@ -862,7 +846,7 @@ public sealed class CompostpileInventory
 
     private bool UpdateTemperature(BlockEntity be, double totalHours)
     {
-        #region Initialise temperature timestamp
+        #region if(0 > _prevTimeUpdated > totalHours) return true;
         if (_prevTimeTemperatureUpdated < 0
         ||  _prevTimeTemperatureUpdated > totalHours
            )
@@ -873,13 +857,12 @@ public sealed class CompostpileInventory
         }
         #endregion
         
-        #region Resolve elapsed temperature time
         double dtTemperatureHours = totalHours - _prevTimeTemperatureUpdated;
         if (dtTemperatureHours <= 0f)
             return false;
-        #endregion
         
-        #region Resolve cooling response
+        #region coolingAmount = coolingRate * dtTemperatureHours;
+        // coolingFactor
         float evaporativeCooling01 =
             Moisture01 > Settings.Moisture01Optimal
         ?   0.35f * (Moisture01 - Settings.Moisture01Optimal) / (1f - Settings.Moisture01Optimal)
@@ -891,21 +874,19 @@ public sealed class CompostpileInventory
             ,0.01f, 0.5f
             );
         double coolingAmount = coolingRate * dtTemperatureHours;
-        float coolingFactor = (float)(coolingAmount / (1f + coolingAmount));
         #endregion
         
-        #region Move toward target temperature
         float targetTemp = _envTemp + GetInternalHeat() + AdjacentBlockHeat * Settings.NeighbourHeatRate;
+        float coolingFactor = (float)(coolingAmount / (1f + coolingAmount)); // asymptotic: large dt approaches 1, never overshoots
         _temperature += (targetTemp - _temperature) * coolingFactor;
         _prevTimeTemperatureUpdated = totalHours;
 
         return true;
-        #endregion
     }
 
     private bool UpdateStress(BlockEntity be, double totalHours)
     {
-        #region Initialise stress timestamp
+        #region if(0 > _prevTimeUpdated > totalHours) return true;
         if (_prevTimeStressUpdated < 0
         ||  _prevTimeStressUpdated > totalHours
            )
@@ -914,14 +895,11 @@ public sealed class CompostpileInventory
             return true;
         }
         #endregion
-
-        #region Resolve elapsed stress time
+        
         float dtStressDays = (float)((totalHours - _prevTimeStressUpdated) / be.Api.World.Calendar.HoursPerDay);
         if (dtStressDays <= 0f)
             return false;
-        #endregion
-
-        #region Apply stress response
+        
         float targetStress01 = GetStress01();
         float responseDays =
             targetStress01 > Stress01
@@ -933,14 +911,14 @@ public sealed class CompostpileInventory
         _prevTimeStressUpdated = totalHours;
 
         return true;
-        #endregion
     }
     #endregion
 
     #region Processing
     private bool ProcessCompost(BlockEntity be, double totalHours)
     {
-        #region Initialise or reject processing window
+        #region if(!InoculumRoom || !bulkPortions || !durationTransitions || !actualTransitions) return false;
+        // Full-cap exit: pile at inoculum max AND transitions net-add inoculum — no room to process
         if (PrevTimeProcessed < 0
         ||  PrevTimeProcessed > totalHours
         || (InoculumQty + CompostQty >= Settings.Inoculum.MaxQty
@@ -950,40 +928,31 @@ public sealed class CompostpileInventory
             PrevTimeProcessed = totalHours;
             return false;
         }
-        #endregion
-
-        #region Resolve available bulk portions
+        
         float brownsPortions = (float)BrownsQty / Settings.Browns.ConsumePerTransition;
         float nutritionPortions = (float)NutritionQty / Settings.Nutrition.ConsumePerTransition;
         float bulkPortions = brownsPortions + nutritionPortions;
-
         if (bulkPortions < 1f)
         {
             PrevTimeProcessed = totalHours;
             return false;
         }
-        #endregion
         
-        #region Resolve completed transitions
         float transitionRate = Settings.BaseCompostRatePerHour * GetFactor();
         double durationTransitions = (totalHours - PrevTimeProcessed) * transitionRate;
         int transitions = (int)Math.Min(durationTransitions, bulkPortions);
         if (transitions < 1)
             return false; // keep accruing progress
-        #endregion
         
-        #region Resolve output transitions
         (int compostOutput, int failedOutput) = ResolveOutputTransitions(transitions);
         int actualTransitions = compostOutput + failedOutput;
         if (actualTransitions < 1)
             return false; // keep accruing progress
         #endregion
         
-        #region Resolve consumed input portions
         (float brownsInputPortions, float nutritionInputPortions) = ResolveInputPortions(actualTransitions, brownsPortions, nutritionPortions);
-        #endregion
         
-        #region Apply input and output mutation
+        #region Browns/Nutrition -= ConsumePerTransition; Compost/Inoculum += CompostOutPerSuccess/Fail;
         BrownsQty -= (int)Math.Min(brownsInputPortions * Settings.Browns.ConsumePerTransition, BrownsQty);
         TryRemoveRandomNutrition(be.Api.World.Rand, (int)(nutritionInputPortions * Settings.Nutrition.ConsumePerTransition));
 
@@ -999,11 +968,9 @@ public sealed class CompostpileInventory
             ,0,Settings.Inoculum.MaxQty - CompostQty
             );
         #endregion
-
-        #region Advance processed time
+        
         PrevTimeProcessed += Math.Floor(durationTransitions) / transitionRate;
         return true;
-        #endregion
     }
 
     private (int compostOutput, int failedOutput) ResolveOutputTransitions(int transitions)
@@ -1100,13 +1067,12 @@ public sealed class CompostpileInventory
         }
         else
             brownsInputPortions = minBrowns;
+
         float nutritionInputPortions = actualTransitions - brownsInputPortions;
-        
         return (brownsInputPortions, nutritionInputPortions);
     }
     #endregion
     
-    #region Visuals
     public Vec4f GetVisualTintRgba()
     {
         if (TotalQty < 1)
@@ -1131,7 +1097,6 @@ public sealed class CompostpileInventory
             , 1f
             );
     }
-    #endregion
     
     #region Persistence
     public void ToTreeAttributes(ITreeAttribute tree, string? key = null)
@@ -1193,7 +1158,7 @@ public sealed class CompostpileInventory
         _aeration01 = tree.GetFloat($"{key}._aeration01", 1f);
 
         _prevTimeStressUpdated = tree.GetDouble($"{key}._prevTimeStressUpdated", -1);
-        Stress01 = tree.GetFloat($"{key}.Stress01", 0f);
+        Stress01 = tree.GetFloat($"{key}.Stress01");
         
         _adjacentBlockCount = tree.GetInt($"{key}._adjacentBlockCount");
         AdjacentBlockHeat = tree.GetFloat($"{key}.AdjacentBlockHeat");
