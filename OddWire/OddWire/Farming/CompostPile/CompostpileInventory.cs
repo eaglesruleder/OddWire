@@ -13,7 +13,7 @@ public sealed class CompostpileInventory
     private WeatherSystemBase? _weather;
     private static readonly CompostpileSettings Settings = new();
 
-    #region StoredState
+    #region State
     public int TotalQty => BrownsQty + NutritionQty + InoculumQty + CompostQty;
     public float GetFullness01() => Math.Clamp((float)TotalQty / Settings.TotalMaxQty, 0,1);
 
@@ -54,7 +54,7 @@ public sealed class CompostpileInventory
     public float AdjacentBlockHeat;
     #endregion
     
-    #region RateAndStressHelpers
+    #region Rate Factors & Failure Stress
     //  Factor impacts Processing Rate
     public float GetFactor()
     {
@@ -111,7 +111,7 @@ public sealed class CompostpileInventory
         ?   GameMath.Lerp(0.1f, 1.0f, (Moisture01 - 0.05f) / (Settings.Moisture01Optimal - 0.05f))
         :   GameMath.Lerp(1.0f, 0.25f, (Moisture01 - Settings.Moisture01Optimal) / (1f - Settings.Moisture01Optimal));
         
-        if (Moisture01 > 0.9f)
+        if (Moisture01 > Settings.DrowningThreshold)
             factor *= 0.6f;
         
         return Math.Clamp(factor, 0.05f, 1.0f);
@@ -129,6 +129,7 @@ public sealed class CompostpileInventory
         {
             float drowningRisk = (Moisture01 - Settings.DrowningThreshold) / Settings.DrowningTolerance;
             float anaerobic01 = 1f - _aeration01;
+            // Intent anaerobic01^2 relaxes penalty
             moistureRisk01 = drowningRisk * anaerobic01 * anaerobic01;
         }
         
@@ -162,7 +163,7 @@ public sealed class CompostpileInventory
     }
     #endregion
     
-    #region HarvestRecoveryAndLoss
+    #region Harvest
     //  Intent: Nutrition is lossy
     public bool CanHarvest() =>
         CompostQty > 0
@@ -171,13 +172,16 @@ public sealed class CompostpileInventory
     
     public bool HarvestCompost(BlockEntity be, float dropQuantityMultiplier)
     {
+        #region  if(!CompostQty || !GetItem(Settings.HarvestCompostPath)) return false;
         if (CompostQty < 1)
             return false;
         
         Item spawnItem = be.Api.World.GetItem(new AssetLocation(Settings.HarvestCompostPath));
         if (spawnItem is null)
             return false;
-
+        #endregion
+        
+        #region while(remaining) SpawnItemEntity(spawnNow = Rand(Min(remaining, Settings.HarvestCompostStackQty)) + 1);
         int available = Math.Min(CompostQty, Settings.HarvestCompostQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -187,13 +191,13 @@ public sealed class CompostpileInventory
             be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
         }
+        #endregion
 
         CompostQty = Math.Max(CompostQty - available, 0);
         
         UpdateInsulation01();
         return true;
     }
-    
     
     public int GetHarvestableCompostpileQty() => Math.Min(Math.Min
         (BrownsQty / Settings.Browns.InitialQty
@@ -202,6 +206,7 @@ public sealed class CompostpileInventory
         );
     public bool HarvestCompostpile(BlockEntity be, float dropQuantityMultiplier)
     {
+        #region if(!GetHarvestableCompostpileQty || !GetBlock(Settings.HarvestCompostpilePath)) return false;
         int compostpileQty = GetHarvestableCompostpileQty();
         if (compostpileQty < 1)
             return false;
@@ -211,7 +216,9 @@ public sealed class CompostpileInventory
         ||  spawnBlock.Id == 0
             )
             return false;
+        #endregion
 
+        #region while(remaining) SpawnItemEntity(spawnNow = Rand(Min(remaining, Settings.HarvestCompostStackQty)) + 1);
         int available = Math.Min(compostpileQty, Settings.HarvestCompostpileQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -221,6 +228,7 @@ public sealed class CompostpileInventory
             be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
         }
+        #endregion
 
         BrownsQty = Math.Max(BrownsQty - Settings.Browns.InitialQty * available, 0);
         TryRemoveCheapestNutrition(Settings.Nutrition.InitialQty * available);
@@ -230,25 +238,28 @@ public sealed class CompostpileInventory
         return true;
     }
     
-    
     public bool HarvestInoculum(BlockEntity be, float dropQuantityMultiplier)
     {
+        #region if(!InoculumQty || !GetItem(Settings.Inoculum.HarvestItemPath)) return false;
         if (InoculumQty < 1)
             return false;
         
-        Item spawnBlock = be.Api.World.GetItem(new AssetLocation(Settings.Inoculum.HarvestItemPath));
-        if (spawnBlock is null)
+        Item spawnItem = be.Api.World.GetItem(new AssetLocation(Settings.Inoculum.HarvestItemPath));
+        if (spawnItem is null)
             return false;
+        #endregion
 
+        #region while(remaining) SpawnItemEntity(spawnNow = Rand(Min(remaining, Settings.HarvestCompostStackQty)) + 1);
         int available = Math.Min(InoculumQty, Settings.Inoculum.HarvestQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
         {
             int spawnNow = Math.Min(remaining, be.Api.World.Rand.Next(Settings.Inoculum.HarvestStackQty)+1);
-            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
+            ItemStack stack = new ItemStack(spawnItem, spawnNow);
             be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
         }
+        #endregion
 
         InoculumQty = Math.Max(InoculumQty - available, 0);
         
@@ -256,16 +267,18 @@ public sealed class CompostpileInventory
         return true;
     }
     
-    
     public bool HarvestBrowns(BlockEntity be, float dropQuantityMultiplier)
     {
+        #region if(!BrownsQty || !GetItem(Settings.Browns.HarvestItemPath)) return false;
         if (BrownsQty < 1)
             return false;
         
         Item spawnBlock = be.Api.World.GetItem(new AssetLocation(Settings.Browns.HarvestItemPath));
         if (spawnBlock is null)
             return false;
+        #endregion
 
+        #region while(remaining) SpawnItemEntity(spawnNow = Rand(Min(remaining, Settings.HarvestCompostStackQty)) + 1);
         int available = Math.Min(BrownsQty, Settings.Browns.HarvestQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -275,6 +288,7 @@ public sealed class CompostpileInventory
             be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
         }
+        #endregion
 
         BrownsQty = Math.Max(BrownsQty - available, 0);
         
@@ -283,22 +297,21 @@ public sealed class CompostpileInventory
     }
     #endregion
     
-    #region InputAndPlacementHandling
     public void ResetOnPlaced(Block block)
     {
-        #region Resolve placed stack bonus
+        #region stackBonus = int.TryParse(block.Code?.EndVariant().Substring(1))
         string stackVariant = block.Code?.EndVariant();
         int stackBonus = 0;
         if(!(string.IsNullOrEmpty(stackVariant)
-        ||   stackVariant.Length < 2
-        ||   stackVariant[0] != '#'
-            )
-        &&  int.TryParse(stackVariant.Substring(1), out int parsedStackBonus)
-            )
+             ||   stackVariant.Length < 2
+             ||   stackVariant[0] != '#'
+               )
+           &&  int.TryParse(stackVariant.Substring(1), out int parsedStackBonus)
+          )
             stackBonus = Math.Max(0, parsedStackBonus - 1);
         #endregion
 
-        #region Apply placed ingredient quantities
+        #region Qty = InitialQty + stackBonus * SizeBonusQty
         BrownsQty = Math.Min(Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty, Settings.Browns.MaxQty);
 
         NutritionStacks.Clear();
@@ -308,7 +321,7 @@ public sealed class CompostpileInventory
         CompostQty = 0;
         #endregion
 
-        #region Reset dynamic state
+        #region Moisture, Temperature, Aeration, Stress = default
         Moisture01 = Settings.Moisture01Initial;
         PrevTimeMoistureUpdated = -1;
         PrevTimeProcessed = -1;
@@ -324,16 +337,15 @@ public sealed class CompostpileInventory
         #endregion
     }
     
+    #region TryAdd
     public bool TryAdd(BlockEntity be, ItemSlot slot, out int accepted)
     {
         accepted = 0;
-
-        #region Require input stack
+        
         if (slot.StackSize < 1)
             return false;
-        #endregion
 
-        #region Resolve accepted add path
+        #region if(TryAdd()) restoreAeration = accepted * Settings.Aeration01Per; else return false;
         bool added = false;
         float restoreAeration = 0;
 
@@ -353,40 +365,29 @@ public sealed class CompostpileInventory
             return false;
         #endregion
         
-        #region Apply accepted input
         RestoreAeration01(be, restoreAeration);
         UpdateInsulation01();
         return true;
-        #endregion
     }
     
     public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient, int imposeQty = 0)
     {
         accepted = 0;
 
-        #region Require registered ratios
+        #region if(!roomQty || !ingredient.AddItemCodeRatios.TryGetValue()) return false; 
+        int roomQty = ingredient.MaxQty - (currentQty + imposeQty);
         if (ingredient.AddItemCodeRatios is null
         ||  ingredient.AddItemCodeRatios.Count == 0
-           )
-            return false;
-        #endregion
-
-        #region Require ingredient room and input stack
-        int roomQty = ingredient.MaxQty - (currentQty + imposeQty);
-        if (roomQty < 1
+        ||  roomQty < 1
         ||  slot.StackSize < 1
             )
             return false;
-        #endregion
-
-        #region Resolve input code
+        
         string code =
             slot.Itemstack?.Item?.Code.ToString()
         ??  slot.Itemstack?.Block?.Code.ToString()
         ??  "";
-        #endregion
         
-        #region Resolve conversion ratio
         if(!ingredient.AddItemCodeRatios.TryGetValue(code, out float ratio)
         ||  ratio <= 0f
         ||  slot.StackSize < Math.Max(ratio, 1)
@@ -394,7 +395,7 @@ public sealed class CompostpileInventory
             return false;
         #endregion
 
-        #region Resolve accepted input and output quantities
+        #region adjusted = Min(ingredient.MaxInputPerAdd, roomQty) * ratio;
         int adjustedLimit = 
             ratio >= 1f
         ?   (int)(Math.Min(ingredient.MaxInputPerAdd, roomQty) * ratio)
@@ -406,21 +407,17 @@ public sealed class CompostpileInventory
         
         int adjustedOutput = (int)Math.Min(adjustedInput / ratio, roomQty);
         #endregion
-
-        #region Apply accepted quantities
+        
         currentQty += adjustedOutput;
         accepted = adjustedInput;
-
         
         return accepted > 0;
-        #endregion
     }
 
     private bool TryAddCompostPile(BlockEntity be, ItemSlot slot, out int accepted)
     {
         accepted = 0;
-
-        #region Require compostpile stack
+        
         AssetLocation blockCode = slot.Itemstack?.Block?.Code;
         string stackVariant = blockCode?.EndVariant();
         if (blockCode is null
@@ -431,17 +428,13 @@ public sealed class CompostpileInventory
         || !int.TryParse(stackVariant.Substring(1), out int stackBonus)
            )
             return false;
-        #endregion
-
-        #region Resolve bundled ingredient quantities
-        stackBonus = Math.Max(stackBonus - 1, 0);
         
+        stackBonus = Math.Max(stackBonus - 1, 0);
         int brownsAdd = Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty;
         int nutritionAdd = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
         int inoculumAdd = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
-        #endregion
 
-        #region Require recoverable bundled ingredient room
+        #region if((!brownsRoom && !inoculumRoom) || !Accepted) return false;
         //  Intent: Nutrition is lossy, matching harvest behaviour.
         int brownsRoom = Math.Max(Settings.Browns.MaxQty - BrownsQty, 0);
         int nutritionRoom = Math.Max(Settings.Nutrition.MaxQty - NutritionQty, 0);
@@ -450,9 +443,7 @@ public sealed class CompostpileInventory
         &&  inoculumRoom < 1
             )
             return false;
-        #endregion
-
-        #region Resolve accepted bundled ingredient quantities
+        
         int brownsAccepted = Math.Min(brownsAdd, brownsRoom);
         int nutritionAccepted = Math.Min(nutritionAdd, nutritionRoom);
         int inoculumAccepted = Math.Min(inoculumAdd, inoculumRoom);
@@ -464,52 +455,44 @@ public sealed class CompostpileInventory
             return false;
         #endregion
 
-        #region Apply accepted ingredients
+        #region Qty += Accepted
         BrownsQty += brownsAccepted;
-
         if (nutritionAccepted > 0)
         {
             NutritionStacks.TryGetValue(EnumFoodCategory.Unknown, out var cur);
             NutritionStacks[EnumFoodCategory.Unknown] = cur + nutritionAccepted;
         }
-
         InoculumQty += inoculumAccepted;
         #endregion
-
-        #region Drop recoverable bundled overflow
-        DropIngredientOverflow(be, Settings.Browns, brownsAdd - brownsAccepted);
+        
         //  Intent: Nutrition is lossy
+        DropIngredientOverflow(be, Settings.Browns, brownsAdd - brownsAccepted);
         DropIngredientOverflow(be, Settings.Inoculum, inoculumAdd - inoculumAccepted);
-        #endregion
-
-        #region Consume one compostpile block
+        
         accepted = 1;
         return true;
-        #endregion
     }
 
     private void DropIngredientOverflow(BlockEntity be, CompostpileSettings.Ingredient ingredient, int quantity)
     {
-        #region Require overflow quantity on server
+        #region if(!quantity || Side != Server || !dropItem) return;
         if (quantity < 1
         ||  be.Api?.Side != EnumAppSide.Server
             )
             return;
-        #endregion
-
-        #region Resolve overflow drop item
+        
         Item dropItem = be.Api.World.GetItem(new AssetLocation(ingredient.HarvestItemPath));
         if (dropItem is null)
             return;
         #endregion
 
-        #region Drop overflow in harvest-sized stacks
+        #region while(quantity) SpawnItemEntity(spawnNow = Min(quantity, ingredient.HarvestStackQty));
         while (quantity > 0)
         {
-            int dropNow = Math.Min(quantity, ingredient.HarvestStackQty);
-            ItemStack stack = new ItemStack(dropItem, dropNow);
+            int spawnNow = Math.Min(quantity, ingredient.HarvestStackQty);
+            ItemStack stack = new ItemStack(dropItem, spawnNow);
             be.Api.World.SpawnItemEntity(stack, be.Pos.ToVec3d().Add(be.Api.World.Rand.NextDouble(), 0.5, be.Api.World.Rand.NextDouble()));
-            quantity -= dropNow;
+            quantity -= spawnNow;
         }
         #endregion
     }
@@ -518,51 +501,43 @@ public sealed class CompostpileInventory
     {
         consumedQty = 0;
 
-        #region Require nutrition props
+        #region if(!nutritionProps || !nutritionBudget || !stackConsumeQty || !nutritionAddQty) return false;
         ItemStack stack = slot.Itemstack;
         var collectible = stack?.Collectible;
         var nutritionProps = collectible?.NutritionProps;
         if (nutritionProps is null)
             return false;
-        #endregion
-        #region Require nutrition room budget
+        
         int roomQty = Settings.Nutrition.MaxQty - NutritionQty;
         int nutritionBudget = Math.Min(roomQty, Settings.Nutrition.MaxInputPerAdd);
         if (nutritionBudget < 1)
             return false;
-        #endregion
-        #region Resolve nutrition per input
+        
         float nutritionPerInput = GetNutritionPerInput(stack);
         if (nutritionPerInput <= 0)
             return false;
-        #endregion
-        #region Resolve consumable input qty
+        
         int stackConsumeMaxQty = (int)MathF.Floor(nutritionBudget / nutritionPerInput);
         int stackConsumeQty = Math.Min(stackConsumeMaxQty, slot.StackSize);
         if (stackConsumeQty < 1)
             return false;
-        #endregion
         
-        #region Resolve nutrition output qty
         int nutritionAddQty = (int)MathF.Ceiling(stackConsumeQty * nutritionPerInput);
         nutritionAddQty = Math.Min(nutritionAddQty, nutritionBudget);
         if (nutritionAddQty < 1)
             return false;
         #endregion
-
-        #region Apply nutrition gain
+        
         NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out int cur);
         NutritionStacks[nutritionProps.FoodCategory] = cur + nutritionAddQty;
-        #endregion
-        #region Return consumed qty
+        
         consumedQty = stackConsumeQty;
         return true;
-        #endregion
     }
 
     private float GetNutritionPerInput(ItemStack stack)
     {
-        #region Resolve perish transition props
+        #region if(!transitionProps) return 1;
         var transitionProps =
             stack.Item?.TransitionableProps
         ??  stack.Block?.TransitionableProps;
@@ -570,10 +545,10 @@ public sealed class CompostpileInventory
         if (transitionProps is null
         ||  transitionProps.Length < 1
             )
-            return 1f;
+            return 1;
         #endregion
 
-        #region Resolve nutrition value from perish output stack
+        #region foreach(transitionProp) if(AddItemCodeRatios.TryGetValue() return itemCodeRatio * prop.TransitionRatio;
         foreach (var prop in transitionProps)
         {
             if (prop?.Type != EnumTransitionType.Perish
@@ -593,11 +568,10 @@ public sealed class CompostpileInventory
     }
     #endregion
     
-    #region NutritionConsumptionOrder
+    #region TryRemove
     private bool TryGetCheapestNutritionCategory(out EnumFoodCategory result)
     {
-        bool found = false;
-        float smallestVal = float.MaxValue;
+        float? smallestVal = null;
         result = default;
         
         foreach (var kvp in NutritionStacks)
@@ -609,17 +583,13 @@ public sealed class CompostpileInventory
             if (Settings.NutritionSpeed?.TryGetValue(kvp.Key.ToString(), out float speed) == true)
                 value = speed;
             
-            if (!found
-            ||  value < smallestVal
-               )
+            if (smallestVal > value)
             {
-                found = true;
                 smallestVal = value;
                 result = kvp.Key;
             }
         }
-        
-        return found;
+        return smallestVal is not null;
     }
 
     public void TryRemoveCheapestNutrition(int amount)
@@ -644,13 +614,16 @@ public sealed class CompostpileInventory
             }
 
             int removeQty = Math.Min(stackQty, remaining);
-            
             if (stackQty > removeQty)
+            {
+                remaining -= removeQty;
                 NutritionStacks[category] -= removeQty;
+            }
             else
+            {
+                remaining -= NutritionStacks[category];
                 NutritionStacks.Remove(category);
-
-            remaining -= removeQty;
+            }
         }
     }
     
@@ -663,12 +636,11 @@ public sealed class CompostpileInventory
 
         var keys = new List<EnumFoodCategory>(NutritionStacks.Keys);
         int nutritionRemaining = NutritionQty;
-
         int remaining = amount;
         while
-           (remaining > 0
+           (keys.Count > 0
         &&  nutritionRemaining > 0
-        &&  keys.Count > 0
+        &&  remaining > 0
             )
         {
             int index = rand.Next(keys.Count);
@@ -687,9 +659,8 @@ public sealed class CompostpileInventory
             if (maxRemove < 1)
                 maxRemove = 1;
 
-            int removeQty = rand.Next(maxRemove) + 1;
-            removeQty = Math.Min(removeQty, stackQty);
-
+            int removeQty = Math.Min(rand.Next(maxRemove) + 1, stackQty);
+            
             NutritionStacks[key] -= removeQty;
             if (NutritionStacks[key] < 1)
             {

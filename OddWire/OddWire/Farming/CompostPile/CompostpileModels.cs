@@ -4,8 +4,6 @@ namespace OddWire.GameContent;
 
 public class CompostpileSettings
 {
-    public const int ShapeSizeLevels = 5;
-
     public class Ingredient
     {
         public string Name { get; internal set; }
@@ -24,6 +22,8 @@ public class CompostpileSettings
         public int ConsumePerTransition { get; internal set; }
     }
 
+    public const int ShapeSizeLevels = 5;
+    
     #region IngredientTuning
     public Ingredient Browns { get; private set; } = new()
     {
@@ -76,7 +76,7 @@ public class CompostpileSettings
     public float Aeration01PerCompostpileInput { get; internal set; } = 1.0f;
     #endregion
 
-    #region CompostRateTuning
+    #region CompostRate
     public float BaseCompostRatePerHour { get; private set; } = 0.05f;
     public Dictionary<string, float>? NutritionSpeed { get; private set; } = new()
     {
@@ -88,7 +88,7 @@ public class CompostpileSettings
     };
     #endregion
 
-    #region MoistureTuning
+    #region Moisture
     public float Moisture01WaterRate { get; private set; } = 0.33f;
     public float Moisture01Initial { get; private set; } = 0.85f;
     public float Moisture01Optimal { get; private set; } = 0.60f;
@@ -98,14 +98,14 @@ public class CompostpileSettings
     public float DrowningTolerance { get; private set; } = 0.15f;
     #endregion
 
-    #region AerationTuning
+    #region Aeration
     public float AerationRetentionDays { get; private set; } = 10f;
     public float AerationBlockedPenalty { get; private set; } = 0.2f;
     public float HypoxicThreshold { get; private set; } = 0.35f;
     public float HypoxicTolerance { get; private set; } = 0.20f;
     #endregion
 
-    #region TemperatureTuning
+    #region Temperature
     public float HeatingRatePerHour { get; private set; } = 42f;
     public float CoolingRatePerHour { get; private set; } = 0.16f;
     public float GreenhouseHeat { get; private set; } = 3f;
@@ -122,7 +122,7 @@ public class CompostpileSettings
     public float OverheatTolerance { get; private set; } = 10f;
     #endregion
 
-    #region StressAndOutputTuning
+    #region Stress
     public float StressGainDays { get; private set; } = 1.5f;
     public float StressRecoveryDays { get; private set; } = 3f;
 
@@ -130,7 +130,7 @@ public class CompostpileSettings
     public int InoculumOutPerFail { get; private set; } = 1;
     #endregion
 
-    #region HarvestTuning
+    #region Harvest
     public string HarvestCompostPath { get; private set; } = "game:compost";
     public int HarvestCompostQty { get; internal set; } = 8;
     public int HarvestCompostStackQty { get; internal set; } = 8;
@@ -141,7 +141,7 @@ public class CompostpileSettings
     public int TotalMaxQty => Browns.MaxQty + Nutrition.MaxQty + Inoculum.MaxQty;
     #endregion
 
-    #region BlockInfoDisplayTuning
+    #region BlockInfo
     public bool InfoDebug = false;
     public float InfoFactorWarningThreshhold = 0.8f;
     public float InfoNeedsPortionsThreshhold = 2f;
