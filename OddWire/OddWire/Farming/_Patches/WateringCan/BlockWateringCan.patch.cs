@@ -7,7 +7,7 @@ using OddWire.GameContent;
 namespace OddWire.Patches;
 
 [HarmonyPatch(typeof(BlockWateringCan), "OnHeldInteractStep")]
-public static class BlockWateringCan_OnHeldInteractStep_Patch
+public static class BlockWateringCan_OnHeldInteractStep_IWaterable_Patch
 {
     public static void Prefix(ItemSlot slot, ref float __state) =>
         __state = slot?.Itemstack?.TempAttributes?.GetFloat("secondsUsed") ?? 0f;
@@ -21,21 +21,17 @@ public static class BlockWateringCan_OnHeldInteractStep_Patch
         ,BlockSelection blockSel
         )
     {
-        #region Validate
-        if(!__result
+        float dt = secondsUsed - __state;
+        if (dt <= 0f
+        || !__result
         ||  byEntity?.World?.Side != EnumAppSide.Server
         ||  blockSel is null
         ||  slot?.Itemstack is null
         ||  slot.Itemstack.TempAttributes.GetInt("refilled") > 0
            )
             return;
-        
-        float dt = secondsUsed - __state;
-        if (dt <= 0f)
-            return;
-        #endregion
 
-        #region Resolve watered block position
+        #region if(!block.CollisionBoxes && !block.IsLiquid()) targetPos = targetPos.DownCopy();
         IWorldAccessor world = byEntity.World;
         BlockPos targetPos = blockSel.Position;
 
@@ -52,14 +48,10 @@ public static class BlockWateringCan_OnHeldInteractStep_Patch
                 targetPos = targetPos.DownCopy();
         }
         #endregion
-
-        #region IWaterable.Water()
-        IWaterable? waterable = world.BlockAccessor
-            .GetBlock(targetPos)
-           ?.GetInterface<IWaterable>(world, targetPos);
-        if (waterable is not null)
-            waterable.Water(dt);
         
-        #endregion
+        world.BlockAccessor
+            .GetBlock(targetPos)
+           ?.GetInterface<IWaterable>(world, targetPos)
+           ?.Water(dt);
     }
 }
