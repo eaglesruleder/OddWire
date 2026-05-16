@@ -1,21 +1,20 @@
-This gpt_brief..md file defines the structure and content expectations for a Feature Brief — a durable, conceptual summary of a feature, subsystem, or domain that lives alongside the code it describes.
+This gpt_brief..md file defines the structure and content expectations for a Feature Brief — a concise, gameplay-facing summary of a feature that serves as the QA session opener and standing context for Code and Plan.
 
 # Feature Brief
 
 ## Purpose
 A Feature Brief is a stable reference artifact, not a task document.
 
-It captures **what a feature is and why it exists** — the conceptual intent, the system shape, the core mechanics, and the known rules — without duplicating implementation detail or bug history.
+It captures **what a feature is and how it moves** — the gameplay loop, the driving values, the system shape — in the most compressed form that remains immediately useful.
 
-It sits between a user story and a QA summary:
-- broader than a coding task
-- more concrete than a design sketch
-- focused on intent and structure, not bugs or change history
+It is the opener for every QA session. A reader should be able to identify the feature, understand what drives it, and know what the player does with it before reading a single line of code or findings.
 
 It is produced in planning chat and lives in the solution repo.
-It is consumed by Code as standing context, by QA as the intent reference, and by Plan as the canonical summary of what has been designed and built.
+It is consumed by QA as the session opener, by Code as standing context, and by Plan as the canonical gameplay summary.
 
-A Feature Brief does not change per coding session. It evolves when the feature itself changes in scope or behaviour.
+Known rules, constraints, and risks are QA outputs — derived fresh from code each session. They do not live here.
+
+A Feature Brief does not change per session. It evolves when the feature's gameplay loop or system shape changes meaningfully.
 
 ---
 
@@ -29,10 +28,6 @@ Every Feature Brief declares one of three scopes:
 | `Feature` | One self-contained player-facing or system-facing feature | CompostPile, Brazier, Plowland |
 | `Subsystem` | A supporting technical subsystem owned by a feature or domain | CompostPile Inventory, Plowland Ticking |
 
-A Domain brief summarises the shape and intent of the domain and how its features relate.
-A Feature brief summarises one feature's mechanics, systems, and rules.
-A Subsystem brief documents one technical layer when it is complex enough to need its own reference.
-
 Use the smallest scope that is honest. Do not scope to Domain when the work is really one Feature.
 
 ---
@@ -40,123 +35,158 @@ Use the smallest scope that is honest. Do not scope to Domain when the work is r
 ## Structure
 
 ```md
-# Brief — <Name>
+# Brief — <Feature Name>
 
-**Scope:** Domain | Feature | Subsystem  
-**Domain:** <mod domain, e.g. wildfarm>  
-**Status:** Draft | Active | Stable | Superseded  
-**Related briefs:** <links or filenames if applicable>
-
----
-
-## Purpose
-What this feature or domain exists to do in gameplay or software terms.
-One short paragraph or tight bullet list.
-Avoid implementation language here — describe player or system intent.
+**Scope:** Domain | Feature | Subsystem
+**Domain:** <mod domain, e.g. wildfarm>
+**Status:** Draft | Active | Stable | Superseded
 
 ---
 
-## Systems
-What subsystems or components make up this feature and how they relate.
-Name the key classes, assets, or layers without deep implementation detail.
-
-- `BlockEntityCompostpile` — stores pile state, drives tick progression
-- `CompostpileInventory` — manages input slots and acceptance rules
-- `BlockCompostpile` — handles player interaction and block placement
-
-For Domain scope, list the features instead of the subsystems.
+## What it is
+One line. System terms only. Not player experience language.
 
 ---
 
-## Core Mechanics
-The main gameplay or runtime loops this feature owns.
+## Core Loop
 
-For each mechanic:
-- what drives it
-- what it consumes or transforms
-- what it produces or changes
-- what can stall or fail it
-
-Keep language close to behaviour-step style:
-require → resolve → apply → produce
-
----
-
-## Data and State
-What is stored, what is derived, what is persisted.
-
-- Stored: nutrition, moisture, aeration, tick accumulator
-- Derived: conversionRate, outputRoom, progressFraction
-- Persisted: everything in TreeAttribute on save
-- Transient: cached derived values rebuilt on load
-
----
-
-## Known Rules and Constraints
-Concrete rules that define correct behaviour.
-These are the things QA checks against and Code must not accidentally break.
-
-- output room is always checked before mutation
-- moisture must be within band for progression to run
-- aeration resets to zero on harvest
-- nutrition is clamped between 0 and maxNutrition
-
----
-
-## Open Questions and Future Directions
-Unresolved design questions or known planned expansion.
-Not a todo list — record only things that affect how the feature should be understood now.
-
----
 ```
+Step → Step → Step → Step
+```
+
+Inputs: **x** (role), **y** (role), **z** (role)
+Output: **result** — note what is lossy and what is recovered.
+
+One sentence on tick cadence or timing if relevant.
+
+---
+
+## Driving Values
+
+| Value | What drives it | What it does |
+|---|---|---|
+| ... | ... | ... |
+
+---
+
+## <Central Gate or Formula> — include only if the feature has one named mechanic worth surfacing
+One line on what it is, then the formula or condition.
+
+---
+
+## <Output Resolution> — include only if processing has a meaningful split or cascade worth naming
+
+---
+
+## Gameplay Loop
+
+| Input | Action | Reward | Risk |
+|---|---|---|---|
+| ... | ... | ... | ... |
+
+---
+
+## Class Responsibility
+
+| Class | Owns |
+|---|---|
+| ... | ... |
+```
+
+---
+
+## Section Rules
+
+### What it is
+One sentence in system terms. Not player experience language, not design rationale.
+
+Good:
+> A tick-driven organic simulation. Inputs decompose into compost over time. Four environmental axes interact to set the rate.
+
+Bad:
+> Lets players make compost to improve their soil.
+
+### Core Loop
+The happy-path flow as a single arrow chain. Then inputs and output on separate lines.
+Note lossiness explicitly — what does not come back on harvest is a hard rule worth stating here.
+One sentence on tick cadence if the feature is time-driven.
+
+### Driving Values
+One row per value axis. Three columns: the value name, what moves it, what it gates or affects.
+Keep language close to behaviour — not design rationale.
+Omit derived display values and trivial pass-throughs.
+
+### Central Gate or Formula
+Only include if the feature has one named mechanic that is the primary progression gate.
+Name it explicitly. Give the formula or stall condition in one block.
+
+### Output Resolution
+Only include if the processing step has a meaningful split, cascade, or overflow rule.
+One short paragraph or arrow chain. Not a full pseudocode skeleton — that lives in the In-Repo Doc.
+
+### Gameplay Loop Table
+One row unless interactions are genuinely distinct and mutually exclusive.
+Four columns: Input, Action, Reward, Risk.
+Cells may contain multiple values as line-separated entries.
+This is the player-facing view. Keep it honest about what is always lost and what is conditional.
+
+### Class Responsibility
+One row per class. One-line ownership statement.
+Not an implementation map — that lives in the In-Repo Doc.
 
 ---
 
 ## Production
 
-Feature Briefs are produced in **planning chat** using `gpt_task.plan.md` Mode B.
+Feature Briefs are produced in **planning chat** using `gpt_task.plan.md` Mode B, or extracted by **QA** cold from code at the start of a review session.
 
 When to produce one:
-- when a feature or domain has enough design throughput to be worth a stable reference
-- when an Epic in the plan record has been developed enough to need a separate summary
+- when a feature has enough gameplay throughput to be worth a stable reference
 - before handing off to a first implementation session in Claude Code
-- when QA finds repeated gaps in intent clarity that should be anchored somewhere
+- when QA cold-produces one and it is worth anchoring as a standing artifact
 
-A Feature Brief is not required for every feature. Small or simple features may be fully covered by the plan record and a Code Brief alone.
+When to update one:
+- when the gameplay loop changes meaningfully
+- when the driving value set changes
+- when the class responsibility split changes
+
+When not to update one:
+- after a refactor that preserves gameplay behaviour
+- to record rules, risks, or findings — those belong in QA output
 
 ---
 
 ## Consumption
 
-**By Code** (`gpt_task.code.md`):
-- read as standing context at the start of a Claude Code session
-- tells Code what the feature is for before it reads the Code Brief
-- does not change per session
-
 **By QA** (`gpt_task.qa.md`):
-- used as the intent reference when reviewing whether behaviour matches design
-- QA validates against Known Rules and Constraints, and Core Mechanics
-- bugs are not recorded in the Feature Brief — they live in task or issue tracking
+- produced cold from code at session start — this is the QA opener
+- if a Feature Brief was already provided, QA compares its cold output against it
+- divergence between the two is a finding
+
+**By Code** (`gpt_task.code.md`):
+- read as standing context before the Code Brief
+- tells Code what the feature does before it reads what needs to change
 
 **By Plan** (`gpt_task.plan.md`):
-- acts as the canonical summary of what has been designed and agreed
+- acts as the canonical gameplay summary of what has been designed
 - keeps the plan record from re-litigating settled design
-- updated when scope or mechanic intent changes meaningfully
 
 ---
 
 ## What Good Looks Like
 
-- Someone unfamiliar with the feature can read it and understand what it does and why
-- Core mechanics are described in behaviour-step language close enough to be useful for Code and QA
-- Known rules are concrete enough that QA can check a change against them
-- Scope is honest — a Feature Brief does not quietly become a Domain brief
-- It stays useful as a reference across multiple coding sessions without needing updates
+- Readable in under 30 seconds
+- Core Loop makes the feature immediately graspable
+- Driving Values table tells you what levers the player and system are pulling
+- Gameplay Loop table is honest about losses and risks
+- Class Responsibility table gives Code the system map without implementation detail
+- Known rules and constraints are absent — those are QA's job
 
 ## What Bad Looks Like
 
-- Contains implementation detail that belongs in a Code Brief or in comments
-- Contains bug history or change log entries
-- Scope is too broad to be useful as a coding reference
+- Contains known rules or constraints — those drift and belong in QA output
+- Contains implementation detail — that belongs in the In-Repo Doc
+- "What it is" line uses player experience language instead of system terms
+- Core Loop becomes a prose paragraph instead of a step chain
+- Driving Values rows are vague or describe UI rather than mechanics
 - Written once then silently drifts from what was actually built
-- So abstract it tells the reader nothing about actual behaviour
