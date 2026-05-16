@@ -58,16 +58,27 @@ public sealed class CompostpileInventory
     //  Factor impacts Processing Rate
     public float GetFactor()
     {
-        if ((InoculumQty < 1 && CompostQty < 1)
-        ||  (BrownsQty < 1 && NutritionQty < 1)
-            )
+        if (InoculumQty < 1 && CompostQty < 1)
+            return 0;
+
+        float decompositionFactor = GetDecompositionFactor();
+        if (decompositionFactor.Approx(0))
+            return 0;
+        
+        return
+            decompositionFactor
+        *   GetInoculumFactor01()
+        *   GetMoistureFactor01();
+    }
+    
+    public float GetDecompositionFactor()
+    {
+        if (BrownsQty < 1 && NutritionQty < 1)
             return 0f;
         
         return
             GetNutritionFactor()
-        *   GetInoculumFactor01()
-        *   GetTemperatureFactor01()
-        *   GetMoistureFactor01();
+        *   GetTemperatureFactor01();
     }
     
     //  Stress impacts Compost/Inoculum output ratio
@@ -198,12 +209,21 @@ public sealed class CompostpileInventory
         UpdateInsulation01();
         return true;
     }
-    
-    public int GetHarvestableCompostpileQty() => Math.Min(Math.Min
-        (BrownsQty / Settings.Browns.InitialQty
-        ,NutritionQty / Settings.Nutrition.InitialQty
-       ),InoculumQty / Settings.Inoculum.InitialQty
-        );
+
+    public int GetHarvestableCompostpileQty()
+    {
+        if (Settings.Browns.InitialQty < 1
+        && Settings.Nutrition.InitialQty < 1
+        && Settings.Inoculum.InitialQty < 1
+           )
+            return 0;
+        
+        return Math.Min(Math.Min
+            (Settings.Browns.InitialQty > 0 ? BrownsQty / Settings.Browns.InitialQty : int.MaxValue
+            ,Settings.Nutrition.InitialQty > 0 ? NutritionQty / Settings.Nutrition.InitialQty : int.MaxValue
+           ),Settings.Inoculum.InitialQty > 0 ? InoculumQty / Settings.Inoculum.InitialQty : int.MaxValue
+            );   
+    }
     public bool HarvestCompostpile(BlockEntity be, float dropQuantityMultiplier)
     {
         #region if(!GetHarvestableCompostpileQty || !GetBlock(Settings.HarvestCompostpilePath)) return false;
@@ -583,7 +603,7 @@ public sealed class CompostpileInventory
             if (Settings.NutritionSpeed?.TryGetValue(kvp.Key.ToString(), out float speed) == true)
                 value = speed;
             
-            if (smallestVal > value)
+            if (smallestVal is null || smallestVal > value)
             {
                 smallestVal = value;
                 result = kvp.Key;
@@ -928,9 +948,11 @@ public sealed class CompostpileInventory
             PrevTimeProcessed = totalHours;
             return false;
         }
+
+        int nutritionQty = NutritionQty;
         
         float brownsPortions = (float)BrownsQty / Settings.Browns.ConsumePerTransition;
-        float nutritionPortions = (float)NutritionQty / Settings.Nutrition.ConsumePerTransition;
+        float nutritionPortions = (float)nutritionQty / Settings.Nutrition.ConsumePerTransition;
         float bulkPortions = brownsPortions + nutritionPortions;
         if (bulkPortions < 1f)
         {
@@ -938,9 +960,28 @@ public sealed class CompostpileInventory
             return false;
         }
         
+        double duration = totalHours - PrevTimeProcessed;
+        if (InoculumQty < Settings.Inoculum.ConsumePerTransition)
+        {
+            if (nutritionQty < 1)
+            {
+                PrevTimeProcessed = totalHours;
+                return false;
+            }
+            
+            float decompositionRate = Settings.BaseCompostRatePerHour * GetDecompositionFactor();
+            int decompositionMax = (int)Math.Min(Math.Min
+                (decompositionRate * duration
+                ,nutritionQty
+               ),Settings.Inoculum.MaxQty - InoculumQty
+                );
+            TryRemoveCheapestNutrition(decompositionMax);
+            InoculumQty += decompositionMax;
+            return true;
+        }
+        
         float transitionRate = Settings.BaseCompostRatePerHour * GetFactor();
-        double durationTransitions = (totalHours - PrevTimeProcessed) * transitionRate;
-        int transitions = (int)Math.Min(durationTransitions, bulkPortions);
+        int transitions = (int)Math.Min(duration * transitionRate, bulkPortions);
         if (transitions < 1)
             return false; // keep accruing progress
         
@@ -969,7 +1010,7 @@ public sealed class CompostpileInventory
             );
         #endregion
         
-        PrevTimeProcessed += Math.Floor(durationTransitions) / transitionRate;
+        PrevTimeProcessed += Math.Floor(duration) / transitionRate;
         return true;
     }
 
