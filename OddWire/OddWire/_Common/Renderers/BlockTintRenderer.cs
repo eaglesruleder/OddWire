@@ -39,7 +39,7 @@ public class BlockTintRenderer : IRenderer
     public Matrixf ModelMat = new Matrixf();
 
     public double RenderOrder => 0.5;
-    public int RenderRange => Math.Max(_source.BlockTint?.RenderRange ?? 128, 24);
+    public int RenderRange { get; private set; }
 
     public BlockTintRenderer(ICoreClientAPI api, BlockEntity blockEntity, EnumRenderStage renderStage = EnumRenderStage.Opaque)
     {
@@ -49,7 +49,8 @@ public class BlockTintRenderer : IRenderer
 
         _source = blockEntity as IBlockTint
     ??  throw new ArgumentException($"{blockEntity.GetType().Name} must implement {nameof(IBlockTint)}", nameof(blockEntity));
-
+        RenderRange = Math.Max(_source.BlockTint?.RenderRange ?? 128, 24);
+        
         api.Event.RegisterRenderer(this, renderStage);
     }
 
