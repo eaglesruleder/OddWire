@@ -12,20 +12,6 @@
 	},
 	"elements": [
 		{
-			"name": "bottom1",
-			"from": [ 0.0, 0.01, 0.0 ],
-			"to": [ 16.0, 0.01, 16.0 ],
-			"rotationOrigin": [ 8.0, 0.01, 8.0 ],
-			"faces": {
-				"north": { "texture": "#null", "uv": [ 0.0, 0.0, 16.0, 0.5 ], "enabled": false },
-				"east": { "texture": "#null", "uv": [ 0.0, 0.0, 16.0, 0.5 ], "enabled": false },
-				"south": { "texture": "#null", "uv": [ 0.0, 0.0, 16.0, 0.5 ], "enabled": false },
-				"west": { "texture": "#null", "uv": [ 0.0, 0.0, 16.0, 0.5 ], "enabled": false },
-				"up": { "texture": "#splat", "uv": [ 0.0, 0.0, 16.0, 16.0 ] },
-				"down": { "texture": "#null", "uv": [ 0.0, 0.0, 16.0, 16.0 ], "enabled": false }
-			}
-		},
-		{
 			"name": "Level1",
 			"from": [ 8.0, 7.0, 8.0 ],
 			"to": [ 8.0, 7.0, 8.0 ],
