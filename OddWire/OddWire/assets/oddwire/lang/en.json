@@ -1,6 +1,5 @@
 {
     "block-compostpile-*": "Compost Pile",
-    "blockdesc-compostpile-*": "Turns Food, <a href=\"handbook://item-rot\">Rot</a>, and <a href=\"handbook://item-drygrass\">Dry Grass</a> into <a href=\"handbook://item-compost\">Compost</a>.",
     "oddwire:block-handbooktitle-oddwire:compostpile-*": "Use:",
-    "oddwire:block-handbooktext-oddwire:compostpile-*": "Craft starter pile from Dry Grass and Rot<br>Once placed adding Rot seeds it, Dry Grass adds bulk, and adding Food increases rate and temperature.<br>Key risks are: Temperature: Cold 20°C / Hot 55°C - Moisture: Dry 60% / Drowning 85% - Aeration: Hypoxic 35% - Rot: Unseesed lt. 80% full<br>Digging up pile drops processed <a href=\"handbook://item-compost\">Compost</a> and Compost Pile.<br>Refill with the dropped compost and fresh input to restore Aeration."
+    "oddwire:block-handbooktext-oddwire:compostpile-*": "Turns Food, <a href=\"handbook://item-rot\">Rot</a>, and <a href=\"handbook://item-drygrass\">Dry Grass</a> into <a href=\"handbook://item-compost\">Compost</a>.<br><br>Craft starter pile from Dry Grass and Rot<br>Once placed adding Rot seeds it, Dry Grass adds bulk, and adding Food increases rate and temperature.<br><br>Optimals: Temperature: Cold 20°C / Hot 55°C - Moisture: Dry 60% / Drowning 85% - Aeration: Hypoxic 35% - Rot: Unseesed lt. 80% full<br><br>Digging up pile drops processed Compost and Compost Pile.<br>Refill with the dropped compost and fresh input to restore Aeration."
 }

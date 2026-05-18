@@ -845,12 +845,12 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     public override void OnBlockPlaced(ItemStack byItemStack = null)
     {
         base.OnBlockPlaced(byItemStack);
+        double totalHours = Api.World.Calendar.TotalHours;
         
         ResetOnPlaced(Block);
-        PrevTimeProcessed = Api.World.Calendar.TotalHours;
-        
+        PreUpdateState(totalHours);
+        PrevTimeProcessed = totalHours;
         NeighboursDirty = true;
-        
         UpdateShapeStackSize();
     }
     
@@ -1032,6 +1032,13 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         
         _skyExposed = nowSkyExposed;
         _envTemp = Api.GetEnvironmentTemperatureC(Pos, totalHours, _skyExposed, Settings.GreenhouseHeat, out _inGreenhouse);
+        
+        if (_prevTimeTemperatureUpdated < 0)
+        {
+            _temperature = _envTemp;
+            _prevTimeTemperatureUpdated = totalHours;
+        }
+        
         UpdateInsulation01();
         
         _lastPreUpdatedHours = totalHours;
