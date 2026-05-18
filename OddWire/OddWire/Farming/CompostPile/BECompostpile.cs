@@ -1457,7 +1457,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         dsc.AppendLine(Lang.Get("oddwire:compostpile-info-composting", GetCompostingStatus(), roomLabel));
         
         dsc.AppendLine(Lang.Get
-            ("compostpile-info-state"
+            ("oddwire:compostpile-info-state"
             ,Temperature
             ,Moisture01 * 100f
             ,Aeration01 * 100f
@@ -1486,7 +1486,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #region Write Speed
         float factor = GetFactor();
         dsc.AppendLine(Lang.Get
-            ("compostpile-info-speed"
+            ("oddwire:compostpile-info-speed"
             ,factor * 100f
             ,GetCompostRateLabel(factor)
             ));
@@ -1519,7 +1519,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         }
         
         dsc.AppendLine(Lang.Get
-            ("compostpile-info-harvest"
+            ("oddwire:compostpile-info-harvest"
             ,CompostQty
             ,GetHarvestableCompostpileQty()
             ));
