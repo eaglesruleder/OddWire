@@ -32,18 +32,18 @@ Before reviewing, read the code and produce a `gpt_brief.feature.md` from what t
 
 Expected behaviour:
 - always produce the brief cold — from code alone, not from a provided brief or conversation history
-- extract: purpose, systems, core mechanics, data and state, known rules and constraints
+- follow `gpt_brief.feature.md` structure exactly: What it is, Core Loop, Driving Values, Gameplay Loop table, Class Responsibility
 - do not speculate about intended behaviour that cannot be confirmed from the code
 - mark assumptions plainly where the code is ambiguous
-- follow `gpt_brief.feature.md` for structure and scope field
+- do not include known rules or constraints here — those are findings, not brief content
 
-This is a validity check. If QA can produce a synonymous brief from code alone, the code and the intent are aligned.
+This is a validity check and the session opener. If QA can produce a synonymous brief from code alone, the code and the intent are aligned. The reader should be able to identify the feature and understand how it moves before reading a single finding.
 
 If a `gpt_brief.feature.md` was provided, compare the cold-produced brief against it after completing it.
 Divergence between the two is a finding, not a footnote:
 - code does something the brief does not describe → likely unintended behaviour or brief is stale
 - brief describes something the code does not do → likely incomplete implementation
-- rules in the brief are contradicted by the code → potential bug
+- loop or value described differently → potential mechanic drift
 
 Do not let a provided brief substitute for reading the code. Always produce cold first.
 
@@ -98,7 +98,7 @@ Expected behaviour:
 A good QA answer should make the code easy to assess and easy to act on.
 
 Expected behaviour:
-- open with the cold-produced Feature Brief
+- open with the cold-produced Feature Brief — reader identifies the feature before reading any findings
 - follow immediately with any divergence findings if a brief was provided
 - give a clear review verdict
 - list breaking issues first, then behavioural risks, then readability/navigation issues, then optional polish
@@ -142,10 +142,10 @@ Things that may still compile but alter intended outcomes:
 
 ### 3. Brief divergence
 Things where the code and the provided Feature Brief do not agree:
-- behaviour present in code but absent from brief
-- behaviour described in brief but absent from code
-- rules in the brief contradicted by the implementation
-- scope implied by the code that differs from the brief's scope field
+- gameplay loop described differently
+- driving value behaviour contradicted by code
+- class responsibility split has changed
+- scope implied by the code differs from the brief's scope field
 
 ### 4. Readability and navigation issues
 Things that slow iteration or hide intent:
@@ -194,7 +194,7 @@ For this project style, explicitly ask:
 
 ### A. When asked to review code
 Deliver:
-- cold-produced Feature Brief (always, from code alone)
+- cold-produced Feature Brief (always, from code alone — this is the opener)
 - brief divergence findings (if a Feature Brief was provided)
 - ratings snapshot
 - review verdict
@@ -256,14 +256,23 @@ Standard:
 
 ### 1. Cold Feature Brief
 Always first. Produced from code alone regardless of whether a brief was provided.
-Follow `gpt_brief.feature.md` structure exactly.
+Follow `gpt_brief.feature.md` structure exactly:
+- **What it is** — one line, system terms
+- **Core Loop** — arrow chain, inputs, output, tick cadence if relevant
+- **Driving Values** — table: value / what drives it / what it does
+- **Central gate or formula** — if the feature has one
+- **Output resolution** — if processing has a meaningful split or cascade
+- **Gameplay Loop** — Input / Action / Reward / Risk table
+- **Class Responsibility** — table: class / owns
+
+Do not include known rules or constraints in the brief — those are findings.
 
 ### 2. Brief divergence (if a Feature Brief was provided)
 Compare cold-produced brief against the provided one.
 List divergences grouped as:
 - **Code does, brief doesn't** — likely unintended behaviour or stale brief
 - **Brief says, code doesn't** — likely incomplete implementation
-- **Rule conflict** — code contradicts a known constraint in the brief
+- **Loop or value conflict** — mechanic described differently between brief and code
 
 If no divergence: one line confirming alignment.
 
