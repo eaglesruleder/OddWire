@@ -227,8 +227,9 @@ public class ItemPlow : Item
             if (nextTargetCode is not null)
                 targetFertilityCode = nextTargetCode;
         }
-
-        string sideCode = BlockFacing.HorizontalFromAngle(byEntity.SidedPos.Yaw).Code;
+        
+        BlockFacing facingDir = BlockFacing.HorizontalFromAngle(byEntity.SidedPos.Yaw);
+        string sideCode = facingDir.Code;
         AssetLocation plowlandCode  = new(Code.Domain, $"plowland-{sideCode}-{targetMoistKey}-{targetFertilityCode}");
         Block plowlandBlock = world.GetBlock(plowlandCode);
         if (plowlandBlock is null || plowlandBlock.Id == 0)
@@ -254,7 +255,13 @@ public class ItemPlow : Item
         
         bePlowland.Initialise(resultNutrients, targetMoisture01);
         #endregion
-
+        
+        #region ExchangeAdjacentPlowland([left, right])
+        Vec3i norm = facingDir.Normali;
+        TryExchangePlowlandToFarmland(world, targetPos.AddCopy(norm.X, 0, -norm.Z));
+        TryExchangePlowlandToFarmland(world, targetPos.AddCopy( -norm.X, 0, norm.Z));
+        #endregion
+        
         #region if(byPlayer is EntityPlayer) slot.DamageItem()
         IPlayer? byPlayer = (byEntity as EntityPlayer)?.Player;
         if (byPlayer is not null)
@@ -273,5 +280,34 @@ public class ItemPlow : Item
         world.BlockAccessor.MarkBlockDirty(supportPos);
         world.BlockAccessor.MarkBlockDirty(targetPos);
         #endregion
+    }
+    
+    private void TryExchangePlowlandToFarmland(IWorldAccessor world, BlockPos pos)
+    {
+        if (world.BlockAccessor.GetBlock(pos) is not BlockPlowland
+        ||  world.BlockAccessor.GetBlock(pos.UpCopy()).CropProps != null
+            )
+            return;
+
+        Block block = world.BlockAccessor.GetBlock(pos);
+        string? fertilityCode = FertilitySet.GetCode(block);
+        if (fertilityCode is null)
+            return;
+
+        float moisture01 = 0f;
+        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntitySoilNutrition beNutrition)
+            moisture01 = beNutrition.MoistureLevel;
+
+        string moistKey = moisture01 > Settings.MoistVisibleThreshold
+        ?   Settings.StateMoist
+        :   Settings.StateDry;
+
+        AssetLocation farmlandCode = new("game", $"farmland-{moistKey}-{fertilityCode}");
+        Block farmlandBlock = world.GetBlock(farmlandCode);
+        if (farmlandBlock is null || farmlandBlock.Id == 0)
+            return;
+
+        world.BlockAccessor.SetBlock(farmlandBlock.BlockId, pos);
+        world.BlockAccessor.MarkBlockDirty(pos);
     }
 }
