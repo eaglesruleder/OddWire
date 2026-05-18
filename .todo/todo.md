@@ -13,7 +13,6 @@
 ## Installed Mods / Existing Feature Baseline
 - Shaders
 - Darkvision
-  - Adapt eyesight to light/dark vision per reality
 - Cartography Mod
 - Temporal Mod: Forecasting equipment
 - Farming Mod: Soil depth rework
@@ -42,10 +41,6 @@
 - Rework the in-game handbook / wiki.
 - Improve at least the Items tab.
 - Add a `craftable` filter so world-only items can be filtered out.
-
-## Story — Pinned notes
-- Offhand nails + parchment on a wood block pins parchment to the block.
-- With offhand pigment, draw the selected toolbar item onto the parchment.
 
 ## Story — Sleeping restores sanity
 - Sanity is currently restored only in real time.
@@ -445,13 +440,9 @@
   - backpacks may allow sacks to attach to them
   - but the player should not effectively carry four backpacks at once
 
-## Story — Shulker-basket rework
-- While in the toolbar, baskets act like an inventory that does not itself contribute inventory slots.
-- Similar to a shulker box.
-- Should also be usable to collect goods and deposit directly into itself.
-
-## Story — Portable container access
-- When a portable container is placed, `Shift` / `Ctrl + Right Click` opens it as a container.
+## ✓ Story — Shulker-basket rework
+✓ While in the toolbar, baskets act like an inventory that does not itself contribute inventory slots.
+✓ Should also be usable to collect goods and deposit directly into itself.
 
 ## Story — Slot-first transfer
 - Shift-clicking a stack should prioritise the highlighted toolbar slot.

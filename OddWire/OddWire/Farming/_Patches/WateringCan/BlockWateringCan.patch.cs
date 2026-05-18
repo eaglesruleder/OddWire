@@ -7,7 +7,7 @@ using OddWire.GameContent;
 namespace OddWire.Patches;
 
 [HarmonyPatch(typeof(BlockWateringCan), "OnHeldInteractStep")]
-public static class BlockWateringCan_OnHeldInteractStep_CallsIWaterable_Patch
+public static class BlockWateringCan_OnHeldInteractStep_IWaterable_Patch
 {
     public static void Prefix(ItemSlot slot, ref float __state) =>
         __state = slot?.Itemstack?.TempAttributes?.GetFloat("secondsUsed") ?? 0f;
@@ -30,7 +30,7 @@ public static class BlockWateringCan_OnHeldInteractStep_CallsIWaterable_Patch
         ||  slot.Itemstack.TempAttributes.GetInt("refilled") > 0
            )
             return;
-
+        
         #region if(!block.CollisionBoxes && !block.IsLiquid) targetPos = targetPos.DownCopy();
         IWorldAccessor world = byEntity.World;
         BlockPos targetPos = blockSel.Position;
@@ -48,7 +48,7 @@ public static class BlockWateringCan_OnHeldInteractStep_CallsIWaterable_Patch
                 targetPos = targetPos.DownCopy();
         }
         #endregion
-
+        
         world.BlockAccessor
             .GetBlock(targetPos)
            ?.GetInterface<IWaterable>(world, targetPos)

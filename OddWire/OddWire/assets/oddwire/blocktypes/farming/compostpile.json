@@ -15,7 +15,7 @@
 	lightAbsorption: 1,
 	textures: {
 		"block": { base: "farming/compostpile" },
-		"splat": { base: "farming/compostsplat" }
+		"splat": { base: "farming/compostpile" }
 	},
 	sideao: { all: false },
 	sidesolid: { all: false },
