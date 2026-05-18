@@ -1456,11 +1456,14 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #region Write Composting Rate & Core
         dsc.AppendLine(Lang.Get("oddwire:compostpile-info-composting", GetCompostingStatus(), roomLabel));
         
+        string colorTemp  = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, GetTemperatureFactor01() * 99)]);
+        string colorMoist = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, GetMoistureFactor01()   * 99)]);
+        string colorAir   = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, GetAerationHealth01()   * 99)]);
         dsc.AppendLine(Lang.Get
             ("oddwire:compostpile-info-state"
-            ,Temperature
-            ,Moisture01 * 100f
-            ,Aeration01 * 100f
+            ,colorTemp,  Temperature
+            ,colorMoist, Moisture01 * 100f
+            ,colorAir,   Aeration01 * 100f
             ));
         #endregion
         
