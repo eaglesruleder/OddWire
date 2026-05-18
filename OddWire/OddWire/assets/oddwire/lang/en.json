@@ -1,5 +1,35 @@
 {
     "block-compostpile-*": "Compost Pile",
     "oddwire:block-handbooktitle-oddwire:compostpile-*": "Use:",
-    "oddwire:block-handbooktext-oddwire:compostpile-*": "Turns Food, <a href=\"handbook://item-rot\">Rot</a>, and <a href=\"handbook://item-drygrass\">Dry Grass</a> into <a href=\"handbook://item-compost\">Compost</a>.<br><br>Craft starter pile from Dry Grass and Rot<br>Once placed adding Rot seeds it, Dry Grass adds bulk, and adding Food increases rate and temperature.<br><br>Optimals: Temperature: Cold 20°C / Hot 55°C - Moisture: Dry 60% / Drowning 85% - Aeration: Hypoxic 35% - Rot: Unseesed lt. 80% full<br><br>Digging up pile drops processed Compost and Compost Pile.<br>Refill with the dropped compost and fresh input to restore Aeration."
+    "oddwire:block-handbooktext-oddwire:compostpile-*": "Turns Food, <a href=\"handbook://item-rot\">Rot</a>, and <a href=\"handbook://item-drygrass\">Dry Grass</a> into <a href=\"handbook://item-compost\">Compost</a>.<br><br>Craft starter pile from Dry Grass and Rot<br>Once placed adding Rot seeds it, Dry Grass adds bulk, and adding Food increases rate and temperature.<br><br>Optimals: Temperature: Cold 20°C / Hot 55°C - Moisture: Dry 60% / Drowning 85% - Aeration: Hypoxic 35% - Rot: Unseesed lt. 80% full<br><br>Digging up pile drops processed Compost and Compost Pile.<br>Refill with the dropped compost and fresh input to restore Aeration.",
+    
+    "compostpile-info-composting": "Composting: {0}, {1}",
+    "compostpile-info-state": "Temp {0:0.#}°C | Moist {1:0.#}% | Air {2:0.#}%",
+    "compostpile-info-speed": "Speed: {0:0}%, {1}",
+    "compostpile-info-harvest": "Harvest: Compost {0} | Pile {1}",
+    "compostpile-info-nutmix": "Nut Mix: {0}",
+
+    "compostpile-room-outside": "Outside",
+    "compostpile-room-inside": "Inside",
+    "compostpile-room-greenhouse": "Greenhouse",
+
+    "compostpile-status-active": "Active",
+    "compostpile-status-unseeded": "Unseeded",
+    "compostpile-status-cold": "Cold",
+    "compostpile-status-hot": "Hot",
+    "compostpile-status-overheating": "Overheating",
+    "compostpile-status-dry": "Dry",
+    "compostpile-status-drowning": "Drowning",
+    "compostpile-status-hypoxic": "Hypoxic",
+    "compostpile-status-turnsoon": "Turn soon",
+
+    "compostpile-rate-stalled": "stalled",
+    "compostpile-rate-hours": "{0:0.#}hr(s) / compost",
+    "compostpile-rate-days": "{0:0.#} day(s) / compost",
+
+    "compostpile-needs": "Needs: {0}",
+    "compostpile-needs-ingredient": "{0} {1}/{2}",
+    "compostpile-ingredient-browns": "Browns",
+    "compostpile-ingredient-nutrition": "Nutrition",
+    "compostpile-ingredient-inoculum": "Inoculum"
 }
