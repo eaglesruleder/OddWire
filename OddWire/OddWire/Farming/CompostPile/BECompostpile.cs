@@ -453,7 +453,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         BrownsQty = Math.Min(Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty, Settings.Browns.MaxQty);
         
         NutritionStacks.Clear();
-        NutritionStacks[EnumFoodCategory.Unknown] = Math.Min(Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty, Settings.Nutrition.MaxQty);
+        int initNutritionQty = Math.Min(Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty, Settings.Nutrition.MaxQty);
+        if (initNutritionQty > 0)
+            NutritionStacks[EnumFoodCategory.Unknown] = initNutritionQty;
         
         InoculumQty = Math.Min(Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty, Settings.Inoculum.MaxQty);
         CompostQty = 0;
@@ -620,7 +622,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             )
             return;
         
-        Item dropItem = Api.World.GetItem(new AssetLocation(ingredient.HarvestItemPath));
+        Item? dropItem = Api.World.GetItem(new AssetLocation(ingredient.HarvestItemPath));
         if (dropItem is null)
             return;
         #endregion
@@ -1210,7 +1212,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     #region Processing
     private bool ProcessCompost(double totalHours)
     {
-        #region if(!InoculumRoom || !bulkPortions || !durationTransitions || !actualTransitions) return false;
+        #region if(!InoculumRoom || !bulkPortions) return false;
         // Full-cap exit: pile at inoculum max AND transitions net-add inoculum — no room to process
         if (PrevTimeProcessed < 0
         ||  PrevTimeProcessed > totalHours
@@ -1232,7 +1234,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             PrevTimeProcessed = totalHours;
             return false;
         }
+        #endregion
         
+        #region if (InoculumQty < ConsumePerTransition) { Nutrition -= Rate; Inoc += Rate; return; }
         double duration = totalHours - PrevTimeProcessed;
         if (InoculumQty < Settings.Inoculum.ConsumePerTransition)
         {
@@ -1250,9 +1254,13 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
                 );
             TryRemoveCheapestNutrition(decompositionMax);
             InoculumQty += decompositionMax;
+            
+            PrevTimeProcessed = totalHours;
             return true;
         }
+        #endregion
         
+        #region if(!durationTransitions || !actualTransitions) return false;
         float transitionRate = Settings.BaseCompostRatePerHour * GetFactor();
         int transitions = (int)Math.Min(duration * transitionRate, bulkPortions);
         if (transitions < 1)
@@ -1272,18 +1280,18 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         
         CompostQty = Math.Clamp
             (CompostQty + compostOutput * Settings.CompostOutPerSuccess
-            , 0, Settings.Inoculum.MaxQty
+            ,0, Settings.Inoculum.MaxQty
             );
         
         InoculumQty = Math.Clamp
            (InoculumQty
         +   failedOutput * Settings.InoculumOutPerFail
         -   compostOutput * Settings.Inoculum.ConsumePerTransition
-            , 0, Settings.Inoculum.MaxQty - CompostQty
+           ,0, Settings.Inoculum.MaxQty - CompostQty
             );
         #endregion
         
-        PrevTimeProcessed += Math.Floor(duration) / transitionRate;
+        PrevTimeProcessed += actualTransitions / transitionRate;
         return true;
     }
     
