@@ -4,7 +4,12 @@
 	entityClass: "oddwirefarming.plowland.blockentity",
 	attributes: {
 		mapColorCode: "settlement",
-		liquidBarrierOnSides: [ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]
+		liquidBarrierOnSidesByType: {
+			"*-north-*": [ 1.0, 0.93, 1.0, 0.93, 1.0, 1.0 ],
+			"*-south-*": [ 1.0, 0.93, 1.0, 0.93, 1.0, 1.0 ],
+			"*-east-*":  [ 0.93, 1.0, 0.93, 1.0, 1.0, 1.0 ],
+			"*-west-*":  [ 0.93, 1.0, 0.93, 1.0, 1.0, 1.0 ]
+		}
 	},
 	variantgroups: [
 		{ code:"side", loadFromProperties: "abstract/horizontalorientation" },
@@ -26,7 +31,7 @@
 	textures: {
 		all: { base: "game:block/soil/fert{fertility}" }
 	},
-	replaceable: 900,
+	replaceable: 6001,
 	fertilityByType: {
 		"*-verylow": 5,
 		"*-low": 25,
@@ -45,9 +50,11 @@
 		all: false,
 		down: true
 	},
-	sidesolid: {
-		up: false,
-		all: true
+	sidesolidByType: {
+		"*-north-*": { all: false, down: true, east: true, west: true },
+		"*-south-*": { all: false, down: true, east: true, west: true },
+		"*-east-*":  { all: false, down: true, north: true, south: true },
+		"*-west-*":  { all: false, down: true, north: true, south: true }
 	},
 	drops: [],
 	collisionbox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.9375, z2: 1 },
