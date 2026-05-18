@@ -125,7 +125,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         
         moistureLevel = GameMath.Clamp(moisture01, 0f, 1f);
         lastMoistureLevelUpdateTotalDays = Api.World.Calendar.TotalDays;
-        UpdateSupport(); // Precedes tryUpdateMoistureLevel(), sets totalHoursWaterRetention 
+        UpdateSupport(); // Must precede tryUpdateMoistureLevel — sets totalHoursWaterRetention
         tryUpdateMoistureLevel(Api.World.Calendar.TotalDays, true);
         
         UpdateFarmlandBlock();
@@ -237,27 +237,24 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             ConsumeNutrientsDistributed(consumedNutrient, consumedAmount);
     }
     
-    private static readonly Vec3i[] HorizontalOffsets = new Vec3i[]{new(1,0,0),new(-1,0,0),new(0,0,1),new(0,0,-1)};
+    private static readonly Vec3i[] HorizontalOffsets            = new Vec3i[]{new(1,0,0),new(-1,0,0),new(0,0,1),new(0,0,-1)};
     private static readonly Vec3i[] HorizontalAndDiagonalOffsets = new Vec3i[]{new(1,0,0),new(-1,0,0),new(0,0,1),new(0,0,-1),new(1,0,1),new(1,0,-1),new(-1,0,1),new(-1,0,-1)};
+
     public void ConsumeNutrientsDistributed(EnumSoilNutrient nutrient, float amount, int loadQty = 2, bool diagonal = false)
     {
         int nutrientIndex = (int)nutrient;
         
-        Vec3i[] checkCoords;
-        if (diagonal)
-            checkCoords = HorizontalAndDiagonalOffsets;
-        else
-            checkCoords = HorizontalOffsets;
-        
-        #region loadBlocks = GetBESoil(checkCoords).Where(!Crop).Sort()
+        #region loadBlocks = GetBESoil(checkCoords).Where(!Crop).SortDesc(nutrient)[:loadQty]
         loadQty = Math.Clamp(loadQty, 0, diagonal ? 8 : 4);
         BlockEntitySoilNutrition?[] loadBESN = new BlockEntitySoilNutrition[loadQty];
+        
+        Vec3i[] checkCoords = diagonal ? HorizontalAndDiagonalOffsets : HorizontalOffsets;
         foreach (Vec3i offset in checkCoords)
         {
             BlockPos adjacentPos = Pos.AddCopy(offset);
             if (Api.World.BlockAccessor.GetBlockEntity(adjacentPos) is not BlockEntitySoilNutrition adjacentBESN
             ||  Api.World.BlockAccessor.GetBlock(adjacentPos.UpCopy()).CropProps != null
-                )
+               )
                 continue;
 
             float adjacentNutrient = adjacentBESN.Nutrients[nutrientIndex];
@@ -265,7 +262,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             {
                 if (loadBESN[i] != null
                 &&  adjacentNutrient <= loadBESN[i].Nutrients[nutrientIndex]
-                    )
+                   )
                     continue;
 
                 for (int j = loadBESN.Length - 1; j > i; j--)
@@ -276,8 +273,8 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             }
         }
         #endregion
-        
-        #region if(nutrientTotal <= 0) { UpdateFarmlandBlock(); return; }
+
+        #region if(nutrientTotal <= 0) return
         float nutrientTotal = nutrients[nutrientIndex];
         foreach (var besn in loadBESN)
         {
@@ -287,30 +284,18 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         }
 
         if (nutrientTotal <= 0f)
-        {
-            nutrients[nutrientIndex] = 0f;
-            UpdateFarmlandBlock();
-            MarkDirty(true);
             return;
-        }
         #endregion
-        
-        #region foreach(loadBESN+this) Nutrients -= amount*Nutrients/nutrientTotal
-        float thisWeight = nutrients[nutrientIndex] / nutrientTotal;
-        nutrients[nutrientIndex] = Math.Max(0f, nutrients[nutrientIndex] - amount * thisWeight);
 
+        #region foreach(loadBESN+this) base.ConsumeNutrients(amount * share/nutrientTotal)
+        ConsumeNutrients(nutrient, amount * (nutrients[nutrientIndex] / nutrientTotal));
         foreach (var besn in loadBESN)
-        { 
+        {
             if (besn is null)
                 break;
-            float lbWeight = besn.Nutrients[nutrientIndex] / nutrientTotal;
-            besn.Nutrients[nutrientIndex] = Math.Max(0f, besn.Nutrients[nutrientIndex] - amount * lbWeight);
-            besn.MarkDirty(true);
+            besn.ConsumeNutrients(nutrient, amount * (besn.Nutrients[nutrientIndex] / nutrientTotal));
         }
         #endregion
-        
-        UpdateFarmlandBlock();
-        MarkDirty(true);
     }
 
     protected override void UpdateFarmlandBlock()
@@ -344,7 +329,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
     {
-        base.GetBlockInfo(forPlayer, dsc); // NPK, moisture, growth speed — all from vanilla
+        base.GetBlockInfo(forPlayer, dsc);
 
         dsc.AppendLine($"Support: {SupportCode ?? "none"}");
         dsc.AppendLine($"Retention: {SupportRetentionDays:0.0} days");
@@ -362,9 +347,9 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         base.ToTreeAttributes(tree);
         _crop.ToTreeAttributes(tree);
 
-        tree.SetString("supportCode",         SupportCode);
-        tree.SetFloat ("supportRetentionDays", SupportRetentionDays);
-        tree.SetString("supportFertilityCode", SupportFertilityCode);
+        tree.SetString("supportCode",          SupportCode);
+        tree.SetFloat ("supportRetentionDays",  SupportRetentionDays);
+        tree.SetString("supportFertilityCode",  SupportFertilityCode);
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
@@ -372,7 +357,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         base.FromTreeAttributes(tree, worldForResolving);
         _crop.FromTreeAttributes(tree);
 
-        SupportCode = tree.GetString("supportCode");
+        SupportCode          = tree.GetString("supportCode");
         SupportRetentionDays = tree.GetFloat ("supportRetentionDays", Settings.DefaultRetentionDays);
         SupportFertilityCode = tree.GetString("supportFertilityCode");
         
