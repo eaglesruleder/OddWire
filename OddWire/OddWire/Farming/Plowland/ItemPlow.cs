@@ -98,7 +98,7 @@ public class ItemPlow : Item
             return;
         
         byEntity.Stats.Set("walkspeed", "OddWire.ItemPlow", -0.4f, true);
-        (byEntity as EntityPlayer).walkSpeed = byEntity.Stats.GetBlended("walkspeed");
+        (byEntity as EntityPlayer)?.walkSpeed = byEntity.Stats.GetBlended("walkspeed");
         
         byEntity.Attributes.SetInt("lastplowx", int.MinValue);
         handHandling = EnumHandHandling.PreventDefault;
@@ -157,7 +157,7 @@ public class ItemPlow : Item
         )
     {
         byEntity.Stats.Remove("walkspeed", "OddWire.ItemPlow");
-        (byEntity as EntityPlayer).walkSpeed = byEntity.Stats.GetBlended("walkspeed");
+        (byEntity as EntityPlayer)?.walkSpeed = byEntity.Stats.GetBlended("walkspeed");
         return base.OnHeldInteractCancel(secondsUsed, slot, byEntity, blockSel, entitySel, cancelReason);
     }
 
@@ -170,7 +170,7 @@ public class ItemPlow : Item
         )
     {
         byEntity.Stats.Remove("walkspeed", "OddWire.ItemPlow");
-        (byEntity as EntityPlayer).walkSpeed = byEntity.Stats.GetBlended("walkspeed");
+        (byEntity as EntityPlayer)?.walkSpeed = byEntity.Stats.GetBlended("walkspeed");
         base.OnHeldInteractStop(secondsUsed, slot, byEntity, blockSel, entitySel);
     }
     #endregion
@@ -211,9 +211,10 @@ public class ItemPlow : Item
         int supportFertilityChange = 0;
         #endregion
 
+        
         float randChange = api.World.Rand.NextSingle() * 100f;
         if (targetAvgNutrients < 100f)
-        #region Lose fertility when underfed
+        #region if(targetAvgNPK < randChange) highestBlock.fertility-- (support wins ties)
         {
             if (targetAvgNutrients < randChange)
             {
@@ -225,7 +226,7 @@ public class ItemPlow : Item
         }
         #endregion
         else
-        #region Gain fertility when overfed
+        #region if(targetAvgNPK-100 > randChange) lowestBlock.fertility++ (target wins ties)
         {
             if (targetAvgNutrients - 100f > randChange)
             {
@@ -283,6 +284,7 @@ public class ItemPlow : Item
         #endregion
         
         #region ExchangeAdjacentPlowland([left, right])
+        // Intent: This is resolving as left/right.
         Vec3i norm = facingDir.Normali;
         TryExchangePlowlandToFarmland(world, targetPos.AddCopy(norm.X, 0, -norm.Z));
         TryExchangePlowlandToFarmland(world, targetPos.AddCopy( -norm.X, 0, norm.Z));
