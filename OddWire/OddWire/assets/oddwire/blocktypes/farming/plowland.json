@@ -5,10 +5,10 @@
 	attributes: {
 		mapColorCode: "settlement",
 		liquidBarrierOnSidesByType: {
-			"*-north-*": [ 1.0, 0.93, 1.0, 0.93, 1.0, 1.0 ],
-			"*-south-*": [ 1.0, 0.93, 1.0, 0.93, 1.0, 1.0 ],
-			"*-east-*":  [ 0.93, 1.0, 0.93, 1.0, 1.0, 1.0 ],
-			"*-west-*":  [ 0.93, 1.0, 0.93, 1.0, 1.0, 1.0 ]
+			"*-north-*": [ 1.0, 0.5, 0.95, 0.5, 1.0, 1.0 ],
+			"*-south-*": [ 0.95, 0.5, 1.0, 0.5, 1.0, 1.0 ],
+			"*-east-*":  [ 0.5, 1.0, 0.5, 0.95, 1.0, 1.0 ],
+			"*-west-*":  [ 0.5, 0.95, 0.5, 1.0, 1.0, 1.0 ]
 		}
 	},
 	variantgroups: [
@@ -47,16 +47,16 @@
 		walk: "game:walk/grass"
 	},
 	sideopaqueByType: {
-		"*-north-*": { all: false, down: true, north: true, south: true },
-		"*-south-*": { all: false, down: true, north: true, south: true },
-		"*-east-*":  { all: false, down: true, east: true, west: true },
-		"*-west-*":  { all: false, down: true, east: true, west: true }
+		"*-north-*": { all: false, down: true, north: true },
+		"*-south-*": { all: false, down: true, south: true },
+		"*-east-*":  { all: false, down: true, east: true },
+		"*-west-*":  { all: false, down: true, west: true  }
 	},
 	sidesolidByType: {
-		"*-north-*": { all: false, down: true, north: true, south: true },
-		"*-south-*": { all: false, down: true, north: true, south: true },
-		"*-east-*":  { all: false, down: true, east: true, west: true },
-		"*-west-*":  { all: false, down: true, east: true, west: true }
+		"*-north-*": { all: false, down: true, north: true },
+		"*-south-*": { all: false, down: true, south: true },
+		"*-east-*":  { all: false, down: true, east: true  },
+		"*-west-*":  { all: false, down: true, west: true  }
 	},
 	drops: [],
 	collisionbox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.9375, z2: 1 },
