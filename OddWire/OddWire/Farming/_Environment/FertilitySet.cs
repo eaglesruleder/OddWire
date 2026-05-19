@@ -109,8 +109,8 @@ public sealed class FertilitySet
         string[] codeParts = block.Code.Path.Split('-');
         if (codeParts.Length == 0)
             return false;
-
-        codeParts[^1] = nextCode;
+        
+        codeParts[block.Code.PathStartsWith("soil") ? ^2 : ^1] = nextCode;
         AssetLocation nextBlockCode = new(block.Code.Domain, string.Join("-", codeParts));
         #endregion
         
