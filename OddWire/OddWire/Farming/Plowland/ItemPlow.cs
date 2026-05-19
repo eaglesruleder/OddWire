@@ -4,6 +4,7 @@ using OddWire.System;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
@@ -319,20 +320,20 @@ public class ItemPlow : Item
         if (fertilityCode is null)
             return;
 
-        #region NPK/Moisture = beSrc
-        float n = 0f, p = 0f, k = 0f, moisture01 = 0f;
+        #region prevData = beSrc.ToTreeAttributes() — captures NPK + moisture before block replacement
+        TreeAttribute? prevData = null;
+        float moisture01 = 0f;
         if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntitySoilNutrition beSrc)
         {
-            n = beSrc.Nutrients[0];
-            p = beSrc.Nutrients[1];
-            k = beSrc.Nutrients[2];
+            prevData = new TreeAttribute();
+            beSrc.ToTreeAttributes(prevData);
             moisture01 = beSrc.MoistureLevel;
         }
         #endregion
 
         string moistKey = moisture01 > Settings.MoistVisibleThreshold
-        ?   Settings.StateMoist
-        :   Settings.StateDry;
+            ?   Settings.StateMoist
+            :   Settings.StateDry;
 
         AssetLocation farmlandCode = new("game", $"farmland-{moistKey}-{fertilityCode}");
         Block farmlandBlock = world.GetBlock(farmlandCode);
@@ -341,15 +342,9 @@ public class ItemPlow : Item
 
         world.BlockAccessor.SetBlock(farmlandBlock.BlockId, pos);
 
-        #region Init farmland BE NPK — moisture: gap, needs public setter or init method
-        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntitySoilNutrition beDst)
-        {
-            beDst.Nutrients[0] = n;
-            beDst.Nutrients[1] = p;
-            beDst.Nutrients[2] = k;
-            // Todo: transfer moisture01 — blocked on BlockEntityFarmland exposing a setter
-            beDst.MarkDirty(true);
-        }
+        #region beDst.OnCreatedFromSoil(block, prevData) — sets originalFertility, restores NPK + moisture
+        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityFarmland beDst)
+            beDst.OnCreatedFromSoil(block, prevData);
         #endregion
 
         world.BlockAccessor.MarkBlockDirty(pos);
