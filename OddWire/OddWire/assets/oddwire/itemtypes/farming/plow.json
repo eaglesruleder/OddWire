@@ -37,7 +37,10 @@
 		"*-meteoriciron": { "base": "game:item/tool/hoe-copper" },
 		"*-steel": { "base": "game:item/tool/hoe-copper" }
 	},
-	heldTpHitAnimation: "breaktool",
+	heldTpIdleAnimation: "shovelidle",
+	heldRightReadyAnimation: "shovelready",
+	heldTpHitAnimation: "shoveldig",
+	heldTpUseAnimation: "snowshovel",
 	textures: {
 		"material": { base: "game:block/metal/ingot/{material}" }
 	},

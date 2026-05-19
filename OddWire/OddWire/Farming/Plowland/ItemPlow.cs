@@ -95,8 +95,11 @@ public class ItemPlow : Item
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
         if (!CanPlow(targetBlock))
             return;
-
-        byEntity.Attributes.SetInt("didplow", 0);
+        
+        byEntity.Stats.Set("walkspeed", "OddWire.ItemPlow", -0.4f, true);
+        (byEntity as EntityPlayer).walkSpeed = byEntity.Stats.GetBlended("walkspeed");
+        
+        byEntity.Attributes.SetInt("lastplowx", int.MinValue);
         handHandling = EnumHandHandling.PreventDefault;
     }
 
@@ -125,18 +128,22 @@ public class ItemPlow : Item
             return false;
         #endregion
 
-        #region if(secondsUsed > 0.6f && Side.Server) DoPlow()
-        if (secondsUsed > 0.6f
-        &&  byEntity.Attributes.GetInt("didplow") == 0
-        &&  world.Side == EnumAppSide.Server
-            )
+        #region if(Side.Server && seconds > 0.6 && targetPos != "lastplow") DoPlow()
+        if (world.Side == EnumAppSide.Server
+        &&  secondsUsed > 0.6f
+        && (targetPos.X != byEntity.Attributes.GetInt("lastplowx", int.MinValue)
+        ||  targetPos.Y != byEntity.Attributes.GetInt("lastplowy", int.MinValue)
+        ||  targetPos.Z != byEntity.Attributes.GetInt("lastplowz", int.MinValue)
+            ))
         {
-            byEntity.Attributes.SetInt("didplow", 1);
+            byEntity.Attributes.SetInt("lastplowx", targetPos.X);
+            byEntity.Attributes.SetInt("lastplowy", targetPos.Y);
+            byEntity.Attributes.SetInt("lastplowz", targetPos.Z);
             DoPlow(slot, byEntity, blockSel);
         }
         #endregion
 
-        return secondsUsed < 1f;
+        return true;
     }
 
     public override bool OnHeldInteractCancel
@@ -146,7 +153,25 @@ public class ItemPlow : Item
         ,BlockSelection blockSel
         ,EntitySelection entitySel
         ,EnumItemUseCancelReason cancelReason
-        ) => false;
+        )
+    {
+        byEntity.Stats.Remove("walkspeed", "OddWire.ItemPlow");
+        (byEntity as EntityPlayer).walkSpeed = byEntity.Stats.GetBlended("walkspeed");
+        return base.OnHeldInteractCancel(secondsUsed, slot, byEntity, blockSel, entitySel, cancelReason);
+    }
+
+    public override void OnHeldInteractStop
+        (float secondsUsed
+        ,ItemSlot slot
+        ,EntityAgent byEntity
+        ,BlockSelection blockSel
+        ,EntitySelection entitySel
+        )
+    {
+        byEntity.Stats.Remove("walkspeed", "OddWire.ItemPlow");
+        (byEntity as EntityPlayer).walkSpeed = byEntity.Stats.GetBlended("walkspeed");
+        base.OnHeldInteractStop(secondsUsed, slot, byEntity, blockSel, entitySel);
+    }
     #endregion
 
     public virtual void DoPlow(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel)
@@ -284,19 +309,26 @@ public class ItemPlow : Item
     
     private void TryExchangePlowlandToFarmland(IWorldAccessor world, BlockPos pos)
     {
-        if (world.BlockAccessor.GetBlock(pos) is not BlockPlowland
+        Block block = world.BlockAccessor.GetBlock(pos);
+        if (block is not BlockPlowland
         ||  world.BlockAccessor.GetBlock(pos.UpCopy()).CropProps != null
-            )
+           )
             return;
 
-        Block block = world.BlockAccessor.GetBlock(pos);
         string? fertilityCode = FertilitySet.GetCode(block);
         if (fertilityCode is null)
             return;
 
-        float moisture01 = 0f;
-        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntitySoilNutrition beNutrition)
-            moisture01 = beNutrition.MoistureLevel;
+        #region NPK/Moisture = beSrc
+        float n = 0f, p = 0f, k = 0f, moisture01 = 0f;
+        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntitySoilNutrition beSrc)
+        {
+            n = beSrc.Nutrients[0];
+            p = beSrc.Nutrients[1];
+            k = beSrc.Nutrients[2];
+            moisture01 = beSrc.MoistureLevel;
+        }
+        #endregion
 
         string moistKey = moisture01 > Settings.MoistVisibleThreshold
         ?   Settings.StateMoist
@@ -308,6 +340,18 @@ public class ItemPlow : Item
             return;
 
         world.BlockAccessor.SetBlock(farmlandBlock.BlockId, pos);
+
+        #region Init farmland BE NPK — moisture: gap, needs public setter or init method
+        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntitySoilNutrition beDst)
+        {
+            beDst.Nutrients[0] = n;
+            beDst.Nutrients[1] = p;
+            beDst.Nutrients[2] = k;
+            // Todo: transfer moisture01 — blocked on BlockEntityFarmland exposing a setter
+            beDst.MarkDirty(true);
+        }
+        #endregion
+
         world.BlockAccessor.MarkBlockDirty(pos);
     }
 }
