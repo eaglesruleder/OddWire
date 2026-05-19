@@ -203,7 +203,6 @@ public class ItemPlow : Item
 
         int targetFertility = FertilitySet.Index(targetFertilityCode);
         float[] targetNutrients = FertilitySet.ResolveNutrients(targetBlock, targetBlockEntity);
-        float targetAvgNutrients = targetNutrients.Avg();
         int targetFertilityChange = 0;
 
         int supportFertility = FertilitySet.Index(supportBlock);
@@ -211,12 +210,12 @@ public class ItemPlow : Item
         int supportFertilityChange = 0;
         #endregion
 
-        
+        float chanceChange = (targetNutrients[0] + targetNutrients[1] + targetNutrients[2] + supportMax) /4f;
         float randChange = api.World.Rand.NextSingle() * 100f;
-        if (targetAvgNutrients < 100f)
-        #region if(targetAvgNPK < randChange) highestBlock.fertility-- (support wins ties)
+        if (chanceChange < 100f)
+        #region if(chanceChange < randChange) highestBlock.fertility-- (support wins ties)
         {
-            if (targetAvgNutrients < randChange)
+            if (chanceChange < randChange)
             {
                 if (targetFertility > supportFertility || supportFertility < 0)
                     targetFertilityChange--;
@@ -226,9 +225,9 @@ public class ItemPlow : Item
         }
         #endregion
         else
-        #region if(targetAvgNPK-100 > randChange) lowestBlock.fertility++ (target wins ties)
+        #region if(chanceChange-100 > randChange) lowestBlock.fertility++ (target wins ties)
         {
-            if (targetAvgNutrients - 100f > randChange)
+            if (chanceChange-100f > randChange)
             {
                 if (targetFertility < supportFertility || supportFertility < 0)
                     targetFertilityChange++;
