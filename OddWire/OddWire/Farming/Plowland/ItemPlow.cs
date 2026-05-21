@@ -14,6 +14,34 @@ public class ItemPlow : Item
     private PlowlandSettings Settings = new();
     private WorldInteraction[]? interactions;
 
+    private bool CanPlow(ref BlockPos? pos, out Block? block)
+    {
+        if (pos is null)
+        {
+            block = null;
+            return false;
+        }
+        
+        block = api.World.BlockAccessor.GetBlock(pos);
+        if (CanPlow(block))
+            return true;
+
+        if (block.Id == 0
+        ||  block.BlockMaterial == EnumBlockMaterial.Plant
+            )
+        {
+            BlockPos downPos = pos.DownCopy();
+            block = api.World.BlockAccessor.GetBlock(downPos);
+            if (CanPlow(block))
+            {
+                pos = downPos;
+                return true;
+            }
+        }
+        block = null;
+        return false;
+    }
+
     private static bool CanPlow(Block? block)
     {
         if (block is null
@@ -80,10 +108,8 @@ public class ItemPlow : Item
             return;
         }
 
-        IWorldAccessor world = byEntity.World;
-        BlockPos targetPos = blockSel.Position;
-        Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
-        if (!CanPlow(targetBlock))
+        BlockPos? targetPos = blockSel.Position;
+        if (!CanPlow(ref targetPos, out _))
             return;
         
         byEntity.Stats.Set("walkspeed", "OddWire.ItemPlow", -0.4f, true);
@@ -107,9 +133,8 @@ public class ItemPlow : Item
             return false;
         
         IWorldAccessor world = byEntity.World;
-        BlockPos targetPos = blockSel.Position;
-        Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
-        if (!CanPlow(targetBlock))
+        BlockPos? targetPos  = blockSel.Position;
+        if (!CanPlow(ref targetPos, out _) || targetPos is null)
             return false;
 
         #region if(Side.Server && seconds > 0.6 && targetPos != "lastplow") DoPlow()
@@ -160,15 +185,13 @@ public class ItemPlow : Item
 
     public virtual void DoPlow(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel)
     {
-        #region if (!CanPlow(targetBlock)) return;
+        #region if(!CanPlow(ref targetPos, out targetBlock)) return
         if (blockSel is null)
             return;
 
         IWorldAccessor world = byEntity.World;
-        BlockPos targetPos = blockSel.Position;
-        Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
-
-        if (!CanPlow(targetBlock))
+        BlockPos? targetPos  = blockSel.Position;
+        if (!CanPlow(ref targetPos, out Block? targetBlock) || targetPos is null)
             return;
         #endregion
 
@@ -225,7 +248,7 @@ public class ItemPlow : Item
         if (targetBlockEntity is BlockEntitySoilNutrition beNutrition)
             targetMoisture01 = beNutrition.MoistureLevel;
         
-        string targetMoistKey  =
+        string targetMoistKey =
             targetMoisture01 > Settings.MoistVisibleThreshold
         ?   Settings.StateMoist
         :   Settings.StateDry;
@@ -239,7 +262,7 @@ public class ItemPlow : Item
         
         BlockFacing facingDir = BlockFacing.HorizontalFromAngle(byEntity.SidedPos.Yaw);
         string sideCode = facingDir.Code;
-        AssetLocation plowlandCode  = new(Code.Domain, $"plowland-{sideCode}-{targetMoistKey}-{targetFertilityCode}");
+        AssetLocation plowlandCode = new(Code.Domain, $"plowland-{sideCode}-{targetMoistKey}-{targetFertilityCode}");
         Block plowlandBlock = world.GetBlock(plowlandCode);
         if (plowlandBlock is null || plowlandBlock.Id == 0)
             return;
@@ -268,9 +291,17 @@ public class ItemPlow : Item
         #region bePlowland.AddSlowRelease(blockAbove & soilCoverage)
         int[] slowFertility = new int[3];
         Block blockAbove = world.BlockAccessor.GetBlock(targetPos.UpCopy());
-        
+
         if (blockAbove.BlockMaterial == EnumBlockMaterial.Plant
         &&  blockAbove.CropProps == null
+           )
+        {
+            slowFertility[0]++;
+            world.BlockAccessor.SetBlock(0, targetPos.UpCopy());
+        }
+        
+        if (targetBlock.BlockMaterial == EnumBlockMaterial.Soil
+        &&  targetBlock.Variant["grasscoverage"].Equals("normal")
            )
             slowFertility[0]++;
         
@@ -282,14 +313,6 @@ public class ItemPlow : Item
             int cropBonusLvl = fertMax - Math.Min(remaining, fertMax);
             slowFertility[(int)blockAbove.CropProps.RequiredNutrient] += cropBonusLvl;
         }
-        
-        if (targetBlock.BlockMaterial == EnumBlockMaterial.Soil)
-            slowFertility[0] += targetBlock.Variant["grasscoverage"] switch
-                {"verysparse" => 1
-                ,"sparse"     => 2
-                ,"normal"     => 3
-                ,_            => 0
-                };
 
         bePlowland.AddSlowRelease
             (FertilitySet.Value(slowFertility[0])
@@ -302,7 +325,7 @@ public class ItemPlow : Item
         // Intent: This is resolving as left/right.
         Vec3i norm = facingDir.Normali;
         TryExchangePlowlandToFarmland(world, targetPos.AddCopy(norm.X, 0, -norm.Z));
-        TryExchangePlowlandToFarmland(world, targetPos.AddCopy( -norm.X, 0, norm.Z));
+        TryExchangePlowlandToFarmland(world, targetPos.AddCopy(-norm.X, 0, norm.Z));
         #endregion
         
         #region if(byPlayer is EntityPlayer) slot.DamageItem()
