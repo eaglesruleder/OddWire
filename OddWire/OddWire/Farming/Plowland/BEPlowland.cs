@@ -171,6 +171,14 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         };
         onEnd = () => baseEnd?.Invoke();
     }
+    
+    public void AddSlowRelease(float n, float p, float k)
+    {
+        slowReleaseNutrients[0] = Math.Min(slowReleaseNutrients[0] + n, 150);
+        slowReleaseNutrients[1] = Math.Min(slowReleaseNutrients[1] + p, 150);
+        slowReleaseNutrients[2] = Math.Min(slowReleaseNutrients[2] + k, 150);
+        MarkDirty(true);
+    }
 
     private bool UpdateSupport()
     {

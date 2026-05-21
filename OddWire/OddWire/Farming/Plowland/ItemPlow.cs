@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using OddWire.System;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
@@ -82,17 +80,8 @@ public class ItemPlow : Item
             return;
         }
 
-        #region if(covered) TriggerIngameError
         IWorldAccessor world = byEntity.World;
         BlockPos targetPos = blockSel.Position;
-        if (world.BlockAccessor.GetBlock(targetPos.UpCopy()).Id != 0)
-        {
-            (api as ICoreClientAPI)?.TriggerIngameError(this, "covered", Lang.Get("Requires no block above"));
-            handHandling = EnumHandHandling.PreventDefault;
-            return;
-        }
-        #endregion
-
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
         if (!CanPlow(targetBlock))
             return;
@@ -113,21 +102,15 @@ public class ItemPlow : Item
         )
     {
         if (blockSel is null
-        || (byEntity.Controls.ShiftKey
-        &&  byEntity.Controls.CtrlKey
-           ))
+        || (byEntity.Controls.ShiftKey && byEntity.Controls.CtrlKey)
+            )
             return false;
-
-        #region if(covered || !CanPlow(targetBlock)) return false
+        
         IWorldAccessor world = byEntity.World;
         BlockPos targetPos = blockSel.Position;
-        if (world.BlockAccessor.GetBlock(targetPos.UpCopy()).Id != 0)
-            return false;
-
         Block targetBlock = world.BlockAccessor.GetBlock(targetPos);
         if (!CanPlow(targetBlock))
             return false;
-        #endregion
 
         #region if(Side.Server && seconds > 0.6 && targetPos != "lastplow") DoPlow()
         if (world.Side == EnumAppSide.Server
@@ -281,7 +264,40 @@ public class ItemPlow : Item
         
         bePlowland.Initialise(resultNutrients, targetMoisture01);
         #endregion
+
+        #region bePlowland.AddSlowRelease(blockAbove & soilCoverage)
+        int[] slowFertility = new int[3];
+        Block blockAbove = world.BlockAccessor.GetBlock(targetPos.UpCopy());
         
+        if (blockAbove.BlockMaterial == EnumBlockMaterial.Plant
+        &&  blockAbove.CropProps == null
+           )
+            slowFertility[0]++;
+        
+        if (blockAbove.CropProps != null)
+        {
+            int.TryParse(blockAbove.LastCodePart(), out int currLvl);
+            int remaining = blockAbove.CropProps.GrowthStages - currLvl;
+            int fertMax = FertilitySet.Count - 1;
+            int cropBonusLvl = fertMax - Math.Min(remaining, fertMax);
+            slowFertility[(int)blockAbove.CropProps.RequiredNutrient] += cropBonusLvl;
+        }
+        
+        if (targetBlock.BlockMaterial == EnumBlockMaterial.Soil)
+            slowFertility[0] += targetBlock.Variant["grasscoverage"] switch
+                {"verysparse" => 1
+                ,"sparse"     => 2
+                ,"normal"     => 3
+                ,_            => 0
+                };
+
+        bePlowland.AddSlowRelease
+            (FertilitySet.Value(slowFertility[0])
+            ,FertilitySet.Value(slowFertility[1])
+            ,FertilitySet.Value(slowFertility[2])
+            );
+        #endregion
+
         #region ExchangeAdjacentPlowland([left, right])
         // Intent: This is resolving as left/right.
         Vec3i norm = facingDir.Normali;

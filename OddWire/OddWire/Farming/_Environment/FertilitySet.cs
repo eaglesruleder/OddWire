@@ -15,6 +15,7 @@ public sealed class FertilitySet
     public const string Medium = "medium";
     public const string Compost = "compost";
     public const string High = "high";
+    public const int Count = 5;
     
     public readonly OrderedDictionary<string, float> Values;
     public readonly string[] Order;
@@ -49,7 +50,8 @@ public sealed class FertilitySet
                 return i;
         return -1;
     }
-    
+
+    public static float Value(int fertilityIndex) => _singleton.Values.GetValueAtIndex(fertilityIndex);
     public static float Value(Block? block) => _singleton[GetCode(block)];
     public static float Value(string? fertilityCode) => _singleton[fertilityCode];
     private float this[string? fertilityCode] =>
