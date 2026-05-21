@@ -287,39 +287,9 @@ public class ItemPlow : Item
         
         bePlowland.Initialise(resultNutrients, targetMoisture01);
         #endregion
-
-        #region bePlowland.AddSlowRelease(blockAbove & soilCoverage)
-        int[] slowFertility = new int[3];
-        Block blockAbove = world.BlockAccessor.GetBlock(targetPos.UpCopy());
-
-        if (blockAbove.BlockMaterial == EnumBlockMaterial.Plant
-        &&  blockAbove.CropProps == null
-           )
-        {
-            slowFertility[0]++;
-            world.BlockAccessor.SetBlock(0, targetPos.UpCopy());
-        }
         
-        if (targetBlock.BlockMaterial == EnumBlockMaterial.Soil
-        &&  targetBlock.Variant["grasscoverage"].Equals("normal")
-           )
-            slowFertility[0]++;
-        
-        if (blockAbove.CropProps != null)
-        {
-            int.TryParse(blockAbove.LastCodePart(), out int currLvl);
-            int remaining = blockAbove.CropProps.GrowthStages - currLvl;
-            int fertMax = FertilitySet.Count - 1;
-            int cropBonusLvl = fertMax - Math.Min(remaining, fertMax);
-            slowFertility[(int)blockAbove.CropProps.RequiredNutrient] += cropBonusLvl;
-        }
-
-        bePlowland.AddSlowRelease
-            (FertilitySet.Value(slowFertility[0])
-            ,FertilitySet.Value(slowFertility[1])
-            ,FertilitySet.Value(slowFertility[2])
-            );
-        #endregion
+        float[] slowRelease = ResolveBonusNutrients(world, targetPos, targetBlock);
+        bePlowland.AddSlowRelease(slowRelease[0], slowRelease[1], slowRelease[2]);
 
         #region ExchangeAdjacentPlowland([left, right])
         // Intent: This is resolving as left/right.
@@ -348,6 +318,42 @@ public class ItemPlow : Item
         #endregion
     }
     
+    private float[] ResolveBonusNutrients(IWorldAccessor world, BlockPos targetPos, Block targetBlock)
+    {
+        int[] slowFertility = new int[3];
+        Block blockAbove = world.BlockAccessor.GetBlock(targetPos.UpCopy());
+        
+        if (blockAbove.BlockMaterial == EnumBlockMaterial.Plant
+        &&  blockAbove.CropProps == null
+           )
+        {
+            slowFertility[0]++;
+            world.BlockAccessor.SetBlock(0, targetPos.UpCopy());
+        }
+        
+        if (targetBlock.BlockMaterial == EnumBlockMaterial.Soil
+        &&  targetBlock.Variant["grasscoverage"].Equals("normal")
+           )
+            slowFertility[0]++;
+
+        #region if(blockAbove.CropProps) slowFertility[CropProps.Nutrient] += fertMax - stagesRemaining
+        if (blockAbove.CropProps != null)
+        {
+            int.TryParse(blockAbove.LastCodePart(), out int currLvl);
+            int stagesRemaining = blockAbove.CropProps.GrowthStages - currLvl;
+            int fertMax = FertilitySet.Count - 1;
+            int cropBonusLvl = fertMax - Math.Min(stagesRemaining, fertMax);
+            slowFertility[(int)blockAbove.CropProps.RequiredNutrient] += cropBonusLvl;
+        }
+        #endregion
+
+        return new[]
+            {FertilitySet.Value(slowFertility[0])
+            ,FertilitySet.Value(slowFertility[1])
+            ,FertilitySet.Value(slowFertility[2])
+            };
+    }
+
     private void TryExchangePlowlandToFarmland(IWorldAccessor world, BlockPos pos)
     {
         Block block = world.BlockAccessor.GetBlock(pos);
