@@ -9,7 +9,7 @@ static class ItemSlotSurvival_CanHold_AllowSmallBag_Patch
     static bool Prefix(ItemSlot sourceSlot, ref bool __result, ItemSlotSurvival __instance)
     {
         if (__instance is ItemSlotBagContent)
-            return false;
+            return true;
         
         var bag = sourceSlot.Itemstack?.Collectible.GetCollectibleInterface<IHeldBag>();
         if (bag?.IsEmpty(sourceSlot.Itemstack) != false)
