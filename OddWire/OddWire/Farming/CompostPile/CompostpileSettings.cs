@@ -61,7 +61,7 @@ public class CompostpileSettings
         SizeBonusQty = (64 - 4) / (ShapeSizeLevels - 1),
         MaxQty = 64,
         MaxInputPerAdd = 4,
-        Aeration01PerInput = 1f / 16,
+        Aeration01PerInput = 1f / 64,
         AddItemCodeRatios = new Dictionary<string, float>
         {
             { "game:rot", 1f },
