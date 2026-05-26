@@ -12,11 +12,9 @@ static class ItemSlotSurvival_CanHold_AllowSmallBag_Patch
             return true;
         
         var bag = sourceSlot.Itemstack?.Collectible.GetCollectibleInterface<IHeldBag>();
-        if (bag?.IsEmpty(sourceSlot.Itemstack) != false)
-            return true;
-        
-        var quantitySlots = bag.GetQuantitySlots(sourceSlot.Itemstack);
-        if (quantitySlots >= 4)
+        if (bag?.IsEmpty(sourceSlot.Itemstack) != false
+        || !bag.IsHandheld(sourceSlot.Itemstack)
+            )
             return true;
         
         __result = __instance.Inventory.CanContain(__instance, sourceSlot);
@@ -33,11 +31,9 @@ static class ItemSlotSurvival_CanTakeFrom_AllowSmallBag_Patch
             return true;
         
         var bag = sourceSlot.Itemstack?.Collectible.GetCollectibleInterface<IHeldBag>();
-        if (bag?.IsEmpty(sourceSlot.Itemstack) != false)
-            return true;
-
-        var quantitySlots = bag.GetQuantitySlots(sourceSlot.Itemstack);
-        if (quantitySlots >= 4)
+        if (bag?.IsEmpty(sourceSlot.Itemstack) != false
+        || !bag.IsHandheld(sourceSlot.Itemstack)
+            )
             return true;
         
         __result = true;

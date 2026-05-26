@@ -17,15 +17,13 @@ public static class BBRightClickPickup_BasketIntercept_Patch
         ref bool __result,
         BlockBehaviorRightClickPickup __instance)
     {
-        #region if(!bag || bag.QtySlots >= 4) return true
+        #region if(!bag.IsHandheld) return true
         var activeSlot = byPlayer.InventoryManager.ActiveHotbarSlot;
         if (activeSlot?.Itemstack is null)
             return true;
 
         var bag = activeSlot.Itemstack.Collectible.GetCollectibleInterface<IHeldBag>();
-        if (bag == null
-        ||  bag.GetQuantitySlots(activeSlot.Itemstack) >= 4
-            )
+        if (bag?.IsHandheld(activeSlot.Itemstack) != true)
             return true;
         #endregion
         

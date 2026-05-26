@@ -21,9 +21,8 @@ public static class CollectibleObject_GetMergableQuantity_HeldBagAcceptsItems_Pa
              return true;
         
         var bag = __instance.GetCollectibleInterface<IHeldBag>();
-        if (bag == null
-        ||  bag.GetQuantitySlots(sinkStack) >= 4
-            ) return true;
+        if (bag?.IsHandheld(sinkStack) != true)
+            return true;
         
         __result = sourceStack.StackSize;
         return false;
@@ -43,9 +42,7 @@ public static class CollectibleObject_TryMergeStacks_HeldBagAcceptsItems_Patch
             return true;
 
         var bag = __instance.GetCollectibleInterface<IHeldBag>();
-        if (bag == null
-        ||  bag.GetQuantitySlots(op.SinkSlot.Itemstack) >= 4
-            )
+        if (bag?.IsHandheld(op.SinkSlot.Itemstack) != true)
             return true;
         
         var bagstack = op.SinkSlot.Itemstack;
