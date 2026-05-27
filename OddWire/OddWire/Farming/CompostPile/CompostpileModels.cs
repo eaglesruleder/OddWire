@@ -40,7 +40,7 @@ public class CompostpileSettings
         HarvestItemPath = "game:drygrass",
         HarvestQty = 64,
         HarvestStackQty = 64,
-        ConsumePerTransition = 16
+        ConsumePerTransition = 12
     };
 
     public Ingredient Nutrition { get; private set; } = new()
@@ -51,7 +51,7 @@ public class CompostpileSettings
         MaxQty = 64,
         MaxInputPerAdd = 8,
         Aeration01PerInput = 1f / 64,
-        ConsumePerTransition = 8
+        ConsumePerTransition = 3
     };
 
     public Ingredient Inoculum { get; private set; } = new()
@@ -61,7 +61,7 @@ public class CompostpileSettings
         SizeBonusQty = (64 - 4) / (ShapeSizeLevels - 1),
         MaxQty = 64,
         MaxInputPerAdd = 4,
-        Aeration01PerInput = 1f / 16,
+        Aeration01PerInput = 1f / 64,
         AddItemCodeRatios = new Dictionary<string, float>
         {
             { "game:rot", 1f },
