@@ -1,3 +1,4 @@
+using System;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.GameContent;
@@ -8,23 +9,18 @@ namespace OddWire.Patches;
 [HarmonyPatch(typeof(BlockBehaviorRightClickPickup), nameof(BlockBehaviorRightClickPickup.OnBlockInteractStart))]
 public static class BBRightClickPickup_BasketIntercept_Patch
 {
-    static bool Prefix(
-        IWorldAccessor world,
-        IPlayer byPlayer,
-        BlockSelection blockSel,
-        ref EnumHandling handling,
-        ref bool __result,
-        BlockBehaviorRightClickPickup __instance)
+    static bool Prefix
+        (IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel
+        ,ref EnumHandling handling, ref bool __result, BlockBehaviorRightClickPickup __instance
+        )
     {
-        #region if(!bag || bag.QtySlots >= 4) return true
+        #region if(!bag.IsHandheld) return true
         var activeSlot = byPlayer.InventoryManager.ActiveHotbarSlot;
         if (activeSlot?.Itemstack is null)
             return true;
 
         var bag = activeSlot.Itemstack.Collectible.GetCollectibleInterface<IHeldBag>();
-        if (bag == null
-        ||  bag.GetQuantitySlots(activeSlot.Itemstack) >= 4
-            )
+        if (bag?.IsHandheld(activeSlot.Itemstack) != true)
             return true;
         #endregion
         
@@ -43,7 +39,9 @@ public static class BBRightClickPickup_BasketIntercept_Patch
         if (dropsPickupMode)
         {
             dropStacks = block.GetDrops(world, blockSel.Position, byPlayer, 1f);
-            if (dropStacks == null || dropStacks.Length == 0)
+            if (dropStacks is null
+            ||  dropStacks.Length < 1
+                )
                 return true;
         }
         else
@@ -60,30 +58,39 @@ public static class BBRightClickPickup_BasketIntercept_Patch
         
         foreach (var dropStack in dropStacks)
         {
-            #region if(bagSlots.Any(Accept(dropStock))) bagSlot.Add(dropStack);
-            bool accepted = false;
             foreach (var bagSlot in slots)
-                if (bagSlot.Empty
-                || (bagSlot.Itemstack.Equals(world, dropStack, GlobalConstants.IgnoredStackAttributes)
-                &&  bagSlot.Itemstack.StackSize < bagSlot.Itemstack.Collectible.MaxStackSize
-                   ))
+            {
+                if (dropStack.StackSize < 1)
+                    break;
+
+                if (bagSlot.Empty)
+                #region bag.Store(dropStack.Clone());
                 {
-                    if(bagSlot.Empty)
-                        bagSlot.Itemstack = dropStack.Clone();
-                    else
-                    {
-                        bagSlot.Itemstack.StackSize++;
-                    }
-                    
+                    bagSlot.Itemstack = dropStack.Clone();
+                    bagSlot.Itemstack.StackSize = Math.Min(dropStack.StackSize, bagSlot.Itemstack.Collectible.MaxStackSize);
+                    dropStack.StackSize -= bagSlot.Itemstack.StackSize;
                     bag.Store(bagstack, bagSlot);
                     activeSlot.MarkDirty();
-                    accepted = true;
-                    break;
                 }
-            #endregion
-            
-            if (!accepted
-            &&  !byPlayer.InventoryManager.TryGiveItemstack(dropStack, true)
+                #endregion
+                else if (bagSlot.Itemstack.Equals(world, dropStack, GlobalConstants.IgnoredStackAttributes))
+                #region bagSlot.StackSize += Min(dropStack.StackSize, room)
+                {
+                    int room = bagSlot.Itemstack.Collectible.MaxStackSize - bagSlot.Itemstack.StackSize;
+                    if (room < 1)
+                        continue;
+                    
+                    int moveQty = Math.Min(room, dropStack.StackSize);
+                    bagSlot.Itemstack.StackSize += moveQty;
+                    dropStack.StackSize -= moveQty;
+                    bag.Store(bagstack, bagSlot);
+                    activeSlot.MarkDirty();
+                }
+                #endregion
+            }
+
+            if (dropStack.StackSize > 0
+            && !byPlayer.InventoryManager.TryGiveItemstack(dropStack, true)
                 )
                 world.SpawnItemEntity(dropStack, blockSel.Position.ToVec3d().AddCopy(0.5, 0.1, 0.5));
         }

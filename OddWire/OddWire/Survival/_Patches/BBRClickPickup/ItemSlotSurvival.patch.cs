@@ -8,15 +8,13 @@ static class ItemSlotSurvival_CanHold_AllowSmallBag_Patch
 {
     static bool Prefix(ItemSlot sourceSlot, ref bool __result, ItemSlotSurvival __instance)
     {
-        var bag = sourceSlot.Itemstack?.Collectible.GetCollectibleInterface<IHeldBag>();
-        if (bag?.IsEmpty(sourceSlot.Itemstack) == true)
-            return true;
-
         if (__instance is ItemSlotBagContent)
-            return false;
+            return true;
         
-        var quantitySlots = bag?.GetQuantitySlots(sourceSlot.Itemstack);
-        if (quantitySlots >= 4)
+        var bag = sourceSlot.Itemstack?.Collectible.GetCollectibleInterface<IHeldBag>();
+        if (bag?.IsEmpty(sourceSlot.Itemstack) != false
+        || !bag.IsHandheld(sourceSlot.Itemstack)
+            )
             return true;
         
         __result = __instance.Inventory.CanContain(__instance, sourceSlot);
@@ -27,14 +25,15 @@ static class ItemSlotSurvival_CanHold_AllowSmallBag_Patch
 [HarmonyPatch(typeof(ItemSlotSurvival), nameof(ItemSlotSurvival.CanTakeFrom))]
 static class ItemSlotSurvival_CanTakeFrom_AllowSmallBag_Patch
 {
-    static bool Prefix(ItemSlot sourceSlot, ref bool __result)
+    static bool Prefix(ItemSlot sourceSlot, ref bool __result, ItemSlotSurvival __instance)
     {
-        var bag = sourceSlot.Itemstack?.Collectible.GetCollectibleInterface<IHeldBag>();
-        if (bag?.IsEmpty(sourceSlot.Itemstack) == true)
+        if (__instance is ItemSlotBagContent)
             return true;
-
-        var quantitySlots = bag?.GetQuantitySlots(sourceSlot.Itemstack);
-        if (quantitySlots >= 4)
+        
+        var bag = sourceSlot.Itemstack?.Collectible.GetCollectibleInterface<IHeldBag>();
+        if (bag?.IsEmpty(sourceSlot.Itemstack) != false
+        || !bag.IsHandheld(sourceSlot.Itemstack)
+            )
             return true;
         
         __result = true;
