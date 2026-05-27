@@ -9,13 +9,10 @@ namespace OddWire.Patches;
 [HarmonyPatch(typeof(BlockBehaviorRightClickPickup), nameof(BlockBehaviorRightClickPickup.OnBlockInteractStart))]
 public static class BBRightClickPickup_BasketIntercept_Patch
 {
-    static bool Prefix(
-        IWorldAccessor world,
-        IPlayer byPlayer,
-        BlockSelection blockSel,
-        ref EnumHandling handling,
-        ref bool __result,
-        BlockBehaviorRightClickPickup __instance)
+    static bool Prefix
+        (IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel
+        ,ref EnumHandling handling, ref bool __result, BlockBehaviorRightClickPickup __instance
+        )
     {
         #region if(!bag.IsHandheld) return true
         var activeSlot = byPlayer.InventoryManager.ActiveHotbarSlot;
@@ -42,7 +39,9 @@ public static class BBRightClickPickup_BasketIntercept_Patch
         if (dropsPickupMode)
         {
             dropStacks = block.GetDrops(world, blockSel.Position, byPlayer, 1f);
-            if (dropStacks == null || dropStacks.Length == 0)
+            if (dropStacks is null
+            ||  dropStacks.Length < 1
+                )
                 return true;
         }
         else
@@ -61,10 +60,11 @@ public static class BBRightClickPickup_BasketIntercept_Patch
         {
             foreach (var bagSlot in slots)
             {
-                if (dropStack.StackSize <= 0)
+                if (dropStack.StackSize < 1)
                     break;
 
                 if (bagSlot.Empty)
+                #region bag.Store(dropStack.Clone());
                 {
                     bagSlot.Itemstack = dropStack.Clone();
                     bagSlot.Itemstack.StackSize = Math.Min(dropStack.StackSize, bagSlot.Itemstack.Collectible.MaxStackSize);
@@ -72,18 +72,21 @@ public static class BBRightClickPickup_BasketIntercept_Patch
                     bag.Store(bagstack, bagSlot);
                     activeSlot.MarkDirty();
                 }
+                #endregion
                 else if (bagSlot.Itemstack.Equals(world, dropStack, GlobalConstants.IgnoredStackAttributes))
+                #region bagSlot.StackSize += Min(dropStack.StackSize, room)
                 {
                     int room = bagSlot.Itemstack.Collectible.MaxStackSize - bagSlot.Itemstack.StackSize;
-                    int moveQty = Math.Min(room, dropStack.StackSize);
-                    if (moveQty <= 0)
+                    if (room < 1)
                         continue;
-
+                    
+                    int moveQty = Math.Min(room, dropStack.StackSize);
                     bagSlot.Itemstack.StackSize += moveQty;
                     dropStack.StackSize -= moveQty;
                     bag.Store(bagstack, bagSlot);
                     activeSlot.MarkDirty();
                 }
+                #endregion
             }
 
             if (dropStack.StackSize > 0
