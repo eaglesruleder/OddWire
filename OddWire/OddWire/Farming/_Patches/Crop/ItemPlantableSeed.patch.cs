@@ -8,6 +8,7 @@ using Vintagestory.API.Config;
 using Vintagestory.GameContent;
 using HarmonyLib;
 using OddWire.GameContent;
+using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 
 namespace OddWire.Patches;
@@ -81,7 +82,6 @@ public static class ItemPlantableSeed_OnHeldInteractStart_Overwrite_Patch
             return false;
         }
         
-        Block b = byEntity.World.BlockAccessor.GetBlock(blockSel.Position);
         BlockEntity? be = byEntity.World.BlockAccessor.GetBlockEntity(blockSel.Position);
         if (be is not BlockEntityFarmland
         &&  be is not ICropland
@@ -94,7 +94,8 @@ public static class ItemPlantableSeed_OnHeldInteractStart_Overwrite_Patch
 
         #region if(!cropBlock || !be.TryPlant()) return false;
         string plotType = be.Block.Code.FirstCodePart();
-        Block? cropBlock = byEntity.World.GetBlock(__instance.CodeWithPath($"crop-{cropType}-{plotType}-1"));
+        string plotSide = be.Block.Variant["side"] ?? "north";
+        Block? cropBlock = byEntity.World.GetBlock(__instance.CodeWithPath($"crop-{cropType}-{plotSide}-{plotType}-1"));
         if (cropBlock is null)
             return false;
         
@@ -142,7 +143,7 @@ public static class ItemPlantableSeed_GetHeldItemInfo_Overwrite_Patch
         if (cropType is null)
             return false;
 
-        var cropProps = world.GetBlock(__instance.CodeWithPath($"crop-{cropType}-farmland-1"))?.CropProps;
+        var cropProps = world.GetBlock(__instance.CodeWithPath($"crop-{cropType}-north-farmland-1"))?.CropProps;
         if (cropProps is null)
             return false;
         #endregion
