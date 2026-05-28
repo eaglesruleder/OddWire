@@ -1,0 +1,8 @@
+[
+  {
+    "file": "game:blocktypes/plant/crop/peanut",
+    "op": "add",
+    "path": "/variantgroups/1",
+    "value": { "code": "plot", "states": ["farmland", "plowland"] }
+  }
+]
