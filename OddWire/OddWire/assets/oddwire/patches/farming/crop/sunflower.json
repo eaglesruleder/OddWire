@@ -19,11 +19,6 @@
   },
   {
     "file": "game:blocktypes/plant/crop/sunflower",
-    "op": "remove",
-    "path": "/shape"
-  },
-  {
-    "file": "game:blocktypes/plant/crop/sunflower",
     "op": "addmerge",
     "path": "/textures",
     "value": {
@@ -31,6 +26,11 @@
       "normal1-6": { base: "block/plant/crop/sunflower/normal1-6" },
       "normal7-12": { base: "block/plant/crop/sunflower/normal7-12" },
     }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/sunflower",
+    "op": "remove",
+    "path": "/shape"
   },
   {
     "file": "game:blocktypes/plant/crop/sunflower",
