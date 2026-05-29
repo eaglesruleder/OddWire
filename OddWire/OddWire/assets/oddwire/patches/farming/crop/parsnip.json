@@ -4,5 +4,54 @@
     "op": "add",
     "path": "/variantgroups/1",
     "value": { "code": "plot", "states": ["farmland", "plowland"] }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/parsnip",
+    "op": "add",
+    "path": "/variantgroups/1",
+    "value": { "code": "side", "loadFromProperties": "abstract/horizontalorientation" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/parsnip",
+    "op": "addmerge",
+    "path": "/behaviors/-",
+    "value": { "name": "HorizontalOrientable" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/parsnip",
+    "op": "addmerge",
+    "path": "/textures/bulb",
+    "value": { base: "block/plant/crop/parsnip/bulb" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/parsnip",
+    "op": "replace",
+    "path": "/shapeByType",
+    "value": {
+      "*-farmland-6": { "base": "game:block/plant/crop/parsnip/stage6" },
+      "*-farmland-7": { "base": "game:block/plant/crop/parsnip/stage7" },
+      "*-farmland-8": { "base": "game:block/plant/crop/parsnip/stage8" },
+      "*-farmland-*": { "base": "game:block/plant/crop/parsnip/stage1to5" },
+
+      "*-north-plowland-6": { "base": "oddwire:farming/crop/parsnip/stage6", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-6":  { "base": "oddwire:farming/crop/parsnip/stage6", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-6": { "base": "oddwire:farming/crop/parsnip/stage6", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-6":  { "base": "oddwire:farming/crop/parsnip/stage6", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-7": { "base": "oddwire:farming/crop/parsnip/stage7", "rotateY": 0,   "offsetY": 0.3125},
+      "*-east-plowland-7":  { "base": "oddwire:farming/crop/parsnip/stage7", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-7": { "base": "oddwire:farming/crop/parsnip/stage7", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-7":  { "base": "oddwire:farming/crop/parsnip/stage7", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-8": { "base": "oddwire:farming/crop/parsnip/stage8", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-8":  { "base": "oddwire:farming/crop/parsnip/stage8", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-8": { "base": "oddwire:farming/crop/parsnip/stage8", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-8":  { "base": "oddwire:farming/crop/parsnip/stage8", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-*": { "base": "oddwire:farming/crop/parsnip/stage1to5", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-*":  { "base": "oddwire:farming/crop/parsnip/stage1to5", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-*": { "base": "oddwire:farming/crop/parsnip/stage1to5", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-*":  { "base": "oddwire:farming/crop/parsnip/stage1to5", "rotateY": 90,  "offsetY": 0.3125 }
+    }
   }
 ]

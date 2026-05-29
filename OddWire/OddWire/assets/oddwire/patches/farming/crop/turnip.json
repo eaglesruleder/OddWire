@@ -4,5 +4,54 @@
     "op": "add",
     "path": "/variantgroups/1",
     "value": { "code": "plot", "states": ["farmland", "plowland"] }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/turnip",
+    "op": "add",
+    "path": "/variantgroups/1",
+    "value": { "code": "side", "loadFromProperties": "abstract/horizontalorientation" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/turnip",
+    "op": "addmerge",
+    "path": "/behaviors/-",
+    "value": { "name": "HorizontalOrientable" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/turnip",
+    "op": "addmerge",
+    "path": "/textures/bulb",
+    "value": { base: "block/plant/crop/turnip/bulb" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/turnip",
+    "op": "replace",
+    "path": "/shapeByType",
+    "value": {
+      "*-farmland-3": { "base": "game:block/plant/crop/turnip/stage3" },
+      "*-farmland-4": { "base": "game:block/plant/crop/turnip/stage4" },
+      "*-farmland-5": { "base": "game:block/plant/crop/turnip/stage5" },
+      "*-farmland-*": { "base": "game:block/plant/crop/turnip/stage1to2" },
+
+      "*-north-plowland-3": { "base": "oddwire:farming/crop/turnip/stage3", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-3":  { "base": "oddwire:farming/crop/turnip/stage3", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-3": { "base": "oddwire:farming/crop/turnip/stage3", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-3":  { "base": "oddwire:farming/crop/turnip/stage3", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-4": { "base": "oddwire:farming/crop/turnip/stage4", "rotateY": 0,   "offsetY": 0.3125},
+      "*-east-plowland-4":  { "base": "oddwire:farming/crop/turnip/stage4", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-4": { "base": "oddwire:farming/crop/turnip/stage4", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-4":  { "base": "oddwire:farming/crop/turnip/stage4", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-5": { "base": "oddwire:farming/crop/turnip/stage5", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-5":  { "base": "oddwire:farming/crop/turnip/stage5", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-5": { "base": "oddwire:farming/crop/turnip/stage5", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-5":  { "base": "oddwire:farming/crop/turnip/stage5", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-*": { "base": "oddwire:farming/crop/turnip/stage1to2", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-*":  { "base": "oddwire:farming/crop/turnip/stage1to2", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-*": { "base": "oddwire:farming/crop/turnip/stage1to2", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-*":  { "base": "oddwire:farming/crop/turnip/stage1to2", "rotateY": 90,  "offsetY": 0.3125 }
+    }
   }
 ]

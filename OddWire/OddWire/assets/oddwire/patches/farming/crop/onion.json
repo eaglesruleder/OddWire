@@ -4,5 +4,54 @@
     "op": "add",
     "path": "/variantgroups/1",
     "value": { "code": "plot", "states": ["farmland", "plowland"] }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/onion",
+    "op": "add",
+    "path": "/variantgroups/1",
+    "value": { "code": "side", "loadFromProperties": "abstract/horizontalorientation" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/onion",
+    "op": "addmerge",
+    "path": "/behaviors/-",
+    "value": { "name": "HorizontalOrientable" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/onion",
+    "op": "addmerge",
+    "path": "/textures/bulb",
+    "value": { base: "block/plant/crop/onion/bulb" }
+  },
+  {
+    "file": "game:blocktypes/plant/crop/onion",
+    "op": "replace",
+    "path": "/shapeByType",
+    "value": {
+      "*-farmland-5": { "base": "game:block/plant/crop/onion/stage5" },
+      "*-farmland-6": { "base": "game:block/plant/crop/onion/stage6" },
+      "*-farmland-7": { "base": "game:block/plant/crop/onion/stage7" },
+      "*-farmland-*": { "base": "game:block/plant/crop/onion/stage1to4" },
+
+      "*-north-plowland-5": { "base": "oddwire:farming/crop/onion/stage5", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-5":  { "base": "oddwire:farming/crop/onion/stage5", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-5": { "base": "oddwire:farming/crop/onion/stage5", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-5":  { "base": "oddwire:farming/crop/onion/stage5", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-6": { "base": "oddwire:farming/crop/onion/stage6", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-6":  { "base": "oddwire:farming/crop/onion/stage6", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-6": { "base": "oddwire:farming/crop/onion/stage6", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-6":  { "base": "oddwire:farming/crop/onion/stage6", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-7": { "base": "oddwire:farming/crop/onion/stage7", "rotateY": 0,   "offsetY": 0.3125},
+      "*-east-plowland-7":  { "base": "oddwire:farming/crop/onion/stage7", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-7": { "base": "oddwire:farming/crop/onion/stage7", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-7":  { "base": "oddwire:farming/crop/onion/stage7", "rotateY": 90,  "offsetY": 0.3125 },
+
+      "*-north-plowland-*": { "base": "oddwire:farming/crop/onion/stage1to4", "rotateY": 0,   "offsetY": 0.3125 },
+      "*-east-plowland-*":  { "base": "oddwire:farming/crop/onion/stage1to4", "rotateY": 270, "offsetY": 0.3125 },
+      "*-south-plowland-*": { "base": "oddwire:farming/crop/onion/stage1to4", "rotateY": 180, "offsetY": 0.3125 },
+      "*-west-plowland-*":  { "base": "oddwire:farming/crop/onion/stage1to4", "rotateY": 90,  "offsetY": 0.3125 }
+    }
   }
 ]
