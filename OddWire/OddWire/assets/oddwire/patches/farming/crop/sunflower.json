@@ -3,46 +3,6 @@
     "file": "game:blocktypes/plant/crop/sunflower",
     "op": "add",
     "path": "/variantgroups/1",
-    "value": { "code": "plot", "states": ["farmland", "plowland"] }
-  },
-  {
-    "file": "game:blocktypes/plant/crop/sunflower",
-    "op": "add",
-    "path": "/variantgroups/1",
-    "value": { "code": "side", "loadFromProperties": "abstract/horizontalorientation" }
-  },
-  {
-    "file": "game:blocktypes/plant/crop/sunflower",
-    "op": "addmerge",
-    "path": "/behaviors/-",
-    "value": { "name": "HorizontalOrientable" }
-  },
-  {
-    "file": "game:blocktypes/plant/crop/sunflower",
-    "op": "addmerge",
-    "path": "/textures",
-    "value": {
-      "stem": { base: "block/plant/crop/sunflower/stem" },
-      "normal1-6": { base: "block/plant/crop/sunflower/normal1-6" },
-      "normal7-12": { base: "block/plant/crop/sunflower/normal7-12" },
-    }
-  },
-  {
-    "file": "game:blocktypes/plant/crop/sunflower",
-    "op": "remove",
-    "path": "/shape"
-  },
-  {
-    "file": "game:blocktypes/plant/crop/sunflower",
-    "op": "add",
-    "path": "/shapeByType",
-    "value": {
-      "*-farmland-*": { "base": "game:block/plant/crop/sunflower/stage{stage}" },
-
-      "*-north-plowland-*": { "base": "oddwire:farming/crop/sunflower/stage{stage}", "rotateY": 0,   "offsetY": 0.3125 },
-      "*-east-plowland-*":  { "base": "oddwire:farming/crop/sunflower/stage{stage}", "rotateY": 270, "offsetY": 0.3125 },
-      "*-south-plowland-*": { "base": "oddwire:farming/crop/sunflower/stage{stage}", "rotateY": 180, "offsetY": 0.3125 },
-      "*-west-plowland-*":  { "base": "oddwire:farming/crop/sunflower/stage{stage}", "rotateY": 90,  "offsetY": 0.3125 }
-    }
+    "value": { "code": "plot", "states": ["farmland"] }
   }
 ]

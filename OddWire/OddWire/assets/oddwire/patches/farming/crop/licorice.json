@@ -3,6 +3,6 @@
     "file": "game:blocktypes/plant/crop/licorice",
     "op": "add",
     "path": "/variantgroups/1",
-    "value": { "code": "plot", "states": ["farmland", "plowland"] }
+    "value": { "code": "plot", "states": ["farmland"] }
   }
 ]
