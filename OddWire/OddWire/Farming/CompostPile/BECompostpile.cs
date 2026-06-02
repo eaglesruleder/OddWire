@@ -217,18 +217,20 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     public float GetNutritionFactor()
     {
         if (NutritionStacks.Count < 1)
-            return 0f;
-        
+            return 1f;
+
+        int count = 0;
         float weighted = 0f;
         foreach (var nutritionStack in NutritionStacks)
         {
             if (Settings.NutritionSpeed?.TryGetValue(nutritionStack.Key.ToString(), out float speed) != true)
                 speed = 1;
             
+            count += nutritionStack.Value;
             weighted += nutritionStack.Value * speed;
         }
         
-        return weighted / Settings.Nutrition.MaxQty;
+        return (weighted + Settings.Nutrition.MaxQty - count) / Settings.Nutrition.MaxQty;
     }
     
     public float GetAerationHealth01() => 1f - GetAerationStress01();
@@ -642,12 +644,10 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     {
         consumedQty = 0;
         
-        #region if(!nutritionProps || !nutritionBudget || !stackConsumeQty || !nutritionAddQty) return false;
-        ItemStack stack = slot.Itemstack;
-        var collectible = stack?.Collectible;
-        var nutritionProps = collectible?.NutritionProps;
-        if (nutritionProps is null)
+        #region if(!nutritionBudget || !stackConsumeQty || !nutritionAddQty) return false;
+        if (slot.Itemstack is null)
             return false;
+        ItemStack stack = slot.Itemstack!;
         
         int roomQty = Settings.Nutrition.MaxQty - NutritionQty;
         int nutritionBudget = Math.Min(roomQty, Settings.Nutrition.MaxInputPerAdd);
@@ -669,8 +669,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        NutritionStacks.TryGetValue(nutritionProps.FoodCategory, out int cur);
-        NutritionStacks[nutritionProps.FoodCategory] = cur + nutritionAddQty;
+        var nutritionType = stack.Collectible?.NutritionProps?.FoodCategory ?? EnumFoodCategory.Unknown;
+        NutritionStacks.TryGetValue(nutritionType, out int cur);
+        NutritionStacks[nutritionType] = cur + nutritionAddQty;
         
         consumedQty = stackConsumeQty;
         return true;
