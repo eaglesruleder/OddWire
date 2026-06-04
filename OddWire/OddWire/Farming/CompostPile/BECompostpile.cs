@@ -261,18 +261,6 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         Block = block;
     }
     
-    public bool TryAdd(ItemSlot slot, out int accepted)
-    {
-        accepted = 0;
-        
-        if (!TryAddIngredient(slot, out accepted) || accepted < 1)
-            return false;
-        
-        UpdateShapeStackSize();
-        MarkDirty(true);
-        return true;
-    }
-    
     //  Intent: CanHarvest treats Nutrition as lossy
     public bool CanHarvest() =>
         CompostQty > 0
@@ -481,7 +469,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     #endregion
     
     #region TryAdd
-    private bool TryAddIngredient(ItemSlot slot, out int accepted)
+    public bool TryAdd(ItemSlot slot, out int accepted)
     {
         accepted = 0;
         
@@ -504,12 +492,15 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (TryAddNutrition(slot, out accepted))
             { restoreAeration = accepted * Settings.Nutrition.Aeration01PerInput; added = true; }
         
-        if (!added)
+        if (!added || accepted < 1)
             return false;
         #endregion
         
         RestoreAeration01(restoreAeration);
         UpdateInsulation01();
+        
+        UpdateShapeStackSize();
+        MarkDirty(true);
         return true;
     }
     
@@ -658,10 +649,8 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (nutritionPerInput <= 0)
             return false;
         
-        int stackConsumeMaxQty = (int)MathF.Floor(nutritionBudget / nutritionPerInput);
-        int stackConsumeQty = Math.Min(stackConsumeMaxQty, slot.StackSize);
-        if (stackConsumeQty < 1)
-            return false;
+        int stackConsumeQty = (int)MathF.Floor(nutritionBudget / nutritionPerInput);
+        stackConsumeQty = Math.Min(stackConsumeQty, slot.StackSize);
         
         int nutritionAddQty = (int)MathF.Ceiling(stackConsumeQty * nutritionPerInput);
         nutritionAddQty = Math.Min(nutritionAddQty, nutritionBudget);
@@ -687,7 +676,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (transitionProps is null
         ||  transitionProps.Length < 1
             )
-            return 1;
+            return 0;
         #endregion
         
         #region foreach(transitionProp) if(AddItemCodeRatios.TryGetValue() return itemCodeRatio * prop.TransitionRatio;
@@ -702,11 +691,11 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
                (prop.TransitionedStack.Code.Domain ?? "game") + ":"
             +   prop.TransitionedStack.Code.Path;
             if (Settings.Inoculum.AddItemCodeRatios?.TryGetValue(transitionedCode, out float inRatio) == true)
-                return Math.Max(prop.TransitionRatio * inRatio, 0f);
+                return Math.Max(prop.TransitionRatio * inRatio, 0);
         }
         #endregion
         
-        return 1f;
+        return 0;
     }
     #endregion
     
