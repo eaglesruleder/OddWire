@@ -65,7 +65,7 @@ public class CompostpileSettings
         AddItemCodeRatios = new Dictionary<string, float>
         {
             { "game:rot", 1f },
-            { "game:compost", 4f }
+            { "game:compost", 0.25f }
         },
         HarvestItemPath = "game:rot",
         HarvestQty = 32,
