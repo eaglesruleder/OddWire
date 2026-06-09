@@ -32,7 +32,7 @@ public class CompostpileSettings
         SizeBonusQty = (64 * 3 - 16) / (ShapeSizeLevels - 1),
         MaxQty = 64 * 3,
         MaxInputPerAdd = 16,
-        Aeration01PerInput = 1f / (64 * 3),
+        Aeration01PerInput = 0.5f / (64 * 3),
         AddItemCodeRatios = new Dictionary<string, float>
         {
             { "game:drygrass", 1f }
@@ -50,7 +50,7 @@ public class CompostpileSettings
         SizeBonusQty = (64 - 0) / (ShapeSizeLevels - 1),
         MaxQty = 64,
         MaxInputPerAdd = 8,
-        Aeration01PerInput = 1f / 64,
+        Aeration01PerInput = 0.5f / 64,
         ConsumePerTransition = 3
     };
 
@@ -61,7 +61,7 @@ public class CompostpileSettings
         SizeBonusQty = (64 - 4) / (ShapeSizeLevels - 1),
         MaxQty = 64,
         MaxInputPerAdd = 4,
-        Aeration01PerInput = 1f / 64,
+        Aeration01PerInput = 0.5f / 64,
         AddItemCodeRatios = new Dictionary<string, float>
         {
             { "game:rot", 1f },
@@ -73,12 +73,14 @@ public class CompostpileSettings
         ConsumePerTransition = 1
     };
 
-    public float Aeration01PerCompostpileInput { get; internal set; } = 1.0f;
+    public float Aeration01PerCompostpileInput { get; internal set; } = 0.01f;
     #endregion
 
     #region CompostRate
     public float BaseCompostRatePerHour { get; private set; } = 0.05f;
-    public Dictionary<string, float>? NutritionSpeed { get; private set; } = new()
+    public float InoculumMinFactor { get; private set; } = 0.25f;
+    public float NutritionBaseFactor { get; private set; } = 1.25f;
+    public Dictionary<string, float>? NutritionBonusFactor { get; private set; } = new()
     {
         { "Fruit", 1.5f },
         { "Vegetable", 2.0f },
@@ -132,8 +134,8 @@ public class CompostpileSettings
 
     #region Harvest
     public string HarvestCompostPath { get; private set; } = "game:compost";
-    public int HarvestCompostQty { get; internal set; } = 8;
-    public int HarvestCompostStackQty { get; internal set; } = 8;
+    public int HarvestCompostQty { get; internal set; } = 2;
+    public int HarvestCompostStackQty { get; internal set; } = 2;
     public string HarvestCompostpilePath { get; private set; } = "oddwire:compostpile-#1";
     public int HarvestCompostpileQty { get; internal set; } = 2;
     public int HarvestCompostpileStackQty { get; internal set; } = 2;

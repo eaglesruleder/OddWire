@@ -156,9 +156,11 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     *   GetMoistureHealth01();
     
     
-    //  Intent: Compost counts toward Factor so efficiency doesn't crash as inoculum converts
-    public float GetInoculumFactor01() =>
-        Math.Clamp((float)(InoculumQty + CompostQty) / Settings.Inoculum.MaxQty, 0.1f, 1f);
+    public float GetInoculumFactor01()
+    {
+        float inoculumFullness = (float)(InoculumQty + CompostQty * Settings.Inoculum.ConsumePerTransition) / Settings.Inoculum.MaxQty;
+        return GameMath.Lerp(Settings.InoculumMinFactor, 1f, inoculumFullness * (2f - inoculumFullness));
+    }
     
     public int GetInoculumRoomQty() =>
         Math.Max(Settings.Inoculum.MaxQty - (InoculumQty + CompostQty), 0);
@@ -223,8 +225,8 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         float weighted = 0f;
         foreach (var nutritionStack in NutritionStacks)
         {
-            if (Settings.NutritionSpeed?.TryGetValue(nutritionStack.Key.ToString(), out float speed) != true)
-                speed = 1;
+            if (Settings.NutritionBonusFactor?.TryGetValue(nutritionStack.Key.ToString(), out float speed) != true)
+                speed = Settings.NutritionBaseFactor;
             
             count += nutritionStack.Value;
             weighted += nutritionStack.Value * speed;
@@ -711,7 +713,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
                 continue;
             
             float value = 1f;
-            if (Settings.NutritionSpeed?.TryGetValue(kvp.Key.ToString(), out float speed) == true)
+            if (Settings.NutritionBonusFactor?.TryGetValue(kvp.Key.ToString(), out float speed) == true)
                 value = speed;
             
             if (smallestVal is null || smallestVal > value)
@@ -1604,7 +1606,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         List<string> parts = new();
         
         #region if(brownsPortions < maxThresholdPortions) parts += Browns
-        if (brownsPortions < maxThresholdPortions
+        if((brownsPortions < maxThresholdPortions
+        &&  BrownsQty + Settings.Browns.ConsumePerTransition < Settings.Browns.MaxQty
+            )
         ||  Settings.InfoDebug
            )
             parts.Add
@@ -1618,7 +1622,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #endregion
         
         #region if(nutritionPortions < maxThresholdPortions) parts += Nutrition
-        if (nutritionPortions < maxThresholdPortions
+        if((nutritionPortions < maxThresholdPortions
+        &&  NutritionQty + Settings.Nutrition.ConsumePerTransition < Settings.Nutrition.MaxQty
+           )
         ||  Settings.InfoDebug
            )
             parts.Add(
@@ -1632,7 +1638,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #endregion
         
         #region if(inoculumPortions < maxThresholdPortions) parts += Inoculum
-        if (inoculumPortions < maxThresholdPortions
+        if((inoculumPortions < maxThresholdPortions
+        &&  InoculumQty + Settings.Inoculum.ConsumePerTransition < Settings.Inoculum.MaxQty
+            )
         ||  Settings.InfoDebug
            )
             parts.Add(
