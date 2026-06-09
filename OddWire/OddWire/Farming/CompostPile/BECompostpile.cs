@@ -948,9 +948,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (neighbourBlock.Replaceable >= 6000)
             return false;
         
-        return
-            neighbourBlock.SideSolid[neighbour.Opposite.Index]
-        ||  neighbourBlock.CollisionBoxes?.Length > 0;
+        return neighbourBlock.SideSolid[neighbour.Opposite.Index];
     }
     
     public void Water(float dt)
