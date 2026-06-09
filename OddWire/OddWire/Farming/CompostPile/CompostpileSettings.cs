@@ -82,11 +82,11 @@ public class CompostpileSettings
     public float NutritionBaseFactor { get; private set; } = 1.25f;
     public Dictionary<string, float>? NutritionBonusFactor { get; private set; } = new()
     {
-        { "Fruit", 1.5f },
-        { "Vegetable", 2.0f },
-        { "Dairy", 2.2f },
-        { "Grain", 2.3f },
-        { "Protein", 2.7f }
+        { "Dairy", 1.3f },
+        { "Fruit", 1.6f },
+        { "Grain", 1.8f },
+        { "Vegetable", 2.2f },
+        { "Protein", 2.6f }
     };
     #endregion
 
@@ -105,6 +105,14 @@ public class CompostpileSettings
     public float AerationBlockedPenalty { get; private set; } = 0.2f;
     public float HypoxicThreshold { get; private set; } = 0.35f;
     public float HypoxicTolerance { get; private set; } = 0.20f;
+    public Dictionary<string, float>? NutritionAerationConsumption { get; private set; } = new()
+    {
+        { "Dairy", 2.7f },
+        { "Fruit", 2.1f },
+        { "Grain", 1.7f },
+        { "Vegetable", 1.3f },
+        { "Protein", 2.3f }
+    };
     #endregion
 
     #region Temperature
@@ -114,10 +122,10 @@ public class CompostpileSettings
     public float NeighbourHeatRate { get; private set; } = 1f;
     public Dictionary<string, float>? NutritionHeat { get; private set; } = new()
     {
-        { "Fruit", 1.5f },
-        { "Vegetable", 2.0f },
-        { "Dairy", 2.2f },
-        { "Grain", 2.3f },
+        { "Dairy", 2.0f },
+        { "Fruit", 1.2f },
+        { "Grain", 1.6f },
+        { "Vegetable", 1.8f },
         { "Protein", 2.7f }
     };
     public float OverheatThreshold { get; private set; } = 65f;
@@ -144,7 +152,7 @@ public class CompostpileSettings
     #endregion
 
     #region BlockInfo
-    public bool InfoDebug = false;
+    public bool InfoDebug = true;
     public float InfoFactorWarningThreshhold = 0.8f;
     public float InfoNeedsPortionsThreshhold = 2f;
     #endregion

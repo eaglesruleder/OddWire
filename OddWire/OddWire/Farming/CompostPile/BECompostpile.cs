@@ -1094,6 +1094,25 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         return true;
     }
 
+    private float GetAerationConsumption()
+    {
+        if (Settings.NutritionAerationConsumption is null)
+            return 1f;
+    
+        int count = 0;
+        float demand = 0f;
+        foreach (var kvp in NutritionStacks)
+        {
+            if (Settings.NutritionAerationConsumption.TryGetValue(kvp.Key.ToString(), out float o2) != true)
+                o2 = 1f;
+        
+            count += kvp.Value;
+            demand += o2 * kvp.Value;
+        }
+    
+        return (demand + (Settings.Nutrition.MaxQty - count)) / Settings.Nutrition.MaxQty;
+    }
+    
     private bool UpdateAeration(double totalHours)
     {
         #region if(0 > _prevTimeAerationUpdated || > totalHours) return true;
@@ -1110,13 +1129,13 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (dtAerationDays <= 0)
             return false;
         
-        #region _aeration01 -= compaction01 * airflowPenalty * dtDays / RetentionDays;
+        #region _aeration01 -= compaction01 * airflowPenalty * oxygenDemand01 * dtDays / RetentionDays;
         float compaction01 = GameMath.Lerp(0.45f, 1.0f, GetFullness01());
         float airflowPenalty = 1f + _adjacentBlockCount * Settings.AerationBlockedPenalty;
         _aeration01 = Math.Clamp
-            (_aeration01
-         -   compaction01 * airflowPenalty * dtAerationDays / Settings.AerationRetentionDays
-            , 0, 1);
+           (_aeration01
+        -   compaction01 * airflowPenalty * GetAerationConsumption() * dtAerationDays / Settings.AerationRetentionDays
+           ,0, 1);
         _prevTimeAerationUpdated = totalHours;
         #endregion
         
