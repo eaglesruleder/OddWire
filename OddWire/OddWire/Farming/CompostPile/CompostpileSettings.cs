@@ -77,7 +77,9 @@ public class CompostpileSettings
     #endregion
 
     #region CompostRate
-    public float BaseCompostRatePerHour { get; private set; } = 0.05f;
+    public float BaseCompostRatePerHour { get; private set; } = 0.05f;   // Stage 2: browns + inoculum -> compost
+    public float BaseInoculumRatePerHour { get; private set; } = 0.5f;   // Stage 1: nutrition -> inoculum (placeholder, balance later)
+    public int CompostMaxQty { get; private set; } = 64;                 // Compost owns its own bucket (no longer shares Inoculum.MaxQty)
     public float InoculumMinFactor { get; private set; } = 0.25f;
     public float NutritionBaseFactor { get; private set; } = 1.25f;
     public Dictionary<string, float>? NutritionBonusFactor { get; private set; } = new()
@@ -130,14 +132,6 @@ public class CompostpileSettings
     };
     public float OverheatThreshold { get; private set; } = 65f;
     public float OverheatTolerance { get; private set; } = 10f;
-    #endregion
-
-    #region Stress
-    public float StressGainDays { get; private set; } = 1.5f;
-    public float StressRecoveryDays { get; private set; } = 3f;
-
-    public int CompostOutPerSuccess { get; private set; } = 1;
-    public int InoculumOutPerFail { get; private set; } = 1;
     #endregion
 
     #region Harvest

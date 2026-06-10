@@ -6,6 +6,8 @@
     "compostpile-info-composting": "Composting: {0}, {1}",
     "compostpile-info-state": "Temp <font color=\"{0}\">{1:0.#}°C</font> | Moist <font color=\"{2}\">{3:0.#}%</font> | Air <font color=\"{4}\">{5:0.#}%</font>",
     "compostpile-info-speed": "Speed: {0:0}%, {1}",
+    "compostpile-info-culture": "Culture: Inoculum {0}/{1}",
+    "compostpile-info-health": "Health: {0:0}%",
     "compostpile-info-harvest": "Harvest: Compost {0} | Pile {1}",
     "compostpile-info-nutmix": "Nut Mix: {0}",
 

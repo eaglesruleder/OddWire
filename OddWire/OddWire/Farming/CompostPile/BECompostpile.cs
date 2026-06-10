@@ -93,8 +93,12 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             sum += kvp.Value;
         return sum;
     } }
+    
     public int InoculumQty;
+    public int GetInoculumRoomQty() => Math.Max(Settings.Inoculum.MaxQty - InoculumQty, 0);
+    
     public int CompostQty;
+    public int GetCompostRoomQty() => Math.Max(Settings.CompostMaxQty - CompostQty, 0);
     
     public double PrevTimeMoistureUpdated = -1;
     public float Moisture01;
@@ -107,10 +111,8 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     private float _aeration01 = 1f;
     public float Aeration01 => _aeration01;
     
-    private double _prevTimeStressUpdated = -1;
-    public float Stress01;
-    
-    public double PrevTimeProcessed = -1;
+    private double _prevTimeDecomposed = -1;
+    private double _prevTimeProcessed = -1;
     
     private int _adjacentBlockCount;
     public int AdjacentBlockCount
@@ -121,34 +123,24 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     public float AdjacentBlockHeat;
     #endregion
     
-    #region Rate Factors & Failure Stress
-    //  Factor impacts Processing Rate
-    public float GetFactor()
+    #region Rate Factors & Health
+    public float GetDecompositionFactor() => GetTemperatureFactor01();
+    
+    public float GetDecompositionEfficiency01() =>
+        GetMoistureHealth01()
+    *   GetAerationHealth01();
+    
+    public float GetCompostFactor()
     {
-        if (InoculumQty < 1 && CompostQty < 1)
-            return 0;
-        
-        float decompositionFactor = GetDecompositionFactor();
-        if (decompositionFactor.Approx(0))
+        if (InoculumQty < Settings.Inoculum.ConsumePerTransition)
             return 0;
         
         return
-            decompositionFactor
+            GetTemperatureFactor01()
         *   GetInoculumFactor01()
         *   GetMoistureFactor01();
     }
     
-    public float GetDecompositionFactor()
-    {
-        if (BrownsQty < 1 && NutritionQty < 1)
-            return 0f;
-        
-        return
-            GetNutritionFactor()
-        *   GetTemperatureFactor01();
-    }
-    
-    //  Stress impacts Compost/Inoculum output ratio
     public float GetStress01() => 1f - GetHealth01();
     public float GetHealth01() =>
         GetAerationHealth01()
@@ -158,12 +150,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     public float GetInoculumFactor01()
     {
-        float inoculumFullness = (float)(InoculumQty + CompostQty * Settings.Inoculum.ConsumePerTransition) / Settings.Inoculum.MaxQty;
+        float inoculumFullness = (float)InoculumQty / Settings.Inoculum.MaxQty;
         return GameMath.Lerp(Settings.InoculumMinFactor, 1f, inoculumFullness * (2f - inoculumFullness));
     }
-    
-    public int GetInoculumRoomQty() =>
-        Math.Max(Settings.Inoculum.MaxQty - (InoculumQty + CompostQty), 0);
     
     public float GetTemperatureFactor01()
     {
@@ -453,19 +442,17 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         CompostQty = 0;
         #endregion
         
-        #region Moisture, Temperature, Aeration, Stress = default
+        #region Moisture, Temperature, Aeration = default
         Moisture01 = Settings.Moisture01Initial;
         PrevTimeMoistureUpdated = -1;
-        PrevTimeProcessed = -1;
+        _prevTimeProcessed = -1;
+        _prevTimeDecomposed = -1;
         
         _prevTimeTemperatureUpdated = -1;
         _temperature = 0f;
         
         _prevTimeAerationUpdated = -1;
         _aeration01 = 1f;
-        
-        _prevTimeStressUpdated = -1;
-        Stress01 = 0f;
         #endregion
     }
     #endregion
@@ -840,7 +827,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         
         ResetOnPlaced(Block);
         PreUpdateState(Api.World.Calendar.TotalHours);
-        PrevTimeProcessed = Api.World.Calendar.TotalHours;
+        _prevTimeProcessed = Api.World.Calendar.TotalHours;
         
         NeighboursDirty = true;
         
@@ -1000,6 +987,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         // Intent: | not ||
         return
             UpdateState(totalHours)
+        |   ProcessDecomposition(totalHours)
         |   ProcessCompost(totalHours);
     }
     
@@ -1053,8 +1041,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         return
             UpdateMoisture   (totalHours)
         |   UpdateAeration   (totalHours)
-        |   UpdateTemperature(totalHours)
-        |   UpdateStress     (totalHours);
+        |   UpdateTemperature(totalHours);
     }
     
     private bool UpdateMoisture(double totalHours)
@@ -1198,30 +1185,6 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool UpdateStress(double totalHours)
     {
-        #region if(0 > _prevTimeUpdated || > totalHours) return true;
-        if (_prevTimeStressUpdated < 0
-        ||  _prevTimeStressUpdated > totalHours
-           )
-        {
-            _prevTimeStressUpdated = totalHours;
-            return true;
-        }
-        #endregion
-        
-        float dtStressDays = (float)((totalHours - _prevTimeStressUpdated) / Api.World.Calendar.HoursPerDay);
-        if (dtStressDays <= 0f)
-            return false;
-        
-        float targetStress01 = GetStress01();
-        float responseDays =
-            targetStress01 > Stress01
-        ?   Settings.StressGainDays
-        :   Settings.StressRecoveryDays;
-        
-        Stress01 += (targetStress01 - Stress01) * Math.Clamp(dtStressDays / responseDays, 0, 1);
-        Stress01 = Math.Clamp(Stress01, 0, 1);
-        _prevTimeStressUpdated = totalHours;
-        
         return true;
     }
     #endregion
@@ -1229,186 +1192,103 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     #region Processing
     private bool ProcessCompost(double totalHours)
     {
-        #region if(!InoculumRoom || !bulkPortions) return false;
-        // Full-cap exit: pile at inoculum max AND transitions net-add inoculum — no room to process
-        if (PrevTimeProcessed < 0
-        ||  PrevTimeProcessed > totalHours
-        || (InoculumQty + CompostQty >= Settings.Inoculum.MaxQty
-        &&  Settings.Inoculum.ConsumePerTransition < Settings.CompostOutPerSuccess
-           ))
+        #region if(neverProcessed || !browns/inoculumPortions || !compostRoom) { prevTime = now; return false; } 
+        if (_prevTimeProcessed < 0
+        ||  _prevTimeProcessed > totalHours
+            )
         {
-            PrevTimeProcessed = totalHours;
+            _prevTimeProcessed = totalHours;
             return false;
         }
-        
-        int nutritionQty = NutritionQty;
         
         float brownsPortions = (float)BrownsQty / Settings.Browns.ConsumePerTransition;
-        float nutritionPortions = (float)nutritionQty / Settings.Nutrition.ConsumePerTransition;
-        float bulkPortions = brownsPortions + nutritionPortions;
-        if (bulkPortions < 1f)
+        float inoculumPortions = (float)InoculumQty / Settings.Inoculum.ConsumePerTransition;
+        float transitionCapacity = Math.Min(Math.Min
+            (brownsPortions
+            ,inoculumPortions
+           ),GetCompostRoomQty()
+            );
+        
+        if (transitionCapacity < 1)
         {
-            PrevTimeProcessed = totalHours;
+            _prevTimeProcessed = totalHours;
             return false;
         }
         #endregion
         
-        #region if (InoculumQty < ConsumePerTransition) { Nutrition -= Rate; Inoc += Rate; return; }
-        double duration = totalHours - PrevTimeProcessed;
-        if (InoculumQty < Settings.Inoculum.ConsumePerTransition)
-        {
-            if (nutritionQty < 1)
-            {
-                PrevTimeProcessed = totalHours;
-                return false;
-            }
-            
-            float decompositionRate = Settings.BaseCompostRatePerHour * GetDecompositionFactor();
-            int decompositionMax = (int)Math.Min(Math.Min
-                (decompositionRate * duration
-                ,nutritionQty
-               ),Settings.Inoculum.MaxQty - InoculumQty
-                );
-            TryRemoveCheapestNutrition(decompositionMax);
-            InoculumQty += decompositionMax;
-            
-            PrevTimeProcessed = totalHours;
-            return true;
-        }
-        #endregion
+        #region if(!(transitions = duration * BaseRate * Factor)) return false;
+        double duration = totalHours - _prevTimeProcessed;
+        float transitionRate = Settings.BaseCompostRatePerHour * GetCompostFactor();
+        int transitions = (int)Math.Min
+            (duration * transitionRate
+            ,transitionCapacity
+            );
         
-        #region if(!durationTransitions || !actualTransitions) return false;
-        float transitionRate = Settings.BaseCompostRatePerHour * GetFactor();
-        int transitions = (int)Math.Min(duration * transitionRate, bulkPortions);
         if (transitions < 1)
             return false; // keep accruing progress
-        
-        (int compostOutput, int failedOutput) = ResolveOutputTransitions(transitions);
-        int actualTransitions = compostOutput + failedOutput;
-        if (actualTransitions < 1)
-            return false; // keep accruing progress
         #endregion
         
-        (float brownsInputPortions, float nutritionInputPortions) = ResolveInputPortions(actualTransitions, brownsPortions, nutritionPortions);
+        BrownsQty   -= Math.Min(transitions * Settings.Browns.ConsumePerTransition, BrownsQty);
+        InoculumQty -= Math.Min(transitions * Settings.Inoculum.ConsumePerTransition, InoculumQty);
+        CompostQty   = Math.Min(transitions + CompostQty, Settings.CompostMaxQty);
         
-        #region Browns/Nutrition -= ConsumePerTransition; Compost/Inoculum += CompostOutPerSuccess/Fail;
-        BrownsQty -= (int)Math.Min(brownsInputPortions * Settings.Browns.ConsumePerTransition, BrownsQty);
-        TryRemoveRandomNutrition(Api.World.Rand, (int)(nutritionInputPortions * Settings.Nutrition.ConsumePerTransition));
-        
-        CompostQty = Math.Clamp
-            (CompostQty + compostOutput * Settings.CompostOutPerSuccess
-            ,0, Settings.Inoculum.MaxQty
-            );
-        
-        InoculumQty = Math.Clamp
-           (InoculumQty
-        +   failedOutput * Settings.InoculumOutPerFail
-        -   compostOutput * Settings.Inoculum.ConsumePerTransition
-           ,0, Settings.Inoculum.MaxQty - CompostQty
-            );
-        #endregion
-        
-        PrevTimeProcessed += actualTransitions / transitionRate;
+        _prevTimeProcessed += transitions / transitionRate;
         return true;
     }
     
-    private (int compostOutput, int failedOutput) ResolveOutputTransitions(int transitions)
+    //  Stage 1: nutrition feeds the inoculum culture
+    //  Intent: temperature gates metabolic RATE (cold => dormant => pause); GetConversionEfficiency01 gates YIELD
+    //          (warm + drowned/anaerobic => nutrition consumed but wasted)
+    //  Intent: NEVER decrements InoculumQty — stress is paid in wasted nutrition, not lost culture
+    private bool ProcessDecomposition(double totalHours)
     {
-        int failedOutput = (int)(transitions * Stress01);
-        int compostOutput = transitions - failedOutput;
-        
-        ClampFailedToOutputRoom(ref failedOutput, out int failedOverflow);
-        compostOutput += failedOverflow;
-        
-        ClampCompostToOutputRoom(ref compostOutput, out int compostOverflow);
-        failedOutput += compostOverflow;
-        
-        BootstrapCompostWithFailed(ref compostOutput, ref failedOutput);
-        
-        ClampFailedToFinalRoom(ref compostOutput, ref failedOutput);
-        
-        return (compostOutput, failedOutput);
-    }
-    
-    private void ClampFailedToOutputRoom(ref int failedOutput, out int transitionsOverflow)
-    {
-        int failedOutputRoom = GetInoculumRoomQty() / Settings.InoculumOutPerFail;
-        if (failedOutput <= failedOutputRoom)
+        #region if(neverProcessed || !inoculumRoom) { prevTime = now; return false; }
+        if (_prevTimeDecomposed < 0
+        ||  _prevTimeDecomposed > totalHours
+           )
         {
-            transitionsOverflow = 0;
-            return;
+            _prevTimeDecomposed = totalHours;
+            return false;
         }
         
-        transitionsOverflow = failedOutput - failedOutputRoom;
-        failedOutput = failedOutputRoom;
-    }
-    
-    private void ClampCompostToOutputRoom(ref int compostOutput, out int transitionsOverflow)
-    {
-        int compostOutputNet = Settings.CompostOutPerSuccess - Settings.Inoculum.ConsumePerTransition;
-        if (compostOutputNet < 1)
+        int inoculumRoom = GetInoculumRoomQty();
+        if (inoculumRoom < 1)
         {
-            transitionsOverflow = 0;
-            return;
+            _prevTimeDecomposed = totalHours;
+            return false;
         }
+        #endregion
         
-        int compostOutputRoom = GetInoculumRoomQty() / compostOutputNet;
-        if (compostOutput <= compostOutputRoom)
+        #region if(!(transitions = duration * BaseRate * Factor)) return false;
+        double duration = totalHours - _prevTimeDecomposed;
+        float transitionRate = Settings.BaseInoculumRatePerHour * GetDecompositionFactor();
+
+        float baseTransitions = (float)(duration * transitionRate);
+        float nutritionTransitions = 0;
+        int transitions = 0;
+        
+        if (baseTransitions < inoculumRoom)
         {
-            transitionsOverflow = 0;
-            return;
-        }
-        
-        transitionsOverflow = compostOutput - compostOutputRoom;
-        compostOutput = compostOutputRoom;
-    }
-    
-    private void BootstrapCompostWithFailed(ref int compostOutput, ref int failedOutput)
-    {
-        int inoculumAfterFailedQty = InoculumQty + failedOutput * Settings.InoculumOutPerFail;
-        int compostPossibleByInoculum = inoculumAfterFailedQty / Settings.Inoculum.ConsumePerTransition;
-        if (compostOutput <= compostPossibleByInoculum)
-            return;
-        
-        int overflowByInoculumLimit = compostOutput - compostPossibleByInoculum;
-        int compostSubsidizedByFailed =
-            overflowByInoculumLimit * Settings.InoculumOutPerFail
-        /  (Settings.InoculumOutPerFail + Settings.Inoculum.ConsumePerTransition);
-        
-        compostOutput = compostPossibleByInoculum + compostSubsidizedByFailed;
-        failedOutput += overflowByInoculumLimit - compostSubsidizedByFailed;
-    }
-    
-    private void ClampFailedToFinalRoom(ref int compostOutput, ref int failedOutput)
-    {
-        int inoculumChangeQty =
-            failedOutput * Settings.InoculumOutPerFail
-        +   compostOutput * (Settings.CompostOutPerSuccess - Settings.Inoculum.ConsumePerTransition);
-        int inoculumRoomQty = GetInoculumRoomQty();
-        
-        if (inoculumChangeQty <= inoculumRoomQty)
-            return;
-        
-        int inoculumExcess = (int)Math.Ceiling((float)(inoculumChangeQty - inoculumRoomQty) / Settings.InoculumOutPerFail);
-        failedOutput = Math.Max(failedOutput - inoculumExcess, 0);
-    }
-    
-    private (float brownsInputPortions, float nutritionInputPortions) ResolveInputPortions(int actualTransitions, float brownsPortions, float nutritionPortions)
-    {
-        float minBrowns = Math.Max(actualTransitions - nutritionPortions, 0f);
-        float maxBrowns = Math.Min(actualTransitions, brownsPortions);
-        
-        float brownsInputPortions;
-        if (maxBrowns > minBrowns)
-        {
-            float mean = actualTransitions * (brownsPortions / (brownsPortions + nutritionPortions));
-            brownsInputPortions = Math.Clamp(mean, minBrowns, maxBrowns);
+            nutritionTransitions = Math.Min
+                (baseTransitions * (GetNutritionFactor() - 1)
+                ,inoculumRoom - baseTransitions
+                );
+            transitions = (int)(baseTransitions + nutritionTransitions);
         }
         else
-            brownsInputPortions = minBrowns;
+            transitions = (int)Math.Min(baseTransitions, inoculumRoom);
         
-        float nutritionInputPortions = actualTransitions - brownsInputPortions;
-        return (brownsInputPortions, nutritionInputPortions);
+        if (transitions < 1)
+            return false; // keep accruing progress
+        #endregion
+        
+        if (nutritionTransitions > 0)
+            TryRemoveRandomNutrition(Api.World.Rand, (int)Math.Ceiling(nutritionTransitions * GetDecompositionEfficiency01()));
+        
+        InoculumQty += transitions;
+        
+        _prevTimeDecomposed = totalHours;
+        return true;
     }
     #endregion
     
@@ -1476,43 +1356,61 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             ));
         #endregion
         
-        #region Write Debug Health
+        #region Write Debug Neighbours
         if (Settings.InfoDebug)
         {
             dsc.AppendLine(Lang.Get
                 ("Neighbours: {0}/5 blocking{1}"
                 ,AdjacentBlockCount
-                ,AdjacentBlockHeat > 0 ? $" | Heat: {AdjacentBlockHeat:0.0}°C" : ""
-                ));
-            dsc.AppendLine(Lang.Get
-                ("Health {0:0}% | Temp {1:0}% × Moist {2:0}% × Air {3:0}%"
-                ,GetHealth01() * 100f
-                ,GetTemperatureHealth01() * 100f
-                ,GetMoistureHealth01() * 100f
-                ,GetAerationHealth01() * 100f
+                ,AdjacentBlockHeat > 0 ? $" | Heat: {AdjacentBlockHeat:0}°C" : ""
                 ));
             dsc.AppendLine();
         }
         #endregion
         
         #region Write Speed
-        float factor = GetFactor();
+        float factor = GetCompostFactor();
         dsc.AppendLine(Lang.Get
             ("oddwire:compostpile-info-speed"
             ,factor * 100f
             ,GetCompostRateLabel(factor)
             ));
-        #endregion
-        
-        #region Write Debug Factors
         if (Settings.InfoDebug)
-        {
             dsc.AppendLine(Lang.Get
-                ("Inoc {0:0}% × Temp {1:0}% × Moist {2:0}% × Nut {3:0}%"
+                ("Inoc {0}% × Temp {1}% × Moist {2}%"
                 ,GetInoculumFactor01() * 100f
                 ,GetTemperatureFactor01() * 100f
                 ,GetMoistureFactor01() * 100f
+                ));
+        #endregion
+        
+        #region Write Culture
+        dsc.AppendLine(Lang.Get
+            ("oddwire:compostpile-info-culture"
+            ,InoculumQty
+            ,Settings.Inoculum.MaxQty
+            ));
+        if (Settings.InfoDebug)
+            dsc.AppendLine(Lang.Get
+                ("Nutrition {0}% × Temp {1}% × Efficiency {2}%"
                 ,GetNutritionFactor() * 100f
+                ,GetTemperatureFactor01() * 100f
+                ,GetDecompositionEfficiency01() * 100f
+                ));
+        #endregion
+        
+        #region Write Health (instantaneous condition)
+        dsc.AppendLine(Lang.Get
+            ("oddwire:compostpile-info-health"
+            ,GetHealth01() * 100f
+            ));
+        if (Settings.InfoDebug)
+        {
+            dsc.AppendLine(Lang.Get
+                ("Temp {0}% × Moist {1}% × Air {2}%"
+                ,GetTemperatureHealth01() * 100f
+                ,GetMoistureHealth01() * 100f
+                ,GetAerationHealth01() * 100f
                 ));
             dsc.AppendLine();
         }
@@ -1586,7 +1484,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     }
     private void AppendInoculumStatus(List<string> states)
     {
-        if (GetInoculumFactor01() <= 1f - Settings.InfoFactorWarningThreshhold)
+        if (InoculumQty < Settings.Inoculum.ConsumePerTransition)
             states.Add(Lang.Get("oddwire:compostpile-status-unseeded"));
     }
     private string GetCompostRateLabel(float factor)
@@ -1634,7 +1532,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
                     ,BrownsQty
                     ,Settings.Browns.MaxQty
                     )
-            +   (Settings.InfoDebug ? $" ({brownsPortions:0.0})" : "")
+            +   (Settings.InfoDebug ? $" ({brownsPortions:0})" : "")
                 );
         #endregion
         
@@ -1650,7 +1548,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
                     ,NutritionQty
                     ,Settings.Nutrition.MaxQty
                     )
-            +   (Settings.InfoDebug ? $" ({nutritionPortions:0.0})" : "")
+            +   (Settings.InfoDebug ? $" ({nutritionPortions:0})" : "")
                 );
         #endregion
         
@@ -1666,7 +1564,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
                     ,InoculumQty
                     ,Settings.Inoculum.MaxQty
                     )
-            +   (Settings.InfoDebug ? $" ({inoculumPortions:0.0})" : "")
+            +   (Settings.InfoDebug ? $" ({inoculumPortions:0})" : "")
                 );
         #endregion
         
@@ -1719,7 +1617,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         tree.SetDouble($"{key}.PrevTimeMoistureUpdated", PrevTimeMoistureUpdated);
         tree.SetFloat($"{key}.Moisture01", Moisture01);
         
-        tree.SetDouble($"{key}.PrevTimeProcessed", PrevTimeProcessed);
+        tree.SetDouble($"{key}.PrevTimeProcessed", _prevTimeProcessed);
         
         tree.SetInt($"{key}.BrownsQty", BrownsQty);
         tree.SetInt($"{key}.InoculumQty", InoculumQty);
@@ -1743,8 +1641,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         tree.SetDouble($"{key}._prevTimeAerationUpdated", _prevTimeAerationUpdated);
         tree.SetFloat($"{key}._aeration01", _aeration01);
         
-        tree.SetDouble($"{key}._prevTimeStressUpdated", _prevTimeStressUpdated);
-        tree.SetFloat($"{key}.Stress01", Stress01);
+        tree.SetDouble($"{key}._prevTimeDecomposed", _prevTimeDecomposed);
         
         tree.SetInt($"{key}._adjacentBlockCount", _adjacentBlockCount);
         tree.SetFloat($"{key}.AdjacentBlockHeat", AdjacentBlockHeat);
@@ -1755,7 +1652,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         PrevTimeMoistureUpdated = tree.GetDouble($"{key}.PrevTimeMoistureUpdated", -1);
         Moisture01 = tree.GetFloat($"{key}.Moisture01");
         
-        PrevTimeProcessed = tree.GetDouble($"{key}.PrevTimeProcessed", -1);
+        _prevTimeProcessed = tree.GetDouble($"{key}.PrevTimeProcessed", -1);
         
         BrownsQty = tree.GetInt($"{key}.BrownsQty");
         InoculumQty = tree.GetInt($"{key}.InoculumQty");
@@ -1772,8 +1669,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         _prevTimeAerationUpdated = tree.GetDouble($"{key}._prevTimeAerationUpdated", -1);
         _aeration01 = tree.GetFloat($"{key}._aeration01", 1f);
         
-        _prevTimeStressUpdated = tree.GetDouble($"{key}._prevTimeStressUpdated", -1);
-        Stress01 = tree.GetFloat($"{key}.Stress01");
+        _prevTimeDecomposed = tree.GetDouble($"{key}._prevTimeDecomposed", -1);
         
         _adjacentBlockCount = tree.GetInt($"{key}._adjacentBlockCount");
         AdjacentBlockHeat = tree.GetFloat($"{key}.AdjacentBlockHeat");
