@@ -141,13 +141,6 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         *   GetMoistureFactor01();
     }
     
-    public float GetStress01() => 1f - GetHealth01();
-    public float GetHealth01() =>
-        GetAerationHealth01()
-    *   GetTemperatureHealth01()
-    *   GetMoistureHealth01();
-    
-    
     public float GetInoculumFactor01()
     {
         float inoculumFullness = (float)InoculumQty / Settings.Inoculum.MaxQty;
@@ -1182,11 +1175,6 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         
         return true;
     }
-    
-    private bool UpdateStress(double totalHours)
-    {
-        return true;
-    }
     #endregion
     
     #region Processing
@@ -1236,10 +1224,6 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         return true;
     }
     
-    //  Stage 1: nutrition feeds the inoculum culture
-    //  Intent: temperature gates metabolic RATE (cold => dormant => pause); GetConversionEfficiency01 gates YIELD
-    //          (warm + drowned/anaerobic => nutrition consumed but wasted)
-    //  Intent: NEVER decrements InoculumQty — stress is paid in wasted nutrition, not lost culture
     private bool ProcessDecomposition(double totalHours)
     {
         #region if(neverProcessed || !inoculumRoom) { prevTime = now; return false; }
@@ -1263,16 +1247,18 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         double duration = totalHours - _prevTimeDecomposed;
         float transitionRate = Settings.BaseInoculumRatePerHour * GetDecompositionFactor();
 
-        float baseTransitions = (float)(duration * transitionRate);
+        float efficiency01 = GetDecompositionEfficiency01();
+        float baseTransitions = (float)(duration * transitionRate * efficiency01);
         float nutritionTransitions = 0;
         int transitions = 0;
         
         if (baseTransitions < inoculumRoom)
         {
-            nutritionTransitions = Math.Min
-                (baseTransitions * (GetNutritionFactor() - 1)
-                ,inoculumRoom - baseTransitions
-                );
+            nutritionTransitions =
+                Math.Min(baseTransitions * (GetNutritionFactor() - 1), NutritionQty)
+            *   efficiency01;
+            nutritionTransitions = Math.Min(nutritionTransitions, inoculumRoom - baseTransitions);
+            
             transitions = (int)(baseTransitions + nutritionTransitions);
         }
         else
@@ -1283,8 +1269,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #endregion
         
         if (nutritionTransitions > 0)
-            TryRemoveRandomNutrition(Api.World.Rand, (int)Math.Ceiling(nutritionTransitions * GetDecompositionEfficiency01()));
-        
+            TryRemoveRandomNutrition(Api.World.Rand, (int)(nutritionTransitions / efficiency01));
         InoculumQty += transitions;
         
         _prevTimeDecomposed = totalHours;
@@ -1339,7 +1324,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         :   skyExposed ? Lang.Get("oddwire:compostpile-room-outside")
         :   Lang.Get("oddwire:compostpile-room-inside");
         if (Settings.InfoDebug)
-            roomLabel += Lang.Get(" ({0:0.#}°C)", Api.GetEnvironmentTemperatureC(Pos, Api.World.Calendar.TotalHours, skyExposed, Settings.GreenhouseHeat, out _));
+            roomLabel += Lang.Get(" ({0:0}°C)", Api.GetEnvironmentTemperatureC(Pos, Api.World.Calendar.TotalHours, skyExposed, Settings.GreenhouseHeat, out _));
         #endregion
         
         #region Write Composting Rate & Core
@@ -1360,7 +1345,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (Settings.InfoDebug)
         {
             dsc.AppendLine(Lang.Get
-                ("Neighbours: {0}/5 blocking{1}"
+                ("Neighbours: {0:0}/5 blocking{1}"
                 ,AdjacentBlockCount
                 ,AdjacentBlockHeat > 0 ? $" | Heat: {AdjacentBlockHeat:0}°C" : ""
                 ));
@@ -1368,52 +1353,46 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         }
         #endregion
         
-        #region Write Speed
-        float factor = GetCompostFactor();
-        dsc.AppendLine(Lang.Get
-            ("oddwire:compostpile-info-speed"
-            ,factor * 100f
-            ,GetCompostRateLabel(factor)
-            ));
-        if (Settings.InfoDebug)
-            dsc.AppendLine(Lang.Get
-                ("Inoc {0}% × Temp {1}% × Moist {2}%"
-                ,GetInoculumFactor01() * 100f
-                ,GetTemperatureFactor01() * 100f
-                ,GetMoistureFactor01() * 100f
-                ));
-        #endregion
+        #region Write Processing
+        float compostFactor = GetCompostFactor();
+        float compostRate = Settings.BaseCompostRatePerHour * compostFactor;
         
-        #region Write Culture
-        dsc.AppendLine(Lang.Get
-            ("oddwire:compostpile-info-culture"
-            ,InoculumQty
-            ,Settings.Inoculum.MaxQty
-            ));
-        if (Settings.InfoDebug)
-            dsc.AppendLine(Lang.Get
-                ("Nutrition {0}% × Temp {1}% × Efficiency {2}%"
-                ,GetNutritionFactor() * 100f
-                ,GetTemperatureFactor01() * 100f
-                ,GetDecompositionEfficiency01() * 100f
-                ));
-        #endregion
+        float inoculumFactor = GetDecompositionFactor() * GetNutritionFactor() * GetDecompositionEfficiency01();
+        float inoculumCreateRate = Settings.BaseInoculumRatePerHour * inoculumFactor;
+        float inocConsumeRate = compostRate * Settings.Inoculum.ConsumePerTransition;
+        float inoculumRate = inoculumCreateRate - inocConsumeRate;
         
-        #region Write Health (instantaneous condition)
-        dsc.AppendLine(Lang.Get
-            ("oddwire:compostpile-info-health"
-            ,GetHealth01() * 100f
-            ));
+        dsc.AppendLine
+            (Lang.Get("oddwire:compostpile-info-culture", inoculumFactor * 100f)
+        +   ", " + GetRateLabel(inoculumRate, Lang.Get("oddwire:var-inoculum"))
+            );
         if (Settings.InfoDebug)
         {
             dsc.AppendLine(Lang.Get
-                ("Temp {0}% × Moist {1}% × Air {2}%"
-                ,GetTemperatureHealth01() * 100f
+                ("- Rate: Temp {0:0}% × Nutrition {1:0}%"
+                ,GetTemperatureFactor01() * 100f
+                ,GetNutritionFactor() * 100f
+                ));
+            dsc.AppendLine(Lang.Get
+                ("- Health: Moisture {0:0}% × Aeration {1:0}%"
                 ,GetMoistureHealth01() * 100f
                 ,GetAerationHealth01() * 100f
                 ));
             dsc.AppendLine();
         }
+        
+        dsc.AppendLine
+            (Lang.Get("oddwire:compostpile-info-speed", compostFactor * 100f)
+        +   ", " + GetRateLabel(compostRate, Lang.Get("item-compost"))
+            );
+        if (Settings.InfoDebug)
+            dsc.AppendLine(Lang.Get
+                ("- Rate - Inoc {0:0}% × Temp {1:0}% × Moist {2:0}%"
+                ,GetInoculumFactor01() * 100f
+                ,GetTemperatureFactor01() * 100f
+                ,GetMoistureFactor01() * 100f
+                ));
+        dsc.AppendLine();
         #endregion
         
         #region Write Materials & Harvest
@@ -1487,20 +1466,19 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (InoculumQty < Settings.Inoculum.ConsumePerTransition)
             states.Add(Lang.Get("oddwire:compostpile-status-unseeded"));
     }
-    private string GetCompostRateLabel(float factor)
+    private string GetRateLabel(float rate, string outputName)
     {
-        float rateSpeed = Settings.BaseCompostRatePerHour * factor;
-        if (rateSpeed <= 0f)
+        if (rate <= 0f)
             return Lang.Get("oddwire:compostpile-rate-stalled");
         
-        float hoursPerCompost = 1f / rateSpeed;
+        float hoursPerCompost = 1f / rate;
         float hoursPerDay = Api?.World?.Calendar?.HoursPerDay ?? 24f;
         
         if (hoursPerCompost < hoursPerDay)
-            return Lang.Get("oddwire:compostpile-rate-hours", hoursPerCompost);
+            return Lang.Get("oddwire:compostpile-rate-hours", hoursPerCompost) + outputName;
         
         float daysPerCompost = hoursPerCompost / hoursPerDay;
-        return Lang.Get("oddwire:compostpile-rate-days", daysPerCompost);
+        return Lang.Get("oddwire:compostpile-rate-days", daysPerCompost) + outputName;
     }
     private string GetMissingMaterialLabel()
     {
@@ -1528,10 +1506,10 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
            )
             parts.Add
                 (Lang.Get("oddwire:compostpile-needs-ingredient"
-                    ,Lang.Get("oddwire:compostpile-ingredient-browns")
-                    ,BrownsQty
-                    ,Settings.Browns.MaxQty
-                    )
+                ,Lang.Get("oddwire:compostpile-ingredient-browns")
+                ,BrownsQty
+                ,Settings.Browns.MaxQty
+                )
             +   (Settings.InfoDebug ? $" ({brownsPortions:0})" : "")
                 );
         #endregion
@@ -1617,8 +1595,6 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         tree.SetDouble($"{key}.PrevTimeMoistureUpdated", PrevTimeMoistureUpdated);
         tree.SetFloat($"{key}.Moisture01", Moisture01);
         
-        tree.SetDouble($"{key}.PrevTimeProcessed", _prevTimeProcessed);
-        
         tree.SetInt($"{key}.BrownsQty", BrownsQty);
         tree.SetInt($"{key}.InoculumQty", InoculumQty);
         tree.SetInt($"{key}.CompostQty", CompostQty);
@@ -1642,6 +1618,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         tree.SetFloat($"{key}._aeration01", _aeration01);
         
         tree.SetDouble($"{key}._prevTimeDecomposed", _prevTimeDecomposed);
+        tree.SetDouble($"{key}._prevTimeProcessed", _prevTimeProcessed);
         
         tree.SetInt($"{key}._adjacentBlockCount", _adjacentBlockCount);
         tree.SetFloat($"{key}.AdjacentBlockHeat", AdjacentBlockHeat);
@@ -1651,8 +1628,6 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     {
         PrevTimeMoistureUpdated = tree.GetDouble($"{key}.PrevTimeMoistureUpdated", -1);
         Moisture01 = tree.GetFloat($"{key}.Moisture01");
-        
-        _prevTimeProcessed = tree.GetDouble($"{key}.PrevTimeProcessed", -1);
         
         BrownsQty = tree.GetInt($"{key}.BrownsQty");
         InoculumQty = tree.GetInt($"{key}.InoculumQty");
@@ -1670,6 +1645,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         _aeration01 = tree.GetFloat($"{key}._aeration01", 1f);
         
         _prevTimeDecomposed = tree.GetDouble($"{key}._prevTimeDecomposed", -1);
+        _prevTimeProcessed = tree.GetDouble($"{key}._prevTimeProcessed", -1);
         
         _adjacentBlockCount = tree.GetInt($"{key}._adjacentBlockCount");
         AdjacentBlockHeat = tree.GetFloat($"{key}.AdjacentBlockHeat");

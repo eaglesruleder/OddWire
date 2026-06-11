@@ -51,7 +51,7 @@ public class CompostpileSettings
         MaxQty = 64,
         MaxInputPerAdd = 8,
         Aeration01PerInput = 0.5f / 64,
-        ConsumePerTransition = 3
+        ConsumePerTransition = 1
     };
 
     public Ingredient Inoculum { get; private set; } = new()
@@ -70,16 +70,16 @@ public class CompostpileSettings
         HarvestItemPath = "game:rot",
         HarvestQty = 32,
         HarvestStackQty = 32,
-        ConsumePerTransition = 1
+        ConsumePerTransition = 2
     };
 
     public float Aeration01PerCompostpileInput { get; internal set; } = 0.01f;
     #endregion
 
     #region CompostRate
-    public float BaseCompostRatePerHour { get; private set; } = 0.05f;   // Stage 2: browns + inoculum -> compost
-    public float BaseInoculumRatePerHour { get; private set; } = 0.5f;   // Stage 1: nutrition -> inoculum (placeholder, balance later)
-    public int CompostMaxQty { get; private set; } = 64;                 // Compost owns its own bucket (no longer shares Inoculum.MaxQty)
+    public int CompostMaxQty { get; private set; } = 64;
+    public float BaseCompostRatePerHour { get; private set; } = 0.05f;
+    public float BaseInoculumRatePerHour { get; private set; } = 0.1f;
     public float InoculumMinFactor { get; private set; } = 0.25f;
     public float NutritionBaseFactor { get; private set; } = 1.25f;
     public Dictionary<string, float>? NutritionBonusFactor { get; private set; } = new()
@@ -94,7 +94,7 @@ public class CompostpileSettings
 
     #region Moisture
     public float Moisture01WaterRate { get; private set; } = 0.33f;
-    public float Moisture01Initial { get; private set; } = 0.85f;
+    public float Moisture01Initial { get; private set; } = 0.60f;
     public float Moisture01Optimal { get; private set; } = 0.60f;
     public float Moisture01GainPerRainyDay { get; private set; } = 0.30f;
     public float MoistureAmbientRetentionDays { get; private set; } = 16f;
