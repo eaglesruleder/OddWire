@@ -73,7 +73,7 @@ public class CompostpileSettings
         ConsumePerTransition = 2
     };
 
-    public float Aeration01PerCompostpileInput { get; internal set; } = 0.01f;
+    public float Aeration01PerCompostpileInput { get; internal set; } = 0.1f;
     #endregion
 
     #region CompostRate
@@ -98,8 +98,10 @@ public class CompostpileSettings
     public float Moisture01Optimal { get; private set; } = 0.60f;
     public float Moisture01GainPerRainyDay { get; private set; } = 0.30f;
     public float MoistureAmbientRetentionDays { get; private set; } = 16f;
+    public float DryThreshold { get; private set; } = 0.35f;
+    public float DryStress { get; private set; } = 1.0f;
     public float DrowningThreshold { get; private set; } = 0.85f;
-    public float DrowningTolerance { get; private set; } = 0.15f;
+    public float DrowningStress { get; private set; } = 0.8f;
     #endregion
 
     #region Aeration

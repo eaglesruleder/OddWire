@@ -184,12 +184,12 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     {
         float moistureRisk01 = 0f;
         
-        if (Moisture01 < 0.05f)
-            moistureRisk01 = 0.6f * (0.05f - Moisture01) / 0.05f;
+        if (Moisture01 < Settings.DryThreshold)
+            moistureRisk01 = Settings.DryStress * (Settings.DryThreshold - Moisture01) / Settings.DryThreshold;
         
         if (Moisture01 > Settings.DrowningThreshold)
         {
-            float drowningRisk = (Moisture01 - Settings.DrowningThreshold) / Settings.DrowningTolerance;
+            float drowningRisk = Settings.DrowningStress * (Moisture01 - Settings.DrowningThreshold) / Settings.DrowningThreshold;
             float anaerobic01 = 1f - _aeration01;
             // Intent anaerobic01^2 relaxes penalty
             moistureRisk01 = drowningRisk * anaerobic01 * anaerobic01;
@@ -1582,73 +1582,66 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
     {
         base.FromTreeAttributes(tree, worldAccessForResolve);
-        ReadState(tree, "_inventory");
+
+        PrevTimeMoistureUpdated = tree.GetDouble("PrevTimeMoistureUpdated", -1);
+        Moisture01 = tree.GetFloat("Moisture01");
+        
+        BrownsQty = tree.GetInt("BrownsQty");
+        InoculumQty = tree.GetInt("InoculumQty");
+        CompostQty = tree.GetInt("CompostQty");
+        
+        NutritionStacks.Clear();
+        int nutritionLength = tree.GetInt("NutritionStacks.Count");
+        for (int i = 0; i < nutritionLength; i++)
+            NutritionStacks[(EnumFoodCategory)tree.GetInt($"NutritionStacks<{i}>")] = tree.GetInt($"NutritionStacks[{i}]");
+        
+        _prevTimeTemperatureUpdated = tree.GetDouble("_prevTimeTemperatureUpdated", -1);
+        _temperature = tree.GetFloat("_temperature");
+        
+        _prevTimeAerationUpdated = tree.GetDouble("_prevTimeAerationUpdated", -1);
+        _aeration01 = tree.GetFloat("_aeration01", 1f);
+        
+        _prevTimeDecomposed = tree.GetDouble("_prevTimeDecomposed", -1);
+        _prevTimeProcessed = tree.GetDouble("_prevTimeProcessed", -1);
+        
+        _adjacentBlockCount = tree.GetInt("_adjacentBlockCount");
+        AdjacentBlockHeat = tree.GetFloat("AdjacentBlockHeat");
     }
+    
     public override void ToTreeAttributes(ITreeAttribute tree)
     {
         base.ToTreeAttributes(tree);
-        WriteState(tree, "_inventory");
-    }
-    
-    private void WriteState(ITreeAttribute tree, string key)
-    {
-        tree.SetDouble($"{key}.PrevTimeMoistureUpdated", PrevTimeMoistureUpdated);
-        tree.SetFloat($"{key}.Moisture01", Moisture01);
+
+        tree.SetDouble("PrevTimeMoistureUpdated", PrevTimeMoistureUpdated);
+        tree.SetFloat("Moisture01", Moisture01);
         
-        tree.SetInt($"{key}.BrownsQty", BrownsQty);
-        tree.SetInt($"{key}.InoculumQty", InoculumQty);
-        tree.SetInt($"{key}.CompostQty", CompostQty);
+        tree.SetInt("BrownsQty", BrownsQty);
+        tree.SetInt("InoculumQty", InoculumQty);
+        tree.SetInt("CompostQty", CompostQty);
         
-        tree.SetInt($"{key}.NutritionStacks.Count", NutritionStacks?.Count ?? 0);
+        tree.SetInt("NutritionStacks.Count", NutritionStacks?.Count ?? 0);
         if (NutritionStacks is not null)
         {
             int i = 0;
             foreach (var stack in NutritionStacks)
             {
-                tree.SetInt($"{key}.NutritionStacks<{i}>", (int)stack.Key);
-                tree.SetInt($"{key}.NutritionStacks[{i}]", stack.Value);
+                tree.SetInt($"NutritionStacks<{i}>", (int)stack.Key);
+                tree.SetInt($"NutritionStacks[{i}]", stack.Value);
                 i++;
             }
         }
         
-        tree.SetDouble($"{key}._prevTimeTemperatureUpdated", _prevTimeTemperatureUpdated);
-        tree.SetFloat($"{key}._temperature", _temperature);
+        tree.SetDouble("_prevTimeTemperatureUpdated", _prevTimeTemperatureUpdated);
+        tree.SetFloat("_temperature", _temperature);
         
-        tree.SetDouble($"{key}._prevTimeAerationUpdated", _prevTimeAerationUpdated);
-        tree.SetFloat($"{key}._aeration01", _aeration01);
+        tree.SetDouble("_prevTimeAerationUpdated", _prevTimeAerationUpdated);
+        tree.SetFloat("_aeration01", _aeration01);
         
-        tree.SetDouble($"{key}._prevTimeDecomposed", _prevTimeDecomposed);
-        tree.SetDouble($"{key}._prevTimeProcessed", _prevTimeProcessed);
+        tree.SetDouble("_prevTimeDecomposed", _prevTimeDecomposed);
+        tree.SetDouble("_prevTimeProcessed", _prevTimeProcessed);
         
-        tree.SetInt($"{key}._adjacentBlockCount", _adjacentBlockCount);
-        tree.SetFloat($"{key}.AdjacentBlockHeat", AdjacentBlockHeat);
-    }
-    
-    private void ReadState(ITreeAttribute tree, string key)
-    {
-        PrevTimeMoistureUpdated = tree.GetDouble($"{key}.PrevTimeMoistureUpdated", -1);
-        Moisture01 = tree.GetFloat($"{key}.Moisture01");
-        
-        BrownsQty = tree.GetInt($"{key}.BrownsQty");
-        InoculumQty = tree.GetInt($"{key}.InoculumQty");
-        CompostQty = tree.GetInt($"{key}.CompostQty");
-        
-        NutritionStacks.Clear();
-        int nutritionLength = tree.GetInt($"{key}.NutritionStacks.Count");
-        for (int i = 0; i < nutritionLength; i++)
-            NutritionStacks[(EnumFoodCategory)tree.GetInt($"{key}.NutritionStacks<{i}>")] = tree.GetInt($"{key}.NutritionStacks[{i}]");
-        
-        _prevTimeTemperatureUpdated = tree.GetDouble($"{key}._prevTimeTemperatureUpdated", -1);
-        _temperature = tree.GetFloat($"{key}._temperature");
-        
-        _prevTimeAerationUpdated = tree.GetDouble($"{key}._prevTimeAerationUpdated", -1);
-        _aeration01 = tree.GetFloat($"{key}._aeration01", 1f);
-        
-        _prevTimeDecomposed = tree.GetDouble($"{key}._prevTimeDecomposed", -1);
-        _prevTimeProcessed = tree.GetDouble($"{key}._prevTimeProcessed", -1);
-        
-        _adjacentBlockCount = tree.GetInt($"{key}._adjacentBlockCount");
-        AdjacentBlockHeat = tree.GetFloat($"{key}.AdjacentBlockHeat");
+        tree.SetInt("_adjacentBlockCount", _adjacentBlockCount);
+        tree.SetFloat("AdjacentBlockHeat", AdjacentBlockHeat);
     }
     #endregion
 }
