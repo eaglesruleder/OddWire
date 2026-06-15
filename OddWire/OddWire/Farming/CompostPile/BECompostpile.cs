@@ -1269,10 +1269,15 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #endregion
         
         if (nutritionTransitions > 0)
-            TryRemoveRandomNutrition(Api.World.Rand, (int)(nutritionTransitions / efficiency01));
+        {
+            float nutritionConsumed = nutritionTransitions / efficiency01;
+            float nutritionFraction = nutritionConsumed % 1;
+            TryRemoveRandomNutrition(Api.World.Rand, (int)nutritionConsumed + (nutritionFraction > Api.World.Rand.NextSingle() ? 1 : 0));
+        }
+            
         InoculumQty += transitions;
         
-        _prevTimeDecomposed = totalHours;
+        _prevTimeDecomposed += transitions / transitionRate;
         return true;
     }
     #endregion
