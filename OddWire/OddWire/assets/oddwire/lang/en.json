@@ -33,5 +33,7 @@
     "compostpile-needs-ingredient": "{0} {1}/{2}",
     "compostpile-ingredient-browns": "Browns",
     "compostpile-ingredient-nutrition": "Nutrition",
-    "compostpile-ingredient-inoculum": "Inoculum"
+    "compostpile-ingredient-inoculum": "Inoculum",
+
+    "compostpile-ingameerror-addmore": "Not enough items in hand"
 }

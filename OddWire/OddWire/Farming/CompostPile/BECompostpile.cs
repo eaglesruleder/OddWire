@@ -486,6 +486,12 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         return true;
     }
     
+    private void NotifyAddMore()
+    {
+        if (Api is ICoreClientAPI capi)
+            capi.TriggerIngameError(this, "compostpile-addmore", Lang.Get("oddwire:compostpile-ingameerror-addmore"));
+    }
+    
     public bool TryAddRef(ItemSlot slot, int addQty, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient, int imposeQty = 0)
     {
         accepted = 0;
@@ -518,7 +524,11 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         batches = Math.Min(batches, slot.StackSize / inputPerBatch);
         batches = Math.Min(batches, roomQty / outputPerBatch);
         if (batches < 1)
+        {
+            if (slot.StackSize > 0)
+                NotifyAddMore();
             return false;
+        }
         #endregion
         
         currentQty += batches * outputPerBatch;
@@ -567,7 +577,11 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         batches = Math.Min(batches, addQty);
         batches = Math.Min(batches, slot.StackSize);
         if (batches < 1)
+        {
+            if (slot.StackSize > 0)
+                NotifyAddMore();
             return false;
+        }
         #endregion
         
         #region Qty += accepted;
@@ -642,7 +656,11 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         batches = Math.Min(batches, slot.StackSize / inputPerBatch);
         batches = Math.Min(batches, roomQty / outputPerBatch);
         if (batches < 1)
+        {
+            if (slot.StackSize > 0)
+                NotifyAddMore();
             return false;
+        }
         #endregion
         
         int nutritionAddQty = batches * outputPerBatch;
