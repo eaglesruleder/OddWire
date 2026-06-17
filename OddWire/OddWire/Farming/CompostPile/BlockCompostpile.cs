@@ -14,7 +14,7 @@ public class BlockCompostpile : Block
             )
             return false;
         
-        if(!be.TryAdd(slot, out int accepted)
+        if(!be.TryAdd(slot, byPlayer.Entity.Controls.CtrlKey ? 5 : 1, out int accepted)
         ||  accepted < 1
            )
             return false;
@@ -41,7 +41,7 @@ public class BlockCompostpile : Block
         #endregion
 
         #region if(be.TryAdd && Side == Server) slot.TakeOut(accepted); return;
-        if (be.TryAdd(slot, out int accepted)
+        if (be.TryAdd(slot, byEntity.Controls.CtrlKey ? 5 : 1, out int accepted)
         &&  accepted > 0
            )
         {

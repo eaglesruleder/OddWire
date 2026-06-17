@@ -451,7 +451,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     #endregion
     
     #region TryAdd
-    public bool TryAdd(ItemSlot slot, out int accepted)
+    public bool TryAdd(ItemSlot slot, int addQty, out int accepted)
     {
         accepted = 0;
         
@@ -462,16 +462,16 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         bool added = false;
         float restoreAeration = 0;
         
-        if (TryAddCompostPile(slot, out accepted))
+        if (TryAddCompostPile(slot, addQty, out accepted))
             { restoreAeration = accepted * Settings.Aeration01PerCompostpileInput; added = true; }
         else
-        if (TryAddRef(slot, out accepted, ref BrownsQty, Settings.Browns))
+        if (TryAddRef(slot, addQty, out accepted, ref BrownsQty, Settings.Browns))
             { restoreAeration = accepted * Settings.Browns.Aeration01PerInput; added = true; }
         else
-        if (TryAddRef(slot, out accepted, ref InoculumQty, Settings.Inoculum, CompostQty))
+        if (TryAddRef(slot, addQty, out accepted, ref InoculumQty, Settings.Inoculum, CompostQty))
             { restoreAeration = accepted * Settings.Inoculum.Aeration01PerInput; added = true; }
         else
-        if (TryAddNutrition(slot, out accepted))
+        if (TryAddNutrition(slot, addQty, out accepted))
             { restoreAeration = accepted * Settings.Nutrition.Aeration01PerInput; added = true; }
         
         if (!added || accepted < 1)
@@ -486,7 +486,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         return true;
     }
     
-    public bool TryAddRef(ItemSlot slot, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient, int imposeQty = 0)
+    public bool TryAddRef(ItemSlot slot, int addQty, out int accepted, ref int currentQty, CompostpileSettings.Ingredient ingredient, int imposeQty = 0)
     {
         accepted = 0;
         
@@ -506,34 +506,32 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         
         if (!ingredient.AddItemCodeRatios.TryGetValue(code, out float ratio)
         ||  ratio <= 0f
-        ||  slot.StackSize < Math.Max(ratio, 1)
             )
             return false;
         #endregion
         
-        #region adjusted = Min(ingredient.MaxInputPerAdd, roomQty) * ratio;
-        int adjustedLimit =
-            ratio >= 1f
-        ?   (int)(Math.Min(ingredient.MaxInputPerAdd, roomQty) * ratio)
-        :   (int)Math.Min(ingredient.MaxInputPerAdd, roomQty * ratio);
+        #region batches = Min(maxBatches, stack / input, room / output)
+        int inputPerBatch  = ratio < 1f ? 1 : (int)MathF.Ceiling(ratio);
+        int outputPerBatch = ratio < 1f ? (int)MathF.Floor(1f / ratio) : 1;
         
-        int adjustedInput = Math.Min(slot.StackSize, adjustedLimit);
-        if (ratio >= 1f)
-            adjustedInput = (int)(Math.Floor(adjustedInput / ratio) * ratio);
-        
-        int adjustedOutput = (int)Math.Min(adjustedInput / ratio, roomQty);
+        int batches = addQty;
+        batches = Math.Min(batches, slot.StackSize / inputPerBatch);
+        batches = Math.Min(batches, roomQty / outputPerBatch);
+        if (batches < 1)
+            return false;
         #endregion
         
-        currentQty += adjustedOutput;
-        accepted = adjustedInput;
+        currentQty += batches * outputPerBatch;
+        accepted    = batches * inputPerBatch;
         
         return accepted > 0;
     }
 
-    private bool TryAddCompostPile(ItemSlot slot, out int accepted)
+    private bool TryAddCompostPile(ItemSlot slot, int addQty, out int accepted)
     {
         accepted = 0;
         
+        #region if(!valid compostpile) return false;
         AssetLocation blockCode = slot.Itemstack?.Block?.Code;
         string stackVariant = blockCode?.EndVariant();
         if (blockCode is null
@@ -544,34 +542,39 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         || !int.TryParse(stackVariant.Substring(1), out int stackBonus)
            )
             return false;
+        #endregion
         
-        stackBonus = Math.Max(stackBonus - 1, 0);
-        int brownsAdd = Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty;
-        int nutritionAdd = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
-        int inoculumAdd = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
-        
-        #region if((!brownsRoom && !inoculumRoom) || !Accepted) return false;
-        //  Intent: Nutrition is lossy, matching harvest behaviour.
+        #region if(!brownsRoom && !inoculumRoom) return false;
         int brownsRoom = Math.Max(Settings.Browns.MaxQty - BrownsQty, 0);
-        int nutritionRoom = Math.Max(Settings.Nutrition.MaxQty - NutritionQty, 0);
         int inoculumRoom = GetInoculumRoomQty();
         if (brownsRoom < 1
         &&  inoculumRoom < 1
             )
             return false;
+        #endregion
         
-        int brownsAccepted = Math.Min(brownsAdd, brownsRoom);
-        int nutritionAccepted = Math.Min(nutritionAdd, nutritionRoom);
-        int inoculumAccepted = Math.Min(inoculumAdd, inoculumRoom);
+        #region batches = Min(addQty, stack, max(browns fill, inoculum fill)); if(!batches) return false;
+        stackBonus = Math.Max(stackBonus - 1, 0);
+        int brownsAdd = Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty;
+        int brownsBatches   = brownsAdd   > 0 ? (brownsRoom   + brownsAdd   - 1) / brownsAdd   : 0;
         
-        if (brownsAccepted < 1
-        &&  nutritionAccepted < 1
-        &&  inoculumAccepted < 1
-            )
+        int nutritionAdd = Settings.Nutrition.InitialQty + stackBonus * Settings.Nutrition.SizeBonusQty;
+        
+        int inoculumAdd = Settings.Inoculum.InitialQty + stackBonus * Settings.Inoculum.SizeBonusQty;
+        int inoculumBatches = inoculumAdd > 0 ? (inoculumRoom + inoculumAdd - 1) / inoculumAdd : 0;
+        
+        int batches = Math.Max(brownsBatches, inoculumBatches);
+        batches = Math.Min(batches, addQty);
+        batches = Math.Min(batches, slot.StackSize);
+        if (batches < 1)
             return false;
         #endregion
         
-        #region Qty += Accepted
+        #region Qty += accepted;
+        int brownsAccepted = Math.Min(batches * brownsAdd, brownsRoom);
+        int nutritionAccepted = Math.Min(batches * nutritionAdd, Math.Max(Settings.Nutrition.MaxQty - NutritionQty, 0));
+        int inoculumAccepted = Math.Min(batches * inoculumAdd, inoculumRoom);
+        
         BrownsQty += brownsAccepted;
         if (nutritionAccepted > 0)
         {
@@ -582,10 +585,10 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #endregion
         
         //  Intent: Nutrition is lossy
-        DropIngredientOverflow(Settings.Browns, brownsAdd - brownsAccepted);
-        DropIngredientOverflow(Settings.Inoculum, inoculumAdd - inoculumAccepted);
+        DropIngredientOverflow(Settings.Browns, batches * brownsAdd - brownsAccepted);
+        DropIngredientOverflow(Settings.Inoculum, batches * inoculumAdd - inoculumAccepted);
         
-        accepted = 1;
+        accepted = batches;
         return true;
     }
     
@@ -613,38 +616,42 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #endregion
     }
     
-    private bool TryAddNutrition(ItemSlot slot, out int consumedQty)
+    private bool TryAddNutrition(ItemSlot slot, int addQty, out int consumedQty)
     {
         consumedQty = 0;
         
-        #region if(!nutritionBudget || !stackConsumeQty || !nutritionAddQty) return false;
+        #region if(!room || !nutritionPerInput) return false;
         if (slot.Itemstack is null)
             return false;
         ItemStack stack = slot.Itemstack!;
         
         int roomQty = Settings.Nutrition.MaxQty - NutritionQty;
-        int nutritionBudget = Math.Min(roomQty, Settings.Nutrition.MaxInputPerAdd);
-        if (nutritionBudget < 1)
+        if (roomQty < 1)
             return false;
         
         float nutritionPerInput = GetNutritionPerInput(stack);
         if (nutritionPerInput <= 0)
             return false;
+        #endregion
         
-        int stackConsumeQty = (int)MathF.Floor(nutritionBudget / nutritionPerInput);
-        stackConsumeQty = Math.Min(stackConsumeQty, slot.StackSize);
+        #region batches = Min(addQty, stack / input, room / output)); if(!batches) return false;
+        int inputPerBatch  = nutritionPerInput < 1f ? (int)MathF.Ceiling(1f / nutritionPerInput) : 1;
+        int outputPerBatch = nutritionPerInput < 1f ? 1 : (int)MathF.Floor(nutritionPerInput);
         
-        int nutritionAddQty = (int)MathF.Ceiling(stackConsumeQty * nutritionPerInput);
-        nutritionAddQty = Math.Min(nutritionAddQty, nutritionBudget);
-        if (nutritionAddQty < 1)
+        int batches = addQty;
+        batches = Math.Min(batches, slot.StackSize / inputPerBatch);
+        batches = Math.Min(batches, roomQty / outputPerBatch);
+        if (batches < 1)
             return false;
         #endregion
+        
+        int nutritionAddQty = batches * outputPerBatch;
         
         var nutritionType = stack.Collectible?.NutritionProps?.FoodCategory ?? EnumFoodCategory.Unknown;
         NutritionStacks.TryGetValue(nutritionType, out int cur);
         NutritionStacks[nutritionType] = cur + nutritionAddQty;
         
-        consumedQty = stackConsumeQty;
+        consumedQty = batches * inputPerBatch;
         return true;
     }
     

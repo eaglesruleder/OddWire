@@ -11,7 +11,6 @@ public class CompostpileSettings
         public int InitialQty { get; internal set; }
         public int SizeBonusQty { get; internal set; }
         public int MaxQty { get; internal set; }
-        public int MaxInputPerAdd { get; internal set; }
         public float Aeration01PerInput { get; internal set; }
 
         public Dictionary<string, float> AddItemCodeRatios { get; internal set; }
@@ -31,7 +30,6 @@ public class CompostpileSettings
         InitialQty = 16,
         SizeBonusQty = (64 * 3 - 16) / (ShapeSizeLevels - 1),
         MaxQty = 64 * 3,
-        MaxInputPerAdd = 16,
         Aeration01PerInput = 0.5f / (64 * 3),
         AddItemCodeRatios = new Dictionary<string, float>
         {
@@ -49,9 +47,8 @@ public class CompostpileSettings
         InitialQty = 0,
         SizeBonusQty = (64 - 0) / (ShapeSizeLevels - 1),
         MaxQty = 64,
-        MaxInputPerAdd = 8,
         Aeration01PerInput = 0.5f / 64,
-        ConsumePerTransition = 1
+        ConsumePerTransition = 2
     };
 
     public Ingredient Inoculum { get; private set; } = new()
@@ -60,7 +57,6 @@ public class CompostpileSettings
         InitialQty = 4,
         SizeBonusQty = (64 - 4) / (ShapeSizeLevels - 1),
         MaxQty = 64,
-        MaxInputPerAdd = 4,
         Aeration01PerInput = 0.5f / 64,
         AddItemCodeRatios = new Dictionary<string, float>
         {
