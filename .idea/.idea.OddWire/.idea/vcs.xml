@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../vsapi" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../vsessentialsmod" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../vssurvivalmod" vcs="Git" />
   </component>
 </project>
