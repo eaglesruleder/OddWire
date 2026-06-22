@@ -75,7 +75,7 @@ public class CompostpileSettings
     #region CompostRate
     public int CompostMaxQty { get; private set; } = 64;
     public float BaseCompostRatePerHour { get; private set; } = 0.05f;
-    public float BaseInoculumRatePerHour { get; private set; } = 0.1f;
+    public float BaseInoculumRatePerHour { get; private set; } = 0.06f;
     public float InoculumMinFactor { get; private set; } = 0.25f;
     public float NutritionBaseFactor { get; private set; } = 1.25f;
     public Dictionary<string, float>? NutritionBonusFactor { get; private set; } = new()
