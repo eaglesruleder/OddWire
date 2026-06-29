@@ -130,6 +130,8 @@ public class CompostpileSettings
         { "Vegetable", 1.8f },
         { "Protein", 2.7f }
     };
+    public float TemperatureColdThreshold { get; private set; } = 20f; // optimal-band low — below reads "Cold"
+    public float TemperatureHotThreshold  { get; private set; } = 55f; // optimal-band high — above reads "Hot"
     public float OverheatThreshold { get; private set; } = 65f;
     public float OverheatTolerance { get; private set; } = 10f;
     #endregion

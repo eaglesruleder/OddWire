@@ -150,9 +150,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     public float GetTemperatureFactor01()
     {
         if (_temperature <  0) return 0.05f;
-        if (_temperature < 20) return GameMath.Lerp(0.05f, 1.0f, (_temperature - 0f) / 20f);
-        if (_temperature < 55) return 1.0f;
-        if (_temperature < 70) return GameMath.Lerp(1.0f, 0.35f, (_temperature - 55f) / 15f);
+        if (_temperature < Settings.TemperatureColdThreshold) return GameMath.Lerp(0.05f, 1.0f, _temperature / Settings.TemperatureColdThreshold);
+        if (_temperature < Settings.TemperatureHotThreshold) return 1.0f;
+        if (_temperature < 70) return GameMath.Lerp(1.0f, 0.35f, (_temperature - Settings.TemperatureHotThreshold) / (70f - Settings.TemperatureHotThreshold));
         return 0.10f;
     }
     
@@ -1451,10 +1451,10 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             states.Add(Lang.Get("oddwire:compostpile-status-overheating"));
         else if (GetTemperatureFactor01() < Settings.InfoFactorWarningThreshhold)
         {
-            if (Temperature >= 55f)
+            if (Temperature >= Settings.TemperatureHotThreshold)
                 states.Add(Lang.Get("oddwire:compostpile-status-hot"));
             else
-            if (Temperature < 20f)
+            if (Temperature < Settings.TemperatureColdThreshold)
                 states.Add(Lang.Get("oddwire:compostpile-status-cold"));
         }
     }
