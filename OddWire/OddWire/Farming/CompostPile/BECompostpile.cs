@@ -675,7 +675,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private float GetNutritionPerInput(ItemStack stack)
     {
-        #region if(!transitionProps) return 1;
+        #region if(!transitionProps) return 0;
         var transitionProps =
             stack.Item?.TransitionableProps
         ??  stack.Block?.TransitionableProps;
