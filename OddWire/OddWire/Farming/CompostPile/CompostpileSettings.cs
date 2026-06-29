@@ -4,6 +4,8 @@ namespace OddWire.GameContent;
 
 public class CompostpileSettings
 {
+    public static readonly CompostpileSettings Default = new();
+    
     public class Ingredient
     {
         public string Name { get; internal set; }
@@ -147,5 +149,16 @@ public class CompostpileSettings
     public bool InfoDebug = true;
     public float InfoFactorWarningThreshhold = 0.8f;
     public float InfoNeedsPortionsThreshhold = 2f;
+    public float InfoTurnCompostRoom01 = 0.5f; // Turn when compost room drops below this fraction of max
+    
+    public string[] NutritionHelpCodes =
+        {"game:fruit-beautyberry"      // Fruit
+        ,"game:fruit-pear"             // Fruit (tree)
+        ,"game:grain-flax"             // Grain
+        ,"game:vegetable-onion"        // Vegetable
+        ,"game:redmeat-raw"            // Protein
+        ,"game:cheese-cheddar-3slice"  // Dairy
+        ,"game:hide-pelt-fox-red"      // Unknown (perishes to rot)
+        };
     #endregion
 }

@@ -1,9 +1,74 @@
+using System.Collections.Generic;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Util;
+using OddWire.VintageStory.API.Common;
 
 namespace OddWire.GameContent;
 public class BlockCompostpile : Block
 {
+    private static readonly CompostpileSettings Settings = CompostpileSettings.Default;
+    
+    #region InteractionHelp
+    private WorldInteraction[] _interactions;
+
+    public override void OnLoaded(ICoreAPI api)
+    {
+        base.OnLoaded(api);
+
+        _interactions = ObjectCacheUtil.GetOrCreate(api, "compostpileInteractions", () =>
+        {
+            List<WorldInteraction> list = new();
+
+            #region LClick + Shovel = Turn
+            List<ItemStack> shovels = new();
+            foreach (Item item in api.World.Items)
+                if (item?.Tool == EnumTool.Shovel)
+                    shovels.Add(new ItemStack(item));
+
+            list.Add(new WorldInteraction
+                {ActionLangCode = "oddwire:compostpile-blockhelp-turn"
+                ,MouseButton = EnumMouseButton.Left
+                ,Itemstacks = shovels.ToArray()
+                });
+            #endregion
+            
+            #region RClick + Browns/Inoculum/CompostPile = Add
+            List<string> addCodes = new();
+            if (Settings.Browns.AddItemCodeRatios is not null)
+                addCodes.AddRange(Settings.Browns.AddItemCodeRatios.Keys);
+            if (Settings.Inoculum.AddItemCodeRatios is not null)
+                addCodes.AddRange(Settings.Inoculum.AddItemCodeRatios.Keys);
+            addCodes.Add(Settings.HarvestCompostpilePath);
+
+            ItemStack[] addStacks = api.ResolveStacks(addCodes.ToArray());
+            if (addStacks.Length > 0)
+                list.Add(new WorldInteraction
+                    {ActionLangCode = "oddwire:compostpile-blockhelp-add"
+                    ,MouseButton = EnumMouseButton.Right
+                    ,Itemstacks = addStacks
+                    });
+            #endregion
+
+            #region RClick + NutrientItems = Boost
+            ItemStack[] boostStacks = api.ResolveStacks(Settings.NutritionHelpCodes);
+            if (boostStacks.Length > 0)
+                list.Add(new WorldInteraction
+                    {ActionLangCode = "oddwire:compostpile-blockhelp-boost"
+                    ,MouseButton = EnumMouseButton.Right
+                    ,Itemstacks = boostStacks
+                    });
+            #endregion
+
+            return list.ToArray();
+        });
+    }
+
+    public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer)
+        => _interactions.Append(base.GetPlacedBlockInteractionHelp(world, selection, forPlayer));
+    #endregion
+
     #region OnBlockInteract
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {

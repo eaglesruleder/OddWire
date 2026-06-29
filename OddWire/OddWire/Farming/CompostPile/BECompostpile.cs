@@ -14,7 +14,7 @@ namespace OddWire.GameContent;
 
 public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWaterable
 {
-    private static readonly CompostpileSettings Settings = new();
+    private static readonly CompostpileSettings Settings = CompostpileSettings.Default;
     private WeatherSystemBase? _weather;
     
     #region IHeatSource
@@ -1251,7 +1251,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool ProcessDecomposition(double totalHours)
     {
-        #region if(neverProcessed || !inoculumRoom) { prevTime = now; return false; }
+        #region if(neverProcessed || !inoculumRoom || !material) { prevTime = now; return false; }
         if (_prevTimeDecomposed < 0
         ||  _prevTimeDecomposed > totalHours
            )
@@ -1261,46 +1261,45 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         }
         
         int inoculumRoom = GetInoculumRoomQty();
-        if (inoculumRoom < 1)
+        int nutritionQty = NutritionQty;
+        int materialAvailable = nutritionQty + BrownsQty;
+        if (inoculumRoom < 1
+        ||  materialAvailable < 1
+           )
         {
             _prevTimeDecomposed = totalHours;
             return false;
         }
         #endregion
         
-        #region if(!(transitions = duration * BaseRate * Factor)) return false;
+        #region transitions = Min(base + nutritionBonus, material, inoculumRoom)
         double duration = totalHours - _prevTimeDecomposed;
         float transitionRate = Settings.BaseInoculumRatePerHour * GetDecompositionFactor();
+        float baseTransitions = (float)(duration * transitionRate * GetDecompositionEfficiency01());
 
-        float efficiency01 = GetDecompositionEfficiency01();
-        float baseTransitions = (float)(duration * transitionRate * efficiency01);
-        float nutritionTransitions = 0;
-        int transitions = 0;
-        
-        if (baseTransitions < inoculumRoom)
-        {
-            nutritionTransitions =
-                Math.Min(baseTransitions * (GetNutritionFactor() - 1), NutritionQty)
-            *   efficiency01;
-            nutritionTransitions = Math.Min(nutritionTransitions, inoculumRoom - baseTransitions);
-            
-            transitions = (int)(baseTransitions + nutritionTransitions);
-        }
-        else
-            transitions = (int)Math.Min(baseTransitions, inoculumRoom);
-        
+        // Intent: nutrition raises yield per unit time (factor-1 bonus); total still capped by material then room
+        float nutritionTransitions = nutritionQty > 0
+        ?   Math.Max(baseTransitions * (GetNutritionFactor() - 1), 0)
+        :   0;
+
+        int transitions = (int)Math.Min(Math.Min
+            (baseTransitions + nutritionTransitions
+            ,materialAvailable
+           ),inoculumRoom
+            );
         if (transitions < 1)
             return false; // keep accruing progress
         #endregion
-        
-        if (nutritionTransitions > 0)
-        {
-            float nutritionConsumed = nutritionTransitions / efficiency01;
-            float nutritionFraction = nutritionConsumed % 1;
-            TryRemoveRandomNutrition(Api.World.Rand, (int)nutritionConsumed + (nutritionFraction > Api.World.Rand.NextSingle() ? 1 : 0));
-        }
-            
+
+        #region RemoveRandNutri(Min(trans, nutriQty)); BrownsQty -= trans - nutriCost;
+        int nutritionCost = Math.Min(transitions, nutritionQty);
+        int brownsCost = transitions - nutritionCost;
+
+        if (nutritionCost > 0)
+            TryRemoveRandomNutrition(Api.World.Rand, nutritionCost);
+        BrownsQty   -= brownsCost;
         InoculumQty += transitions;
+        #endregion
         
         _prevTimeDecomposed += transitions / transitionRate;
         return true;
@@ -1335,34 +1334,21 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     #region BlockInfoFormatting
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
     {
-        #region inGreenhouse = room && room.skylight > room.notSkylight && !room.Exits
         bool skyExposed = Api.World.BlockAccessor?.IsSkyExposed(Pos) == true;
-        bool inGreenhouse = false;
-        if (!skyExposed)
-        {
-            var room = Api.ModLoader.GetModSystem<RoomRegistry>()?.GetRoomForPosition(Pos.UpCopy());
-            inGreenhouse =
-                room != null
-            &&  room.SkylightCount > room.NonSkylightCount
-            &&  room.ExitCount == 0;
-        }
-        #endregion
-        
-        #region Make roomLabel
+        float envTempC = Api.GetEnvironmentTemperatureC(Pos, Api.World.Calendar.TotalHours, skyExposed, Settings.GreenhouseHeat, out bool inGreenhouse);
+
+        #region Write CompostingStatus() + roomLabel + Temp/Moist/Air
         string roomLabel =
             inGreenhouse ? Lang.Get("oddwire:compostpile-room-greenhouse")
         :   skyExposed ? Lang.Get("oddwire:compostpile-room-outside")
         :   Lang.Get("oddwire:compostpile-room-inside");
         if (Settings.InfoDebug)
-            roomLabel += Lang.Get(" ({0:0}°C)", Api.GetEnvironmentTemperatureC(Pos, Api.World.Calendar.TotalHours, skyExposed, Settings.GreenhouseHeat, out _));
-        #endregion
-        
-        #region Write Composting Rate & Core
+            roomLabel += Lang.Get(" ({0:0}°C)", envTempC);
         dsc.AppendLine(Lang.Get("oddwire:compostpile-info-composting", GetCompostingStatus(), roomLabel));
         
         string colorTemp  = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, GetTemperatureFactor01() * 99)]);
-        string colorMoist = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, GetMoistureFactor01()   * 99)]);
-        string colorAir   = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, GetAerationHealth01()   * 99)]);
+        string colorMoist = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, GetMoistureFactor01()    * 99)]);
+        string colorAir   = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, GetAerationHealth01()    * 99)]);
         dsc.AppendLine(Lang.Get
             ("oddwire:compostpile-info-state"
             ,colorTemp,  Temperature
@@ -1425,11 +1411,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         dsc.AppendLine();
         #endregion
         
-        #region Write Materials & Harvest
-        string missingLabel = GetMissingMaterialLabel();
-        if (!string.IsNullOrEmpty(missingLabel))
-            dsc.AppendLine(missingLabel);
-        
+        #region Write Harvest (+ debug Nut Mix)
         if (Settings.InfoDebug)
         {
             string mixLabel = GetNutritionMixLabel();
@@ -1450,9 +1432,12 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #region Collect warning states
         List<string> states = new();
         AppendInoculumStatus(states);
+        AppendTurningStatus(states);
+        AppendAerationStatus(states);
         AppendTemperatureStatus(states);
         AppendMoistureStatus(states);
-        AppendAerationStatus(states);
+        AppendBrownsStatus(states);
+        AppendNutritionStatus(states);
         #endregion
         
         if (states.Count < 1)
@@ -1484,12 +1469,28 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
                 states.Add(Lang.Get("oddwire:compostpile-status-dry"));
         }
     }
+    private void AppendTurningStatus(List<string> states)
+    {
+        if (Aeration01 < Settings.HypoxicThreshold + Settings.HypoxicTolerance
+        ||  GetCompostRoomQty() < Settings.CompostMaxQty * Settings.InfoTurnCompostRoom01
+            )
+            states.Add(Lang.Get("oddwire:compostpile-status-turn"));
+    }
     private void AppendAerationStatus(List<string> states)
     {
+        // Severity layer over Turn — both Turn and Hypoxic show when critically low
         if (Aeration01 < Settings.HypoxicThreshold)
             states.Add(Lang.Get("oddwire:compostpile-status-hypoxic"));
-        else if (Aeration01 < Settings.HypoxicThreshold + Settings.HypoxicTolerance)
-            states.Add(Lang.Get("oddwire:compostpile-status-turnsoon"));
+    }
+    private void AppendBrownsStatus(List<string> states)
+    {
+        if ((float)BrownsQty / Settings.Browns.ConsumePerTransition < Settings.InfoNeedsPortionsThreshhold)
+            states.Add(Lang.Get("oddwire:compostpile-status-browns"));
+    }
+    private void AppendNutritionStatus(List<string> states)
+    {
+        if ((float)NutritionQty / Settings.Nutrition.ConsumePerTransition < Settings.InfoNeedsPortionsThreshhold)
+            states.Add(Lang.Get("oddwire:compostpile-status-underfed"));
     }
     private void AppendInoculumStatus(List<string> states)
     {
@@ -1510,101 +1511,20 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         float daysPerCompost = hoursPerCompost / hoursPerDay;
         return Lang.Get("oddwire:compostpile-rate-days", daysPerCompost) + outputName;
     }
-    private string GetMissingMaterialLabel()
-    {
-        float brownsPortions = (float)BrownsQty / Settings.Browns.ConsumePerTransition;
-        float nutritionPortions = (float)NutritionQty / Settings.Nutrition.ConsumePerTransition;
-        float inoculumPortions = (float)InoculumQty / Settings.Inoculum.ConsumePerTransition;
-        
-        float maxThresholdPortions =
-            Math.Max(Math.Max(brownsPortions, nutritionPortions), inoculumPortions)
-        -   Settings.InfoNeedsPortionsThreshhold;
-        
-        float minPortions = Math.Min(Math.Min(brownsPortions, nutritionPortions), inoculumPortions);
-        if (minPortions > maxThresholdPortions
-        && !Settings.InfoDebug
-           )
-            return "";
-        
-        List<string> parts = new();
-        
-        #region if(brownsPortions < maxThresholdPortions) parts += Browns
-        if((brownsPortions < maxThresholdPortions
-        &&  BrownsQty + Settings.Browns.ConsumePerTransition < Settings.Browns.MaxQty
-            )
-        ||  Settings.InfoDebug
-           )
-            parts.Add
-                (Lang.Get("oddwire:compostpile-needs-ingredient"
-                ,Lang.Get("oddwire:compostpile-ingredient-browns")
-                ,BrownsQty
-                ,Settings.Browns.MaxQty
-                )
-            +   (Settings.InfoDebug ? $" ({brownsPortions:0})" : "")
-                );
-        #endregion
-        
-        #region if(nutritionPortions < maxThresholdPortions) parts += Nutrition
-        if((nutritionPortions < maxThresholdPortions
-        &&  NutritionQty + Settings.Nutrition.ConsumePerTransition < Settings.Nutrition.MaxQty
-           )
-        ||  Settings.InfoDebug
-           )
-            parts.Add(
-                Lang.Get("oddwire:compostpile-needs-ingredient"
-                    ,Lang.Get("oddwire:compostpile-ingredient-nutrition")
-                    ,NutritionQty
-                    ,Settings.Nutrition.MaxQty
-                    )
-            +   (Settings.InfoDebug ? $" ({nutritionPortions:0})" : "")
-                );
-        #endregion
-        
-        #region if(inoculumPortions < maxThresholdPortions) parts += Inoculum
-        if((inoculumPortions < maxThresholdPortions
-        &&  InoculumQty + Settings.Inoculum.ConsumePerTransition < Settings.Inoculum.MaxQty
-            )
-        ||  Settings.InfoDebug
-           )
-            parts.Add(
-                Lang.Get("oddwire:compostpile-needs-ingredient"
-                    ,Lang.Get("oddwire:compostpile-ingredient-inoculum")
-                    ,InoculumQty
-                    ,Settings.Inoculum.MaxQty
-                    )
-            +   (Settings.InfoDebug ? $" ({inoculumPortions:0})" : "")
-                );
-        #endregion
-        
-        if (parts.Count < 1)
-            return "";
-        
-        if (Settings.InfoDebug)
-            return string.Join(" | ", parts);
-        
-        return Lang.Get("oddwire:compostpile-needs", string.Join(" | ", parts));
-    }
     private string GetNutritionMixLabel()
     {
         if (NutritionStacks.Count < 1)
             return "";
         
-        StringBuilder mix = new();
+        List<string> parts = new();
         foreach (var nutritionStack in NutritionStacks)
-        {
-            if (nutritionStack.Value < 1)
-                continue;
-            
-            mix.Append(nutritionStack.Key);
-            mix.Append(": ");
-            mix.Append(nutritionStack.Value);
-            mix.Append(", ");
-        }
-        
-        if (mix.Length < 1)
+            if (nutritionStack.Value >= 1)
+                parts.Add($"{nutritionStack.Key}: {nutritionStack.Value}");
+
+        if (parts.Count < 1)
             return "";
-        
-        return Lang.Get("oddwire:compostpile-info-nutmix", mix.ToString().Substring(0, mix.Length - 2));
+
+        return Lang.Get("oddwire:compostpile-info-nutmix", string.Join(", ", parts));
     }
     #endregion
     
