@@ -37,28 +37,20 @@ A Project Summary is always `Project` scope. It is the only artifact at that sco
 ---
 
 ## What this is
-One short paragraph. What the mod is and the shape of its content. Not marketing.
+One short paragraph. What the mod does in the game and a quick summary of its
+features — the spec, not the code architecture. End with what is in progress.
 
 ---
 
-## Domains
-
-| Domain | Adds | Size | Status |
-|---|---|---|---|
-| ... | ... | ~Nk LOC | Active / Support / Draft |
-
----
-
-## Priorities
-Short block or list — what is active now, what is next, what is parked.
-
----
-
-## Docs map
-Nav tree of relative links into the Domain and Feature briefs. This is the wiki spine.
+## Domains & docs
+A single nav tree: the wiki spine and the size/status map in one. Each entry links
+to its Brief and Doc, then carries status, size, and a one-line description.
 
 - **<Domain>** — [Brief](path/.git.md) · [Doc](path/.gpt.md)
-  - <Feature> — [Brief](path/.git.md) · [Doc](path/.gpt.md)
+  - **<Feature>** — [Brief](path/.git.md) · [Doc](path/.gpt.md) — Status, ~Nk LOC<br><one-line>
+- **<Domain>** — _(todo)_
+
+Shared / support areas listed below or as their own rows so the size picture is honest.
 
 ---
 
@@ -80,19 +72,22 @@ Bad:
 > The ultimate farming overhaul that makes the game feel alive.
 
 ### What this is
-One paragraph. The shape of the project — how many domains, what kind of content (blocks, patches, extensions). Enough for a reader to know whether what they want is in here. No design rationale.
+One paragraph. What the mod does in the game (the spec) and a quick run through the features — what the player interacts with, not how the code is laid out. Close with what is in progress. No domain-count/architecture inventory, no design rationale, no marketing.
 
-### Domains table
-One row per domain. Four columns: domain name, one-line of what it adds, rough code size, status.
-- Size is approximate (`~2.1k LOC`) — a sense of weight, not an exact count.
-- Status is `Active` (under development), `Support` (shared/stable plumbing), `Draft`, or `Parked`.
-- Include support areas (shared extensions, common renderers) as their own rows so the size picture is honest.
+Good:
+> OddWire adds hands-on organic systems. The CompostPile turns dry grass and food scraps into compost over time; watering runs through the vanilla can. More features are in progress.
 
-### Priorities
-What is being worked on, what is next, what is deliberately parked. Keep it current — this is the one section expected to move between milestones. A few lines is enough.
+Bad:
+> OddWire is organised into self-contained domains, each holding features and Harmony patches over a shared base of API extensions.
 
-### Docs map
-The navigation spine. One entry per domain, nested entries per feature, each with relative links to its `.git.md` brief and `.gpt.md` doc. Use the smallest honest tree — do not link to docs that do not exist yet; mark gaps as `(todo)` rather than dead links.
+### Domains & docs
+One merged tree — the navigation spine and the size/status map together. One entry per domain, nested entries per feature, each with:
+- relative links to its `.git.md` brief and `.gpt.md` doc (omit a link that does not exist; mark whole gaps as `(todo)` rather than leaving dead links),
+- status — `Active` (under development), `Support` (shared/stable plumbing), `Draft`, or `Parked`,
+- approximate size (`~1.9k LOC`) — a sense of weight, not an exact count,
+- a `<br>` one-line description of what the feature does.
+
+Include support areas (shared extensions, common renderers) so the size picture is honest. What is in progress is carried by the status field and the closing line of *What this is* — no separate priorities section.
 
 ### Build / Usage
 Only what a contributor actually runs. Drop template boilerplate and migration notes that do not apply to this project.
@@ -133,9 +128,9 @@ When not to update one:
 ## What Good Looks Like
 
 - Readable in under 30 seconds; a newcomer can name every domain afterwards
-- Domains table makes relative size and maturity obvious at a glance
-- Priorities section reflects what is actually being worked on right now
-- Every docs-map link resolves to a real file that renders on GitHub
+- Domains & docs tree makes relative size, maturity, and what each feature does obvious at a glance
+- The closing line of *What this is* and the status fields reflect what is actually being worked on
+- Every link in the tree resolves to a real file that renders on GitHub
 - Points down into detail; never duplicates it
 
 ## What Bad Looks Like

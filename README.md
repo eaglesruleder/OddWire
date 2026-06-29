@@ -6,43 +6,30 @@ Vintage Story mod — farming and survival quality-of-life systems.
 
 ## What this is
 
-OddWire is a code mod for Vintage Story (game 1.21.0) organised into self-contained
-domains. Each domain holds one or more features — custom blocks and block entities,
-plus targeted Harmony patches over vanilla behaviour — on a shared base of API
-extensions and renderers. Documentation lives next to the code as an in-repo wiki:
-every domain and feature carries a gameplay **Brief** (`.git.md`) and an
-implementation **Doc** (`.gpt.md`), cross-linked so you can read down from this page
-to a single method without leaving GitHub.
+OddWire adds hands-on organic systems to Vintage Story (game 1.21.0). The
+centrepiece is the **CompostPile** — a tick-driven composting block: feed it dry
+grass and food scraps with a starter culture, keep it moist and aerated, and it
+works the inputs into compost over time across a two-stage decomposition pipeline.
+Watering runs through the **vanilla watering can**, patched to feed any
+moisture-aware block, and the **Survival** side adds a quality-of-life bag
+right-click pickup. More features (Brazier, Plow) are in progress.
 
 ---
 
-## Domains
+## Domains & docs
 
-| Domain | Adds | Size | Status |
-|---|---|---|---|
-| [Farming](OddWire/OddWire/Farming/.git.md) | CompostPile composting block + watering-can `IWaterable` patch | ~2.0k LOC | Active |
-| Survival | Bag right-click pickup patch (`BBRClickPickup`) | ~0.3k LOC | Active |
-| `_Common` / `_Extensions` | Shared block-tint renderer + Vintage Story API extension helpers | ~0.5k LOC | Support |
-
----
-
-## Priorities
-
-- **Active:** CompostPile — currently in playtest tuning (branch `Compostpile-Playtest`).
-- **Next:** Brazier and Plow features (branches exist, not yet documented).
-- **Parked:** Survival `BBRClickPickup` patch is in place and stable; no brief yet.
-
----
-
-## Docs map
-
-The in-code wiki. Each link renders on GitHub; follow them down to the implementation.
+The in-code wiki — each link renders on GitHub; follow them down to the
+implementation. Every domain and feature carries a gameplay **Brief** (`.git.md`)
+and an implementation **Doc** (`.gpt.md`).
 
 - **[Farming](OddWire/OddWire/Farming/.git.md)** — [Brief](OddWire/OddWire/Farming/.git.md) · [Doc](OddWire/OddWire/Farming/.gpt.md)
-  - **CompostPile** — [Brief](OddWire/OddWire/Farming/CompostPile/.git.md) · [Doc](OddWire/OddWire/Farming/CompostPile/.gpt.md)
-  - **WateringCan patch** — [Doc](OddWire/OddWire/Farming/_Patches/WateringCan/.gpt.md)
+  - **CompostPile** — [Brief](OddWire/OddWire/Farming/CompostPile/.git.md) · [Doc](OddWire/OddWire/Farming/CompostPile/.gpt.md) — Active, ~1.9k LOC<br>Dry grass + nutrition ⇒ compost engine
+  - **WateringCan patch** — [Doc](OddWire/OddWire/Farming/_Patches/WateringCan/.gpt.md) — Active, ~60 LOC<br>Calls `IWaterable.Water(dt)`
 - **Survival** — _(todo)_
-  - **BBRClickPickup patch** — _(todo)_
+  - **BBRClickPickup patch** — [Doc](OddWire/OddWire/Survival/_Patches/BBRClickPickup/.gpt.md) — Support, ~0.3k LOC<br>Bag right-click pickup
+
+Shared base: `_Common` / `_Extensions` — block-tint renderer + Vintage Story API
+helpers (~0.5k LOC, Support).
 
 Brief conventions (how these docs are written) live in [`.gpt/`](.gpt): the
 [Summary](.gpt/gpt_brief.summary.md), [Feature Brief](.gpt/gpt_brief.feature.md),
