@@ -7,19 +7,21 @@ Vintage Story mod — Farming and Survival systems.
 ## What this is
 
 OddWire adds hands-on organic systems to Vintage Story 1.21.0.
-Farming
 
-Adds **CompostPile**
-Consumes perishables to create Inoculum (Rot), and consumes Inoculum and Dry Grass to create compost. Driven by Moisture, Temp, Aeration (Adding to the pile)
+### Farming
 
-Patching **Watering Can**
-Now hecks for a IWaterable interface to extend functionality
+Adds **CompostPile** — consumes perishables to create inoculum (rot), then consumes
+inoculum and dry grass to create compost. Driven by moisture, temperature, and
+aeration (topped up by adding to the pile).
 
-**Survival**
+Patches the **Watering Can** — now checks for an `IWaterable` interface to extend
+functionality.
 
-Patching **BlockBehaviourRightClickPickup** 
-Allows a baskets (via MaxSlots < 4) with inventory to be held in toolbar
-Essentially trading tool-holding slots for small inventory boons
+### Survival
+
+Patches **BlockBehaviourRightClickPickup** — allows baskets (via `MaxSlots < 4`)
+with inventory to be held in the toolbar, trading tool-holding slots for small
+inventory boons.
 
 ---
 
