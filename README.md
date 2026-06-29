@@ -27,13 +27,11 @@ and an implementation **Doc** (`.gpt.md`).
   - **WateringCan patch** — [Doc](OddWire/OddWire/Farming/_Patches/WateringCan/.gpt.md) — Active, ~60 LOC<br>Calls `IWaterable.Water(dt)`
 - **Survival** — _(todo)_
   - **BBRClickPickup patch** — [Doc](OddWire/OddWire/Survival/_Patches/BBRClickPickup/.gpt.md) — Support, ~0.3k LOC<br>Bag right-click pickup
+- **`_Common`** — Support, ~140 LOC<br>Block-tint renderer
+- **`_Extensions`** — Support, ~0.4k LOC<br>Vintage Story API + System helpers
 
-Shared base: `_Common` / `_Extensions` — block-tint renderer + Vintage Story API
-helpers (~0.5k LOC, Support).
-
-Brief conventions (how these docs are written) live in [`.gpt/`](.gpt): the
-[Summary](.gpt/gpt_brief.summary.md), [Feature Brief](.gpt/gpt_brief.feature.md),
-[In-Repo Doc](.gpt/gpt_brief.repo.md), and [Code Brief](.gpt/gpt_brief.code.md) specs.
+Brief conventions (how these docs are written) live in the shared
+[gpt..md](https://github.com/eaglesruleder/gpt..md) repo.
 
 ---
 
