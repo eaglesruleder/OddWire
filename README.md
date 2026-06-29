@@ -1,26 +1,30 @@
 # OddWire
 
-Vintage Story mod — farming and survival quality-of-life systems.
+Vintage Story mod — Farming and Survival systems.
 
 ---
 
 ## What this is
 
-OddWire adds hands-on organic systems to Vintage Story (game 1.21.0). The
-centrepiece is the **CompostPile** — a tick-driven composting block: feed it dry
-grass and food scraps with a starter culture, keep it moist and aerated, and it
-works the inputs into compost over time across a two-stage decomposition pipeline.
-Watering runs through the **vanilla watering can**, patched to feed any
-moisture-aware block, and the **Survival** side adds a quality-of-life bag
-right-click pickup. More features (Brazier, Plow) are in progress.
+OddWire adds hands-on organic systems to Vintage Story 1.21.0.
+Farming
+
+Adds **CompostPile**
+Consumes perishables to create Inoculum (Rot), and consumes Inoculum and Dry Grass to create compost. Driven by Moisture, Temp, Aeration (Adding to the pile)
+
+Patching **Watering Can**
+Now hecks for a IWaterable interface to extend functionality
+
+**Survival**
+
+Patching **BlockBehaviourRightClickPickup** 
+Allows a baskets (via MaxSlots < 4) with inventory to be held in toolbar
+Essentially trading tool-holding slots for small inventory boons
 
 ---
 
 ## Domains & docs
-
-The in-code wiki — each link renders on GitHub; follow them down to the
-implementation. Every domain and feature carries a gameplay **Brief** (`.git.md`)
-and an implementation **Doc** (`.gpt.md`).
+Conventions: [gpt..md](https://github.com/eaglesruleder/gpt..md) repo
 
 - **[Farming](OddWire/OddWire/Farming/.git.md)** — [Brief](OddWire/OddWire/Farming/.git.md) · [Doc](OddWire/OddWire/Farming/.gpt.md)
   - **CompostPile** — [Brief](OddWire/OddWire/Farming/CompostPile/.git.md) · [Doc](OddWire/OddWire/Farming/CompostPile/.gpt.md) — Active, ~1.9k LOC<br>Dry grass + nutrition ⇒ compost engine
@@ -29,9 +33,6 @@ and an implementation **Doc** (`.gpt.md`).
   - **BBRClickPickup patch** — [Doc](OddWire/OddWire/Survival/_Patches/BBRClickPickup/.gpt.md) — Support, ~0.3k LOC<br>Bag right-click pickup
 - **`_Common`** — Support, ~140 LOC<br>Block-tint renderer
 - **`_Extensions`** — Support, ~0.4k LOC<br>Vintage Story API + System helpers
-
-Brief conventions (how these docs are written) live in the shared
-[gpt..md](https://github.com/eaglesruleder/gpt..md) repo.
 
 ---
 
