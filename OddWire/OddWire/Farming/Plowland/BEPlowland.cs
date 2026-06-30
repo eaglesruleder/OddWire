@@ -385,22 +385,26 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
     }
     #endregion
 
+    // Mirrors BlockEntityFarmland.GetBlockInfo order (crop header → growth speed → damage → soil),
+    // then appends the plowland-specific support lines
     public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
     {
-        base.GetBlockInfo(forPlayer, dsc);
-
-        dsc.AppendLine($"Support: {SupportCode ?? "none"}");
-        dsc.AppendLine($"Retention: {SupportRetentionDays:0.0} days");
-
         Block? cropBlock = _crop.GetCrop(Api.World);
-        if (cropBlock?.CropProps is not null)
+
+        if (cropBlock?.CropProps is { } cropProps)
         {
-            dsc.AppendLine($"Crop: {cropBlock.GetPlacedBlockName(Api.World, upPos)}");
-            dsc.AppendLine($"Stage: {_crop.GetCropStage(cropBlock)} / {cropBlock.CropProps.GrowthStages}");
+            dsc.AppendLine(Lang.Get("Required Nutrient: {0}", cropProps.RequiredNutrient));
+            dsc.AppendLine(Lang.Get("Growth Stage: {0} / {1}", _crop.GetCropStage(cropBlock), cropProps.GrowthStages));
+            dsc.AppendLine();
         }
 
         AppendGrowthSpeed(dsc, cropBlock);
         AppendCropDamage(dsc, cropBlock);
+
+        base.GetBlockInfo(forPlayer, dsc); // nutrient levels, slow-release fertilizer, moisture %
+
+        dsc.AppendLine(Lang.Get("plowland-info-support",   SupportCode ?? Lang.Get("plowland-info-nosupport")));
+        dsc.AppendLine(Lang.Get("plowland-info-retention", SupportRetentionDays));
     }
 
     private void AppendGrowthSpeed(StringBuilder dsc, Block? cropBlock)

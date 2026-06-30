@@ -1,4 +1,22 @@
 {
+    "block-plowland-*": "Plowland",
+    "item-plow-iron": "Iron Plow",
+    "item-plow-meteoriciron": "Meteoric Iron Plow",
+    "item-plow-steel": "Steel Plow",
+    "item-plow-*": "Plow",
+
+    "heldhelp-plow": "Plow soil",
+
+    "plowland-info-support": "Support: {0}",
+    "plowland-info-nosupport": "none",
+    "plowland-info-retention": "Retention: {0:0.0} days",
+
+    "oddwire:item-handbooktitle-oddwire:plow-*": "Use:",
+    "oddwire:item-handbooktext-oddwire:plow-*": "Hold right-click and drag across <a href=\"handbook://block-soil-medium-none\">soil</a> or <a href=\"handbook://block-farmland-dry-medium\">farmland</a> to plow it into <a href=\"handbook://block-plowland-north-dry-medium\">Plowland</a>.<br><br>Plowland is a high-retention furrow: it pulls moisture and N/P/K from the soil block beneath it, so crops cycle faster and yield more harvests per season.<br><br>Plowing combines the target's nutrients with the supporting block's fertility, and the average decides whether the plot tiers up or down. Plowing a furrow reverts the two neighbours alongside it back to farmland.",
+
+    "oddwire:block-handbooktitle-oddwire:plowland-*": "Use:",
+    "oddwire:block-handbooktext-oddwire:plowland-*": "High-retention farmland furrow made with a <a href=\"handbook://item-plow-iron\">Plow</a>.<br><br>Holds moisture and N/P/K longer than plain farmland by drawing on the soil block beneath it. Plant, water, and harvest as normal; fertilise with <a href=\"handbook://item-compost\">Compost</a> or <a href=\"handbook://item-bonemeal\">Bonemeal</a>.<br><br>Crops grow, take cold/heat damage, and can die exactly as they do on farmland.",
+
     "block-compostpile-*": "Compost Pile",
     "oddwire:block-handbooktitle-oddwire:compostpile-*": "Use:",
     "oddwire:block-handbooktext-oddwire:compostpile-*": "Turns Food, <a href=\"handbook://item-rot\">Rot</a>, and <a href=\"handbook://item-drygrass\">Dry Grass</a> into <a href=\"handbook://item-compost\">Compost</a>.<br><br>Craft starter pile from Dry Grass and Rot<br>Once placed adding Rot seeds it, Dry Grass adds bulk, and adding Food increases rate and temperature.<br><br>Optimals: Temperature: Cold 20°C / Hot 55°C - Moisture: Dry 60% / Drowning 85% - Aeration: Hypoxic 35% - Rot: Unseesed lt. 80% full<br><br>Digging up pile drops processed Compost and Compost Pile.<br>Refill with the dropped compost and fresh input to restore Aeration.",
