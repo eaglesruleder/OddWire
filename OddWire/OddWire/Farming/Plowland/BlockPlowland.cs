@@ -35,12 +35,9 @@ public class BlockPlowland : Block
 
         return base.CanAttachBlockAt(world, block, pos, blockFace, attachmentArea);
     }
-
+    
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        if (world.Side != EnumAppSide.Server)
-            return base.OnBlockInteractStart(world, byPlayer, blockSel);
-        
         if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityPlowland be
         &&  be.OnBlockInteract(byPlayer)
            )

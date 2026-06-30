@@ -35,6 +35,38 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         base.onRollback(hoursRolledBack);
         _crop.OnRollback(hoursRolledBack);
     }
+
+    // Intent: drape the NPK fertilizer overlay over the furrow's sky-facing rects (vanilla uses a flat
+    //         farmland quad); rotate it to match the block's "side" variant since the furrow is oriented
+    protected override void genFertilizerQuad()
+    {
+        if (capi is null
+        ||  Block?.Variant is null
+            )
+            return;
+
+        Shape? shape = capi.Assets.TryGet(new AssetLocation("oddwire", "shapes/farming/plowland_fertiliser.json"))?.ToObject<Shape>();
+        if (shape is null)
+            return;
+
+        float rotationDegY = Block.Variant["side"] switch
+        {
+            "east"  => 270f,
+            "south" => 180f,
+            "west"  =>  90f,
+            _       =>   0f
+        };
+
+        capi.Tesselator.TesselateShape
+            (new TesselationMetaData
+                {TypeForLogging = "plowland fertilizer quad"
+                ,TexSource      = this
+                ,Rotation       = new Vec3f(0, rotationDegY, 0)
+                }
+            ,shape
+            ,out FertilizerQuad
+            );
+    }
     #endregion
 
     #region IWaterable
