@@ -148,7 +148,7 @@ public class CompostpileSettings
     #endregion
 
     #region BlockInfo
-    public bool InfoDebug = true;
+    public bool InfoDebug = false;
     public float InfoFactorWarningThreshhold = 0.8f;
     public float InfoNeedsPortionsThreshhold = 2f;
     public float InfoTurnCompostRoom01 = 0.5f; // Turn when compost room drops below this fraction of max
