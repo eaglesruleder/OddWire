@@ -285,17 +285,8 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(StackQty) + 1))
         int available = Math.Min(CompostQty, Settings.HarvestCompostQty);
-        int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = Math.Min(remaining, Api.World.Rand.Next(Settings.HarvestCompostStackQty) + 1);
-            ItemStack stack = new ItemStack(spawnItem, spawnNow);
-            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-        #endregion
+        SpawnDrops(spawnItem, (int)Math.Ceiling(available * dropQuantityMultiplier), Settings.HarvestCompostStackQty);
         
         CompostQty = Math.Max(CompostQty - available, 0);
         
@@ -332,17 +323,8 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(StackQty) + 1))
         int available = Math.Min(compostpileQty, Settings.HarvestCompostpileQty);
-        int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = Math.Min(remaining, Api.World.Rand.Next(Settings.HarvestCompostpileStackQty) + 1);
-            ItemStack stack = new ItemStack(spawnBlock, spawnNow);
-            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-        #endregion
+        SpawnDrops(spawnBlock, (int)Math.Ceiling(available * dropQuantityMultiplier), Settings.HarvestCompostpileStackQty);
         
         BrownsQty = Math.Max(BrownsQty - Settings.Browns.InitialQty * available, 0);
         TryRemoveCheapestNutrition(Settings.Nutrition.InitialQty * available);
@@ -363,17 +345,8 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(StackQty) + 1))
         int available = Math.Min(InoculumQty, Settings.Inoculum.HarvestQty);
-        int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = Math.Min(remaining, Api.World.Rand.Next(Settings.Inoculum.HarvestStackQty) + 1);
-            ItemStack stack = new ItemStack(spawnItem, spawnNow);
-            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-        #endregion
+        SpawnDrops(spawnItem, (int)Math.Ceiling(available * dropQuantityMultiplier), Settings.Inoculum.HarvestStackQty);
         
         InoculumQty = Math.Max(InoculumQty - available, 0);
         
@@ -392,17 +365,8 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(StackQty) + 1))
         int available = Math.Min(BrownsQty, Settings.Browns.HarvestQty);
-        int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
-        while (remaining > 0)
-        {
-            int spawnNow = Math.Min(remaining, Api.World.Rand.Next(Settings.Browns.HarvestStackQty) + 1);
-            ItemStack stack = new ItemStack(spawnItem, spawnNow);
-            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
-            remaining -= spawnNow;
-        }
-        #endregion
+        SpawnDrops(spawnItem, (int)Math.Ceiling(available * dropQuantityMultiplier), Settings.Browns.HarvestStackQty);
         
         BrownsQty = Math.Max(BrownsQty - available, 0);
         
@@ -410,6 +374,21 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         return true;
     }
     
+    //  Intent: randomised drop stacks up to totalQty, each Min(remaining, Rand(maxStack) + 1)
+    private void SpawnDrops(CollectibleObject collectible, int totalQty, int maxStack)
+    {
+        int remaining = totalQty;
+        while (remaining > 0)
+        {
+            int spawnNow = Math.Min(remaining, Api.World.Rand.Next(maxStack) + 1);
+            ItemStack stack = collectible is Block block
+            ?   new ItemStack(block, spawnNow)
+            :   new ItemStack((Item)collectible, spawnNow);
+            Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
+            remaining -= spawnNow;
+        }
+    }
+
     private void ResetOnPlaced(Block block)
     {
         #region stackBonus = parse(block '#N' variant) - 1
