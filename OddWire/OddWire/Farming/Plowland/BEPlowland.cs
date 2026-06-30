@@ -403,8 +403,8 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 
         base.GetBlockInfo(forPlayer, dsc); // nutrient levels, slow-release fertilizer, moisture %
 
-        dsc.AppendLine(Lang.Get("plowland-info-support",   SupportCode ?? Lang.Get("plowland-info-nosupport")));
-        dsc.AppendLine(Lang.Get("plowland-info-retention", SupportRetentionDays));
+        dsc.AppendLine(Lang.Get("oddwire:plowland-info-support",   SupportCode ?? Lang.Get("oddwire:plowland-info-nosupport")));
+        dsc.AppendLine(Lang.Get("oddwire:plowland-info-retention", SupportRetentionDays));
     }
 
     private void AppendGrowthSpeed(StringBuilder dsc, Block? cropBlock)
