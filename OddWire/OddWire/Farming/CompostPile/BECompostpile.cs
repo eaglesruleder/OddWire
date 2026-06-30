@@ -1044,9 +1044,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool UpdateMoisture(double totalHours)
     {
-        #region if(never/futureUpdated) { prevTime = now; return true }
+        #region if(neverUpdated || imported) { prevTime = now; return true }
         if (PrevTimeMoistureUpdated < 0
-        ||  PrevTimeMoistureUpdated > totalHours
+        ||  PrevTimeMoistureUpdated > totalHours  // Intent: imported structures can be in the future
            )
         {
             PrevTimeMoistureUpdated = totalHours;
@@ -1098,9 +1098,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool UpdateAeration(double totalHours)
     {
-        #region if(never/futureUpdated) { prevTime = now; return true }
+        #region if(neverUpdated || imported) { prevTime = now; return true }
         if (_prevTimeAerationUpdated < 0
-        ||  _prevTimeAerationUpdated > totalHours
+        ||  _prevTimeAerationUpdated > totalHours  // Intent: imported structures can be in the future
            )
         {
             _prevTimeAerationUpdated = totalHours;
@@ -1144,9 +1144,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
 
     private bool UpdateTemperature(double totalHours)
     {
-        #region if(never/futureUpdated) { prevTime = now; temp = envTemp; return true }
+        #region if(neverUpdated || imported) { prevTime = now; temp = envTemp; return true }
         if (_prevTimeTemperatureUpdated < 0
-        ||  _prevTimeTemperatureUpdated > totalHours
+        ||  _prevTimeTemperatureUpdated > totalHours  // Intent: imported structures can be in the future
            )
         {
             _prevTimeTemperatureUpdated = totalHours;
@@ -1185,9 +1185,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     #region Processing
     private bool ProcessCompost(double totalHours)
     {
-        #region if(neverProcessed || !transitionCapacity) { prevTime = now; return false }
+        #region if(neverProcessed || imported || !transitionCapacity) { prevTime = now; return false }
         if (_prevTimeProcessed < 0
-        ||  _prevTimeProcessed > totalHours
+        ||  _prevTimeProcessed > totalHours  // Intent: imported structures can be in the future
             )
         {
             _prevTimeProcessed = totalHours;
@@ -1231,9 +1231,9 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool ProcessDecomposition(double totalHours)
     {
-        #region if(neverDecomposed || !inoculumRoom || !material) { prevTime = now; return false }
+        #region if(neverDecomposed || imported || !inoculumRoom || !material) { prevTime = now; return false }
         if (_prevTimeDecomposed < 0
-        ||  _prevTimeDecomposed > totalHours
+        ||  _prevTimeDecomposed > totalHours  // Intent: imported structures can be in the future
            )
         {
             _prevTimeDecomposed = totalHours;
