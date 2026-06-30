@@ -276,7 +276,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     //  Intent: Nutrition is lossy
     private bool HarvestCompost(float dropQuantityMultiplier)
     {
-        #region if(!CompostQty || !GetItem(Settings.HarvestCompostPath)) return false;
+        #region if(!CompostQty || !GetItem(HarvestCompostPath)) return false
         if (CompostQty < 1)
             return false;
         
@@ -285,7 +285,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(HarvestQty) + 1));
+        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(StackQty) + 1))
         int available = Math.Min(CompostQty, Settings.HarvestCompostQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -320,7 +320,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool HarvestCompostpile(float dropQuantityMultiplier)
     {
-        #region if(!GetHarvestableCompostpileQty || !GetBlock(Settings.HarvestCompostpilePath)) return false;
+        #region if(!GetHarvestableCompostpileQty || !GetBlock(HarvestCompostpilePath)) return false
         int compostpileQty = GetHarvestableCompostpileQty();
         if (compostpileQty < 1)
             return false;
@@ -332,7 +332,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(HarvestQty) + 1));
+        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(StackQty) + 1))
         int available = Math.Min(compostpileQty, Settings.HarvestCompostpileQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -354,7 +354,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool HarvestInoculum(float dropQuantityMultiplier)
     {
-        #region if(!InoculumQty || !GetItem(Settings.Inoculum.HarvestItemPath)) return false;
+        #region if(!InoculumQty || !GetItem(Inoculum.HarvestItemPath)) return false
         if (InoculumQty < 1)
             return false;
         
@@ -363,7 +363,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(HarvestQty) + 1));
+        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(StackQty) + 1))
         int available = Math.Min(InoculumQty, Settings.Inoculum.HarvestQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -383,7 +383,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool HarvestBrowns(float dropQuantityMultiplier)
     {
-        #region if(!BrownsQty || !GetItem(Settings.Browns.HarvestItemPath)) return false;
+        #region if(!BrownsQty || !GetItem(Browns.HarvestItemPath)) return false
         if (BrownsQty < 1)
             return false;
         
@@ -392,7 +392,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(HarvestQty) + 1));
+        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(StackQty) + 1))
         int available = Math.Min(BrownsQty, Settings.Browns.HarvestQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -412,7 +412,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private void ResetOnPlaced(Block block)
     {
-        #region stackBonus = int.TryParse(block.Code?.EndVariant().Substring(1))
+        #region stackBonus = parse(block '#N' variant) - 1
         string stackVariant = block.Code?.EndVariant();
         int stackBonus = 0;
         if (!(string.IsNullOrEmpty(stackVariant)
@@ -459,7 +459,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (slot.StackSize < 1)
             return false;
         
-        #region if(TryAdd()) restoreAeration = accepted * Settings.Aeration01Per; else return false;
+        #region try each Add path -> restoreAeration = accepted * Aeration01PerInput; else return false
         bool added = false;
         float restoreAeration = 0;
         
@@ -497,7 +497,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     {
         accepted = 0;
         
-        #region if(!roomQty || !ingredient.AddItemCodeRatios.TryGetValue()) return false;
+        #region if(!roomQty || !AddItemCodeRatios.TryGetValue(code, ratio)) return false
         int roomQty = ingredient.MaxQty - (currentQty + imposeQty);
         if (ingredient.AddItemCodeRatios is null
         ||  ingredient.AddItemCodeRatios.Count == 0
@@ -517,7 +517,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region batches = Min(maxBatches, stack / input, room / output)
+        #region batches = Min(addQty, stack/input, room/output); if(!batches) return false
         int inputPerBatch  = ratio < 1f ? 1 : (int)MathF.Ceiling(ratio);
         int outputPerBatch = ratio < 1f ? (int)MathF.Floor(1f / ratio) : 1;
         
@@ -564,7 +564,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region batches = Min(addQty, stack, max(browns fill, inoculum fill)); if(!batches) return false;
+        #region batches = Min(addQty, stack, max(browns/inoculum fill)); if(!batches) return false
         stackBonus = Math.Max(stackBonus - 1, 0);
         int brownsAdd = Settings.Browns.InitialQty + stackBonus * Settings.Browns.SizeBonusQty;
         int brownsBatches   = brownsAdd   > 0 ? (brownsRoom   + brownsAdd   - 1) / brownsAdd   : 0;
@@ -620,7 +620,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return;
         #endregion
         
-        #region while(quantity) SpawnItemEntity(spawnNow = Min(quantity, ingredient.HarvestStackQty));
+        #region while(quantity) SpawnItemEntity(spawnNow = Min(quantity, HarvestStackQty))
         while (quantity > 0)
         {
             int spawnNow = Math.Min(quantity, ingredient.HarvestStackQty);
@@ -649,7 +649,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region batches = Min(addQty, stack / input, room / output)); if(!batches) return false;
+        #region batches = Min(addQty, stack/input, room/output); if(!batches) return false
         int inputPerBatch  = nutritionPerInput < 1f ? (int)MathF.Ceiling(1f / nutritionPerInput) : 1;
         int outputPerBatch = nutritionPerInput < 1f ? 1 : (int)MathF.Floor(nutritionPerInput);
         
@@ -687,7 +687,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return 0;
         #endregion
         
-        #region foreach(transitionProp) if(AddItemCodeRatios.TryGetValue() return itemCodeRatio * prop.TransitionRatio;
+        #region foreach(perishProp) if(Inoculum.ratios[transitionedCode]) return TransitionRatio * inRatio
         foreach (var prop in transitionProps)
         {
             if (prop?.Type != EnumTransitionType.Perish
@@ -905,7 +905,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             if (i == BlockFacing.indexDOWN)
                 continue;
             
-            #region result += neighbour.GetHeatStrength()
+            #region result += neighbour.IHeatSource?.GetHeatStrength() ?? 0
             BlockPos neighbourPos = Pos.AddCopy(BlockFacing.ALLFACES[i]);
             result += Api.World.BlockAccessor
                ?.GetBlock(neighbourPos)
@@ -1065,7 +1065,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool UpdateMoisture(double totalHours)
     {
-        #region if(0 > PrevTimeUpdated || > totalHours) { PrevTimeUpdated = totalHours; return true; }
+        #region if(neverUpdated) { prevTime = now; return true }
         if (PrevTimeMoistureUpdated < 0
         ||  PrevTimeMoistureUpdated > totalHours
            )
@@ -1119,7 +1119,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool UpdateAeration(double totalHours)
     {
-        #region if(0 > _prevTimeAerationUpdated || > totalHours) return true;
+        #region if(neverUpdated) { prevTime = now; return true }
         if (_prevTimeAerationUpdated < 0
         ||  _prevTimeAerationUpdated > totalHours
            )
@@ -1165,7 +1165,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
 
     private bool UpdateTemperature(double totalHours)
     {
-        #region if(0 > _prevTimeUpdated || > totalHours) return true;
+        #region if(neverUpdated) { prevTime = now; temp = envTemp; return true }
         if (_prevTimeTemperatureUpdated < 0
         ||  _prevTimeTemperatureUpdated > totalHours
            )
@@ -1206,7 +1206,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     #region Processing
     private bool ProcessCompost(double totalHours)
     {
-        #region if(neverProcessed || !browns/inoculumPortions || !compostRoom) { prevTime = now; return false; } 
+        #region if(neverProcessed || !transitionCapacity) { prevTime = now; return false }
         if (_prevTimeProcessed < 0
         ||  _prevTimeProcessed > totalHours
             )
@@ -1230,7 +1230,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         }
         #endregion
         
-        #region if(!(transitions = duration * BaseRate * Factor)) return false;
+        #region if(!(transitions = Min(duration * compostRate, capacity))) return false
         double duration = totalHours - _prevTimeProcessed;
         float transitionRate = Settings.BaseCompostRatePerHour * GetCompostFactor();
         int transitions = (int)Math.Min
@@ -1252,7 +1252,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool ProcessDecomposition(double totalHours)
     {
-        #region if(neverProcessed || !inoculumRoom || !material) { prevTime = now; return false; }
+        #region if(neverDecomposed || !inoculumRoom || !material) { prevTime = now; return false }
         if (_prevTimeDecomposed < 0
         ||  _prevTimeDecomposed > totalHours
            )
@@ -1292,7 +1292,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false; // keep accruing progress
         #endregion
 
-        #region RemoveRandNutri(Min(trans, nutriQty)); BrownsQty -= trans - nutriCost;
+        #region RemoveRandNutri(nutritionCost); BrownsQty -= brownsCost; InoculumQty += transitions
         int nutritionCost = Math.Min(transitions, nutritionQty);
         int brownsCost = transitions - nutritionCost;
 
