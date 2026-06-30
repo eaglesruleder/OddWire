@@ -22,6 +22,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     private bool _neighboursDirty;
     public bool NeighboursDirty
     {   get => _neighboursDirty;
+        //  Intent: OnEvery12Seconds() -> UpdateNeighbourBlocks() clears flag
         set => _neighboursDirty |= value;
     }
     
@@ -284,12 +285,12 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Rand(Min(remaining, Settings.HarvestCompostStackQty)) + 1);
+        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(HarvestQty) + 1));
         int available = Math.Min(CompostQty, Settings.HarvestCompostQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
         {
-            int spawnNow = Api.World.Rand.Next(Math.Min(remaining, Settings.HarvestCompostStackQty)) + 1;
+            int spawnNow = Math.Min(remaining, Api.World.Rand.Next(Settings.HarvestCompostStackQty) + 1);
             ItemStack stack = new ItemStack(spawnItem, spawnNow);
             Api.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(Api.World.Rand.NextDouble(), 0.5, Api.World.Rand.NextDouble()));
             remaining -= spawnNow;
@@ -331,7 +332,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Rand(Min(remaining, Settings.HarvestCompostStackQty)) + 1);
+        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(HarvestQty) + 1));
         int available = Math.Min(compostpileQty, Settings.HarvestCompostpileQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -362,7 +363,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Rand(Min(remaining, Settings.HarvestCompostStackQty)) + 1);
+        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(HarvestQty) + 1));
         int available = Math.Min(InoculumQty, Settings.Inoculum.HarvestQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
@@ -391,7 +392,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             return false;
         #endregion
         
-        #region while(remaining) SpawnItemEntity(spawnNow = Rand(Min(remaining, Settings.HarvestCompostStackQty)) + 1);
+        #region while(remaining) SpawnItemEntity(spawnNow = Min(remaining, Rand(HarvestQty) + 1));
         int available = Math.Min(BrownsQty, Settings.Browns.HarvestQty);
         int remaining = (int)Math.Ceiling(available * dropQuantityMultiplier);
         while (remaining > 0)
