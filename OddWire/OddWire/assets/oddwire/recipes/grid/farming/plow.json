@@ -1,0 +1,43 @@
+[
+  {
+    "ingredientPattern": "_HB,BBN,KP_",
+    "width": 3,
+    "height": 3,
+    "ingredients": {
+      "B": {
+        "type": "block",
+        "code": "game:supportbeam-*",
+        "quantity": 1
+      },
+      "H": {
+        "type": "item",
+        "code": "game:hammer-*",
+        "isTool": true
+      },
+      "N": {
+        "type": "item",
+        "code": "game:metalnailsandstrips-*",
+        "quantity": 4
+      },
+      "P": {
+        "type": "item",
+        "code": "game:metalplate-*",
+        "name": "metal",
+        "quantity": 2,
+        "allowedVariants": [ "iron", "meteoriciron", "steel" ]
+      },
+      "K": {
+        "type": "item",
+        "code": "game:knife-generic-*",
+        "name": "metal",
+        "quantity": 1,
+        "allowedVariants": [ "iron", "meteoriciron", "steel" ]
+      }
+    },
+    "output": {
+      "type": "item",
+      "code": "plow-{metal}",
+      "quantity": 1
+    }
+  }
+]
