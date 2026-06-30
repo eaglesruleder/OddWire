@@ -1,11 +1,22 @@
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
 
 public class BlockPlowland : Block
 {
+    // Intent: force a fresh nutrient/moisture/roomness sync so the client tooltip is correct on look (matches BlockFarmland)
+    public override void OnBeingLookedAt(IPlayer byPlayer, BlockSelection blockSel, bool firstTick)
+    {
+        if (firstTick
+        &&  api is ICoreServerAPI sapi
+        &&  sapi.World.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityPlowland be
+            )
+            be.SendFullUpdateToClient(sapi, (IServerPlayer)byPlayer);
+    }
+
     public override int GetRetention(BlockPos pos, BlockFacing facing, EnumRetentionType type) =>
         facing == BlockFacing.UP ? 0 : 3;
 

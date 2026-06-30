@@ -11,7 +11,7 @@ namespace OddWire.GameContent;
 
 public class ItemPlow : Item
 {
-    private PlowlandSettings Settings = new();
+    private static readonly PlowlandSettings Settings = new();
     private WorldInteraction[]? interactions;
 
     private bool CanPlow(ref BlockPos? pos, out Block? block)
@@ -112,7 +112,7 @@ public class ItemPlow : Item
         if (!CanPlow(ref targetPos, out _))
             return;
         
-        byEntity.Stats.Set("walkspeed", "OddWire.ItemPlow", -0.4f, true);
+        byEntity.Stats.Set("walkspeed", "OddWire.ItemPlow", Settings.PlowWalkSpeedPenalty, true);
         (byEntity as EntityPlayer)?.walkSpeed = byEntity.Stats.GetBlended("walkspeed");
         
         byEntity.Attributes.SetInt("lastplowx", int.MinValue);
@@ -137,9 +137,9 @@ public class ItemPlow : Item
         if (!CanPlow(ref targetPos, out _) || targetPos is null)
             return false;
 
-        #region if(Side.Server && seconds > 0.6 && targetPos != "lastplow") DoPlow()
+        #region if(Side.Server && seconds > PlowSecondsRequired && targetPos != "lastplow") DoPlow()
         if (world.Side == EnumAppSide.Server
-        &&  secondsUsed > 0.6f
+        &&  secondsUsed > Settings.PlowSecondsRequired
         && (targetPos.X != byEntity.Attributes.GetInt("lastplowx", int.MinValue)
         ||  targetPos.Y != byEntity.Attributes.GetInt("lastplowy", int.MinValue)
         ||  targetPos.Z != byEntity.Attributes.GetInt("lastplowz", int.MinValue)
@@ -195,7 +195,7 @@ public class ItemPlow : Item
             return;
         #endregion
 
-        #region supportBlock = world.GetBlock(supportPos)
+        #region supportBlock = RevertSupportToSoil(world, supportPos)
         BlockEntity? targetBlockEntity = world.BlockAccessor.GetBlockEntity(targetPos);
         BlockPos supportPos = targetPos.DownCopy();
         Block supportBlock  = world.BlockAccessor.GetBlock(supportPos);
@@ -218,8 +218,8 @@ public class ItemPlow : Item
 
         float chanceChange = (targetNutrients[0] + targetNutrients[1] + targetNutrients[2] + supportMax) /4f;
         float randChange = api.World.Rand.NextSingle() * 100f;
-        if (chanceChange < 100f)
-        #region if(chanceChange < randChange) highestBlock.fertility-- (support wins ties)
+        if (chanceChange < Settings.FertilityNeutral)
+        #region underfed: if(randChange > chanceChange) richerBlock.fertility--
         {
             if (chanceChange < randChange)
             {
@@ -231,9 +231,9 @@ public class ItemPlow : Item
         }
         #endregion
         else
-        #region if(chanceChange-100 > randChange) lowestBlock.fertility++ (target wins ties)
+        #region overfed: if(randChange < chanceChange-Neutral) poorerBlock.fertility++
         {
-            if (chanceChange-100f > randChange)
+            if (chanceChange - Settings.FertilityNeutral > randChange)
             {
                 if (targetFertility < supportFertility || supportFertility < 0)
                     targetFertilityChange++;
@@ -292,7 +292,7 @@ public class ItemPlow : Item
         bePlowland.AddSlowRelease(slowRelease[0], slowRelease[1], slowRelease[2]);
 
         #region ExchangeAdjacentPlowland([left, right])
-        // Intent: This is resolving as left/right.
+        // Intent: keep plowland a 1-wide furrow — revert the two neighbours perpendicular to facing back to farmland
         Vec3i norm = facingDir.Normali;
         TryExchangePlowlandToFarmland(world, targetPos.AddCopy(norm.X, 0, -norm.Z));
         TryExchangePlowlandToFarmland(world, targetPos.AddCopy(-norm.X, 0, norm.Z));

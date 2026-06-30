@@ -15,4 +15,14 @@ public sealed class PlowlandSettings
 
     // Used in ItemPlow.DoPlow to cap result nutrients
     public float Max = 150f;
+
+    // Slow-release nutrient ceiling — matches vanilla BlockEntitySoilNutrition cap
+    public float SlowReleaseMax = 150f;
+
+    // Avg-nutrient pivot in DoPlow: below it the richer block risks losing a tier, above it the poorer block can gain one
+    public float FertilityNeutral = 100f;
+
+    // ItemPlow held-interact tuning
+    public float PlowSecondsRequired   = 0.6f;
+    public float PlowWalkSpeedPenalty  = -0.4f;
 }

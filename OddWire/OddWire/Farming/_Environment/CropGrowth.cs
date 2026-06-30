@@ -8,16 +8,37 @@ using Vintagestory.GameContent;
 
 namespace OddWire.GameContent;
 
+// Portable crop layer mirroring BlockEntityFarmland's crop logic, so a non-Farmland host
+// (e.g. BlockEntityPlowland) catches the same growth, light, damage, death, and persistence
+// lifecycles. The host wires three base virtuals it cannot reach: RainHeightOffset,
+// RecoverFertility, onRollback (see BlockEntityPlowland).
 public sealed class CropGrowth
 {
+    #region Tuning
+    private const float MoistureGrowthMin      = 0.1f;   // below this, growth stalls (matches vanilla)
+    private const float DamageDeathThresholdH  = 48f;    // accumulated stress-hours before the crop dies
+    private const float DamageDecayDivisor     = 10f;    // safe-condition decay: accum -= hours / divisor
+    #endregion
+
+    #region StoredState
     public float GrowthRateMul = 1f;
+    public bool AllowCropDeath = true;
 
     public BlockPos UpPos;
     public double TotalHoursForNextStage = -1;
-    
+
     public bool RipeCropColdDamaged;
     public bool UnripeCropColdDamaged;
     public bool UnripeHeatDamaged;
+
+    // Accumulated stress-hours — not persisted, resets to 0 on reload (matches vanilla damageAccum)
+    private float _coldDamageAccumH;
+    private float _heatDamageAccumH;
+
+    // Per-crop behaviour scratch state (fruiting crops etc.); persisted so it survives save/load
+    private TreeAttribute _cropAttrs = new();
+    public ITreeAttribute CropAttributes => _cropAttrs;
+    #endregion
 
     public void Init(BlockPos bePos) => UpPos = bePos.UpCopy();
     public void SetRules(float growthRateMul) => GrowthRateMul = Math.Max(0.01f, growthRateMul);
@@ -25,9 +46,14 @@ public sealed class CropGrowth
     #region Queries
     public Block GetCrop(IWorldAccessor world)
     {
+        if (UpPos is null) // guards base-class virtuals (RainHeightOffset/RecoverFertility) evaluated before Init
+            return null;
+
         Block block = world.BlockAccessor.GetBlock(UpPos);
         return block?.CropProps != null ? block : null;
     }
+
+    public bool HasCrop(IWorldAccessor world) => GetCrop(world) != null;
 
     public int GetCropStage(Block block)
     {
@@ -51,7 +77,7 @@ public sealed class CropGrowth
         ||  block.BlockMaterial == EnumBlockMaterial.Air;
     }
     #endregion
-    
+
     public bool TryPlant
         (Block block
         ,ItemSlot slot
@@ -82,86 +108,26 @@ public sealed class CropGrowth
         RipeCropColdDamaged = false;
         UnripeCropColdDamaged = false;
         UnripeHeatDamaged = false;
+        _coldDamageAccumH = 0;
+        _heatDamageAccumH = 0;
     }
 
-    public void CheckDamage(ClimateCondition conds, IWorldAccessor world)
+    public void OnRollback(double hoursRolledBack)
     {
-        Block crop = GetCrop(world);
-        if (crop?.CropProps is null)
-            return;
-
-        bool isRipe = GetCropStage(crop) >= crop.CropProps.GrowthStages;
-
-        if (conds.Temperature < crop.CropProps.ColdDamageBelow)
-        {
-            if (isRipe)
-                RipeCropColdDamaged = true;
-            else
-                UnripeCropColdDamaged = true;
-        }
-
-        if (conds.Temperature > crop.CropProps.HeatDamageAbove)
-            UnripeHeatDamaged = true;
+        // Intent: only an active schedule is rolled back; -1 is the "no crop" sentinel
+        if (TotalHoursForNextStage >= 0)
+            TotalHoursForNextStage -= hoursRolledBack;
     }
 
-    public ItemStack[] GetDrops(ItemStack[] drops, IWorldAccessor world, JsonObject blockAttributes)
-    {
-        BlockEntityDeadCrop beDeadCrop = world.BlockAccessor.GetBlockEntity(UpPos) as BlockEntityDeadCrop;
-        bool isDead = beDeadCrop != null;
-
-        if(!isDead
-        && !RipeCropColdDamaged
-        && !UnripeCropColdDamaged
-        && !UnripeHeatDamaged
-            )
-            return drops;
-        
-        if (!world.Config.GetString("harshWinters").ToBool(true))
-            return drops;
-
-        var cropProps = GetCrop(world)?.CropProps;
-        if (cropProps is null)
-            return drops;
-
-        float mul = 1f;
-        if (isDead)
-            mul = beDeadCrop.deathReason == EnumCropStressType.Eaten ? 0
-        :   Math.Max(cropProps.ColdDamageRipeMul, cropProps.DamageGrowthStuntMul);
-        else
-        if (RipeCropColdDamaged)
-            mul = cropProps.ColdDamageRipeMul;
-        else
-        if (UnripeHeatDamaged || UnripeCropColdDamaged)
-            mul = cropProps.DamageGrowthStuntMul;
-        
-        string[] debuffUnaffected = blockAttributes?["debuffUnaffectedDrops"].AsArray<string>();
-
-        List<ItemStack> stacks = new();
-        for (int i = 0; i < drops.Length; i++)
-        {
-            ItemStack stack = drops[i];
-            if (WildcardUtil.Match(debuffUnaffected, stack.Collectible.Code.ToShortString()))
-            {
-                stacks.Add(stack);
-                continue;
-            }
-
-            float dropQty = stack.StackSize * mul;
-            float frac = dropQty - (int)dropQty;
-            stack.StackSize = (int)dropQty + (world.Rand.NextDouble() > frac ? 1 : 0);
-
-            if (stack.StackSize > 0)
-                stacks.Add(stack);
-        }
-
-        return stacks.ToArray();
-    }
-    
+    #region Tick
     public bool Tick
         (double currentTotalHours
         ,double hourInterval
+        ,double previousHourInterval
+        ,double lightGrowthSpeedFactor
         ,float moisture01
         ,bool growthPaused
+        ,ClimateCondition conds
         ,IWorldAccessor world
         ,IFarmlandBlockEntity host
         ,float growthRate
@@ -172,22 +138,28 @@ public sealed class CropGrowth
         consumedNutrient = default;
         consumedAmount = 0f;
 
-        Block crop = GetCrop(world);
+        UpdateCropDamage(conds, hourInterval, world);
+
+        Block crop = GetCrop(world); // re-read: UpdateCropDamage may have killed it
         if (crop is null)
             return false;
 
+        // Intent: native light model — add back the un-grown fraction of this interval every tick,
+        //         rather than baking lightGrowthSpeedFactor into growthRate at stage start
+        TotalHoursForNextStage += hourInterval * (1 - lightGrowthSpeedFactor);
+
         if (growthPaused)
         {
-            TotalHoursForNextStage += hourInterval;
+            TotalHoursForNextStage += previousHourInterval;
             return true;
         }
 
-        if (currentTotalHours < TotalHoursForNextStage
-        ||  moisture01 < 0.1f
+        if (moisture01 < MoistureGrowthMin
+        ||  currentTotalHours < TotalHoursForNextStage
             )
             return false;
 
-        #region if(currentStage >= GrowthStages || !nextBlock) return false;
+        #region if(currentStage >= GrowthStages || !nextBlock) return false
         int currentStage = GetCropStage(crop);
         if (currentStage >= crop.CropProps.GrowthStages)
             return false;
@@ -228,7 +200,132 @@ public sealed class CropGrowth
 
         return true;
     }
-    
+
+    private void UpdateCropDamage(ClimateCondition conds, double hourInterval, IWorldAccessor world)
+    {
+        Block crop = GetCrop(world);
+        if (crop?.CropProps is null)
+        {
+            RipeCropColdDamaged = false;
+            UnripeCropColdDamaged = false;
+            UnripeHeatDamaged = false;
+            _coldDamageAccumH = 0;
+            _heatDamageAccumH = 0;
+            return;
+        }
+
+        bool isRipe = GetCropStage(crop) >= crop.CropProps.GrowthStages;
+
+        #region cold: ripe→flag only; unripe→flag + accumulate; else decay
+        if (conds.Temperature < crop.CropProps.ColdDamageBelow)
+        {
+            if (isRipe)
+                RipeCropColdDamaged = true;
+            else
+            {
+                UnripeCropColdDamaged = true;
+                _coldDamageAccumH += (float)hourInterval;
+            }
+        }
+        else
+            _coldDamageAccumH = Math.Max(0, _coldDamageAccumH - (float)hourInterval / DamageDecayDivisor);
+        #endregion
+
+        #region hot: flag + accumulate; else decay
+        if (conds.Temperature > crop.CropProps.HeatDamageAbove)
+        {
+            UnripeHeatDamaged = true;
+            _heatDamageAccumH += (float)hourInterval;
+        }
+        else
+            _heatDamageAccumH = Math.Max(0, _heatDamageAccumH - (float)hourInterval / DamageDecayDivisor);
+        #endregion
+
+        if (!AllowCropDeath)
+        {
+            _coldDamageAccumH = 0;
+            _heatDamageAccumH = 0;
+            return;
+        }
+
+        #region if(accum > threshold) KillCrop(reason)
+        if (_coldDamageAccumH > DamageDeathThresholdH)
+            KillCrop(world, crop, EnumCropStressType.TooCold);
+        else if (_heatDamageAccumH > DamageDeathThresholdH)
+            KillCrop(world, crop, EnumCropStressType.TooHot);
+        #endregion
+    }
+
+    private void KillCrop(IWorldAccessor world, Block cropBlock, EnumCropStressType reason)
+    {
+        Block deadCropBlock = world.GetBlock(new AssetLocation("deadcrop"));
+        if (deadCropBlock is null
+        ||  deadCropBlock.Id == 0
+            )
+            return;
+
+        world.BlockAccessor.SetBlock(deadCropBlock.Id, UpPos);
+        if (world.BlockAccessor.GetBlockEntity(UpPos) is BlockEntityDeadCrop beDead)
+        {
+            beDead.Inventory[0].Itemstack = new ItemStack(cropBlock);
+            beDead.deathReason = reason;
+        }
+    }
+    #endregion
+
+    public ItemStack[] GetDrops(ItemStack[] drops, IWorldAccessor world, JsonObject blockAttributes)
+    {
+        BlockEntityDeadCrop beDeadCrop = world.BlockAccessor.GetBlockEntity(UpPos) as BlockEntityDeadCrop;
+        bool isDead = beDeadCrop != null;
+
+        if(!isDead
+        && !RipeCropColdDamaged
+        && !UnripeCropColdDamaged
+        && !UnripeHeatDamaged
+            )
+            return drops;
+
+        if (!world.Config.GetString("harshWinters").ToBool(true))
+            return drops;
+
+        var cropProps = GetCrop(world)?.CropProps;
+        if (cropProps is null)
+            return drops;
+
+        float mul = 1f;
+        if (isDead)
+            mul = beDeadCrop.deathReason == EnumCropStressType.Eaten ? 0
+        :   Math.Max(cropProps.ColdDamageRipeMul, cropProps.DamageGrowthStuntMul);
+        else
+        if (RipeCropColdDamaged)
+            mul = cropProps.ColdDamageRipeMul;
+        else
+        if (UnripeHeatDamaged || UnripeCropColdDamaged)
+            mul = cropProps.DamageGrowthStuntMul;
+
+        string[] debuffUnaffected = blockAttributes?["debuffUnaffectedDrops"].AsArray<string>();
+
+        List<ItemStack> stacks = new();
+        for (int i = 0; i < drops.Length; i++)
+        {
+            ItemStack stack = drops[i];
+            if (WildcardUtil.Match(debuffUnaffected, stack.Collectible.Code.ToShortString()))
+            {
+                stacks.Add(stack);
+                continue;
+            }
+
+            float dropQty = stack.StackSize * mul;
+            float frac = dropQty - (int)dropQty;
+            stack.StackSize = (int)dropQty + (world.Rand.NextDouble() > frac ? 1 : 0);
+
+            if (stack.StackSize > 0)
+                stacks.Add(stack);
+        }
+
+        return stacks.ToArray();
+    }
+
     private double GetHoursForNextStage(Block cropBlock, IWorldAccessor world, float growthRate)
     {
         if (cropBlock?.CropProps is null)
@@ -253,20 +350,24 @@ public sealed class CropGrowth
     {
         tree.SetDouble("totalHoursForNextStage", TotalHoursForNextStage);
         tree.SetFloat ("growthRateMul", GrowthRateMul);
-        
+
         tree.SetBool("ripeCropColdDamaged", RipeCropColdDamaged);
         tree.SetBool("unripeCropColdDamaged", UnripeCropColdDamaged);
         tree.SetBool("unripeHeatDamaged", UnripeHeatDamaged);
+
+        tree["cropAttrs"] = _cropAttrs;
     }
 
     public void FromTreeAttributes(ITreeAttribute tree)
     {
         TotalHoursForNextStage = tree.GetDouble("totalHoursForNextStage", -1);
         SetRules(tree.GetFloat("growthRateMul", GrowthRateMul));
-        
+
         RipeCropColdDamaged = tree.GetBool("ripeCropColdDamaged");
         UnripeCropColdDamaged = tree.GetBool("unripeCropColdDamaged");
         UnripeHeatDamaged = tree.GetBool("unripeHeatDamaged");
+
+        _cropAttrs = tree["cropAttrs"] as TreeAttribute ?? new TreeAttribute();
     }
     #endregion
 }

@@ -1,7 +1,9 @@
 using System;
 using System.Text;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
@@ -13,13 +15,26 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
 {
     private static readonly PlowlandSettings Settings = new();
     private readonly CropGrowth _crop = new();
-    private readonly TreeAttribute _cropAttrs = new();
 
     #region IFarmlandBlockEntity
     BlockPos IFarmlandBlockEntity.Pos => Pos;
-    public ITreeAttribute CropAttributes => _cropAttrs;
+    public ITreeAttribute CropAttributes => _crop.CropAttributes;
     public double TotalHoursForNextStage => _crop.TotalHoursForNextStage;
     public double TotalHoursFertilityCheck => totalHoursLastUpdate;
+    #endregion
+
+    #region Farmland parity — base virtuals CropGrowth cannot reach
+    // Intent: a crop block raises the rain-map height; without this a planted furrow stops catching rain
+    protected override int RainHeightOffset => Api?.World != null && _crop.HasCrop(Api.World) ? 1 : 0;
+
+    // Intent: fertility must not recover while a ripe crop sits on the block (matches BlockEntityFarmland)
+    protected override bool RecoverFertility => Api?.World == null || !_crop.HasRipeCrop(Api.World);
+
+    protected override void onRollback(double hoursRolledBack)
+    {
+        base.onRollback(hoursRolledBack);
+        _crop.OnRollback(hoursRolledBack);
+    }
     #endregion
 
     #region IWaterable
@@ -100,6 +115,7 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         
         _crop.Init(Pos);
         _crop.SetRules(growthRateMul);
+        _crop.AllowCropDeath = api.World.Config.GetBool("allowCropDeath", true);
 
         if (api is ICoreServerAPI)
             api.ModLoader.GetModSystem<POIRegistry>().AddPOI(this);
@@ -166,17 +182,16 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         {
             UpdateSupport();
             baseInterval?.Invoke(hourInterval, conds, lightGrowthSpeedFactor, growthPaused);
-            _crop.CheckDamage(conds, Api.World);
-            TickCrop(hourInterval, lightGrowthSpeedFactor, growthPaused);
+            TickCrop(hourInterval, conds, lightGrowthSpeedFactor, growthPaused);
         };
         onEnd = () => baseEnd?.Invoke();
     }
     
     public void AddSlowRelease(float n, float p, float k)
     {
-        slowReleaseNutrients[0] = Math.Min(slowReleaseNutrients[0] + n, 150);
-        slowReleaseNutrients[1] = Math.Min(slowReleaseNutrients[1] + p, 150);
-        slowReleaseNutrients[2] = Math.Min(slowReleaseNutrients[2] + k, 150);
+        slowReleaseNutrients[0] = Math.Min(slowReleaseNutrients[0] + n, Settings.SlowReleaseMax);
+        slowReleaseNutrients[1] = Math.Min(slowReleaseNutrients[1] + p, Settings.SlowReleaseMax);
+        slowReleaseNutrients[2] = Math.Min(slowReleaseNutrients[2] + k, Settings.SlowReleaseMax);
         MarkDirty(true);
     }
 
@@ -220,19 +235,22 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
         totalHoursWaterRetention = Api.World.Calendar.HoursPerDay * Settings.MinRetentionDays;
     }
 
-    private void TickCrop(double hourInterval, double lightGrowthSpeedFactor, bool growthPaused)
+    private void TickCrop(double hourInterval, ClimateCondition conds, double lightGrowthSpeedFactor, bool growthPaused)
     {
+        // Intent: growthRate carries no light factor — _crop applies light per interval (native model)
         Block? cropBlock = _crop.GetCrop(Api.World);
-        if (cropBlock?.CropProps is null)
-            return;
-        
-        float growthRate = GetGrowthRate(cropBlock.CropProps.RequiredNutrient) * (float)lightGrowthSpeedFactor;
+        float growthRate = cropBlock?.CropProps != null
+            ? GetGrowthRate(cropBlock.CropProps.RequiredNutrient)
+            : 1f;
 
         if (!_crop.Tick
                 (totalHoursLastUpdate
                 ,hourInterval
+                ,previousHourInterval
+                ,lightGrowthSpeedFactor
                 ,moistureLevel
                 ,growthPaused
+                ,conds
                 ,Api.World
                 ,this
                 ,growthRate
@@ -348,6 +366,41 @@ public sealed class BlockEntityPlowland : BlockEntitySoilNutrition, IWaterable, 
             dsc.AppendLine($"Crop: {cropBlock.GetPlacedBlockName(Api.World, upPos)}");
             dsc.AppendLine($"Stage: {_crop.GetCropStage(cropBlock)} / {cropBlock.CropProps.GrowthStages}");
         }
+
+        AppendGrowthSpeed(dsc, cropBlock);
+        AppendCropDamage(dsc, cropBlock);
+    }
+
+    private void AppendGrowthSpeed(StringBuilder dsc, Block? cropBlock)
+    {
+        if (cropBlock?.CropProps is not null)
+        {
+            float speed = (float)Math.Round(100 * GetGrowthRate(cropBlock.CropProps.RequiredNutrient), 0);
+            string color = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, speed)]);
+            dsc.AppendLine(Lang.Get("farmland-growthspeed", color, speed, cropBlock.CropProps.RequiredNutrient));
+            return;
+        }
+
+        float speedN = (float)Math.Round(100 * GetGrowthRate(EnumSoilNutrient.N), 0);
+        float speedP = (float)Math.Round(100 * GetGrowthRate(EnumSoilNutrient.P), 0);
+        float speedK = (float)Math.Round(100 * GetGrowthRate(EnumSoilNutrient.K), 0);
+        string colorN = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, speedN)]);
+        string colorP = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, speedP)]);
+        string colorK = ColorUtil.Int2Hex(GuiStyle.DamageColorGradient[(int)Math.Min(99, speedK)]);
+        dsc.AppendLine(Lang.Get("farmland-growthspeeds", colorN, speedN, colorP, speedP, colorK, speedK));
+    }
+
+    private void AppendCropDamage(StringBuilder dsc, Block? cropBlock)
+    {
+        if (cropBlock?.CropProps is null)
+            return;
+
+        if (_crop.RipeCropColdDamaged)
+            dsc.AppendLine(Lang.Get("farmland-ripecolddamaged",   (int)(cropBlock.CropProps.ColdDamageRipeMul    * 100)));
+        else if (_crop.UnripeCropColdDamaged)
+            dsc.AppendLine(Lang.Get("farmland-unripecolddamaged", (int)(cropBlock.CropProps.DamageGrowthStuntMul * 100)));
+        else if (_crop.UnripeHeatDamaged)
+            dsc.AppendLine(Lang.Get("farmland-unripeheatdamaged", (int)(cropBlock.CropProps.DamageGrowthStuntMul * 100)));
     }
     
     public override void ToTreeAttributes(ITreeAttribute tree)

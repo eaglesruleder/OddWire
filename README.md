@@ -14,6 +14,9 @@ Adds **CompostPile** — consumes perishables to create inoculum (rot), then con
 inoculum and dry grass to create compost. Driven by moisture, temperature, and
 aeration (topped up by adding to the pile).
 
+Adds **Plowland** — a plow tool that turns soil into high-retention furrowed
+farmland, sustaining moisture and NPK so crops cycle faster through a season.
+
 Patches the **Watering Can** — now checks for an `IWaterable` interface to extend
 functionality.
 
@@ -30,6 +33,7 @@ Conventions: [gpt..md](https://github.com/eaglesruleder/gpt..md) repo
 
 - **[Farming](OddWire/OddWire/Farming/.git.md)** — [Brief](OddWire/OddWire/Farming/.git.md) · [Doc](OddWire/OddWire/Farming/.gpt.md)
   - **CompostPile** — [Brief](OddWire/OddWire/Farming/CompostPile/.git.md) · [Doc](OddWire/OddWire/Farming/CompostPile/.gpt.md) — Active, ~1.9k LOC<br>Dry grass + nutrition ⇒ compost engine
+  - **Plowland** — [Brief](OddWire/OddWire/Farming/Plowland/.git.md) · [Doc](OddWire/OddWire/Farming/Plowland/.gpt.md) — Active, ~0.6k LOC<br>Plow soil into high-retention farmland furrows
   - **WateringCan patch** — [Brief](OddWire/OddWire/Farming/_Patches/WateringCan/.git.md) · [Doc](OddWire/OddWire/Farming/_Patches/WateringCan/.gpt.md) — Active, ~60 LOC<br>Calls `IWaterable.Water(dt)`
 - **[Survival](OddWire/OddWire/Survival/.git.md)** — [Brief](OddWire/OddWire/Survival/.git.md)
   - **BBRClickPickup patch** — [Brief](OddWire/OddWire/Survival/_Patches/BBRClickPickup/.git.md) · [Doc](OddWire/OddWire/Survival/_Patches/BBRClickPickup/.gpt.md) — Support, ~0.3k LOC<br>Bag right-click pickup
