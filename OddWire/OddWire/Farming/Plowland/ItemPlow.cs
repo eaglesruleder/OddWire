@@ -291,8 +291,9 @@ public class ItemPlow : Item
         float[] slowRelease = ResolveBonusNutrients(world, targetPos, targetBlock);
         bePlowland.AddSlowRelease(slowRelease[0], slowRelease[1], slowRelease[2]);
 
-        #region ExchangeAdjacentPlowland([left, right])
-        // Intent: keep plowland a 1-wide furrow — revert the two neighbours perpendicular to facing back to farmland
+        #region ExchangeAdjacentPlowland([front, back])
+        // Intent: revert the two neighbours along the facing axis (target ± facing — the blocks in front of and behind) to farmland
+        // NOTE: this is along-facing, not left/right. For a perpendicular (left/right) furrow, use (norm.Z,0,-norm.X) / (-norm.Z,0,norm.X)
         Vec3i norm = facingDir.Normali;
         TryExchangePlowlandToFarmland(world, targetPos.AddCopy(norm.X, 0, -norm.Z));
         TryExchangePlowlandToFarmland(world, targetPos.AddCopy(-norm.X, 0, norm.Z));
@@ -331,8 +332,9 @@ public class ItemPlow : Item
             world.BlockAccessor.SetBlock(0, targetPos.UpCopy());
         }
         
+        // Intent: == not .Equals — farmland/plowland have no "grasscoverage" variant, so this is null and .Equals would NRE
         if (targetBlock.BlockMaterial == EnumBlockMaterial.Soil
-        &&  targetBlock.Variant["grasscoverage"].Equals("normal")
+        &&  targetBlock.Variant["grasscoverage"] == "normal"
            )
             slowFertility[0]++;
 
