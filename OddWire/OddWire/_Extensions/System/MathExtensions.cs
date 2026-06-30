@@ -1,6 +1,6 @@
 using System;
 
-namespace OddWire;
+namespace OddWire.System;
 
 public static class MathExtensions
 {
