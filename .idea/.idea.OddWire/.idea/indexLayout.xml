@@ -2,9 +2,10 @@
 <project version="4">
   <component name="UserContentModel">
     <attachedFolders>
-      <Path>./.gpt</Path>
-      <Path>./.todo</Path>
+      <Path>.todo</Path>
+      <Path>../gpt..md</Path>
       <Path>../vsapi</Path>
+      <Path>../vsessentialsmod</Path>
       <Path>../vssurvivalmod</Path>
       <Path>../../Users/eagle/AppData/Roaming/Vintagestory/assets</Path>
     </attachedFolders>
