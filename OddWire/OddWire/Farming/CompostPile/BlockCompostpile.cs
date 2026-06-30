@@ -94,7 +94,7 @@ public class BlockCompostpile : Block
     
     public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handling)
     {
-        #region if(ShiftKey || !compostpile BE) { base(); return }
+        #region if(ShiftKey || !compostpile is BECP) { base(); return }
         if (blockSel is null
         ||  byEntity.Controls.ShiftKey
         ||  byEntity.World.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityCompostpile be
@@ -137,7 +137,7 @@ public class BlockCompostpile : Block
 
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
-        #region if(!compostpile BE) { base(); return } if(Side != Server) return
+        #region if(!compostpile is BECP) { base(); return } if(Side != Server) return
         if (world.BlockAccessor.GetBlockEntity(pos) is not BlockEntityCompostpile be)
         {
             base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);

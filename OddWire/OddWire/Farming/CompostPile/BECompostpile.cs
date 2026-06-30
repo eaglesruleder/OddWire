@@ -391,7 +391,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
 
     private void ResetOnPlaced(Block block)
     {
-        #region stackBonus = parse(block '#N' variant) - 1
+        #region stackBonus = Parse(block.EndVariant()[1..]) - 1
         string stackVariant = block.Code?.EndVariant();
         int stackBonus = 0;
         if (!(string.IsNullOrEmpty(stackVariant)
@@ -438,7 +438,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         if (slot.StackSize < 1)
             return false;
         
-        #region try each Add path -> restoreAeration = accepted * Aeration01PerInput; else return false
+        #region if(TryAdd()) restoreAeration = accepted * Settings.Aeration01Per; else return false;
         bool added = false;
         float restoreAeration = 0;
         
@@ -884,7 +884,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
             if (i == BlockFacing.indexDOWN)
                 continue;
             
-            #region result += neighbour.IHeatSource?.GetHeatStrength() ?? 0
+            #region result += neighbour.GetHeatStrength()
             BlockPos neighbourPos = Pos.AddCopy(BlockFacing.ALLFACES[i]);
             result += Api.World.BlockAccessor
                ?.GetBlock(neighbourPos)
@@ -1044,7 +1044,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool UpdateMoisture(double totalHours)
     {
-        #region if(neverUpdated) { prevTime = now; return true }
+        #region if(never/futureUpdated) { prevTime = now; return true }
         if (PrevTimeMoistureUpdated < 0
         ||  PrevTimeMoistureUpdated > totalHours
            )
@@ -1098,7 +1098,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
     
     private bool UpdateAeration(double totalHours)
     {
-        #region if(neverUpdated) { prevTime = now; return true }
+        #region if(never/futureUpdated) { prevTime = now; return true }
         if (_prevTimeAerationUpdated < 0
         ||  _prevTimeAerationUpdated > totalHours
            )
@@ -1144,7 +1144,7 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
 
     private bool UpdateTemperature(double totalHours)
     {
-        #region if(neverUpdated) { prevTime = now; temp = envTemp; return true }
+        #region if(never/futureUpdated) { prevTime = now; temp = envTemp; return true }
         if (_prevTimeTemperatureUpdated < 0
         ||  _prevTimeTemperatureUpdated > totalHours
            )
