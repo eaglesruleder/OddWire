@@ -3,57 +3,86 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <OutputPath>bin\$(Configuration)\Mods\mod</OutputPath>
+        
+        <!-- Keep normal compiler output separate from the Vintage Story mod folder. -->
+        <OutputPath>bin\$(Configuration)\Build\</OutputPath>
+        
         <Nullable>enable</Nullable>
         <RootNamespace>OddWire</RootNamespace>
+
+        <!-- VS loads these itself; don't emit dependency/runtime files for the mod DLL. -->
+        <GenerateDependencyFile>false</GenerateDependencyFile>
+        <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+
+        <!-- Dev/runtime mod folder used by launchSettings.json. -->
+        <ModStageDir>$(ProjectDir)bin\$(Configuration)\Mods\mod\</ModStageDir>
+        
+        <!-- Distribution ZIP is kept outside Mods so VS doesn't try to load both folder + ZIP. -->
+        <ModPackageDir>$(ProjectDir)bin\$(Configuration)\Package\</ModPackageDir>
+        <!-- Package filename is generated from modinfo.json version during the package target. -->
     </PropertyGroup>
 
     <ItemGroup>
         <Reference Include="0Harmony">
-          <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Lib\0Harmony.dll</HintPath>
+            <HintPath>$(VINTAGE_STORY)\Lib\0Harmony.dll</HintPath>
+            <Private>false</Private>
         </Reference>
         <Reference Include="cairo-sharp">
-          <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Lib\cairo-sharp.dll</HintPath>
+            <HintPath>$(VINTAGE_STORY)\Lib\cairo-sharp.dll</HintPath>
+            <Private>false</Private>
         </Reference>
         <Reference Include="Newtonsoft.Json">
-          <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Lib\Newtonsoft.Json.dll</HintPath>
+            <HintPath>$(VINTAGE_STORY)\Lib\Newtonsoft.Json.dll</HintPath>
+            <Private>false</Private>
         </Reference>
         <Reference Include="Vintagestory">
-          <HintPath>..\..\..\..\Users\eagle\AppData\Roaming\Vintagestory\Vintagestory.dll</HintPath>
+            <HintPath>$(VINTAGE_STORY)\Vintagestory.dll</HintPath>
+            <Private>false</Private>
         </Reference>
         <Reference Include="VintagestoryAPI">
-            <HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
+            <HintPath>$(VINTAGE_STORY)\VintagestoryAPI.dll</HintPath>
             <Private>false</Private>
         </Reference>
         <Reference Include="VSSurvivalMod">
-            <HintPath>$(VINTAGE_STORY)/Mods/VSSurvivalMod.dll</HintPath>
-            <Private>False</Private>
+            <HintPath>$(VINTAGE_STORY)\Mods\VSSurvivalMod.dll</HintPath>
+            <Private>false</Private>
         </Reference>
         <Reference Include="VSEssentials">
-            <HintPath>$(VINTAGE_STORY)/Mods/VSEssentials.dll</HintPath>
-            <Private>False</Private>
+            <HintPath>$(VINTAGE_STORY)\Mods\VSEssentials.dll</HintPath>
+            <Private>false</Private>
         </Reference>
         <Reference Include="VSCreativeMod">
-            <HintPath>$(VINTAGE_STORY)/Mods/VSCreativeMod.dll</HintPath>
-            <Private>False</Private>
+            <HintPath>$(VINTAGE_STORY)\Mods\VSCreativeMod.dll</HintPath>
+            <Private>false</Private>
         </Reference>
         <Reference Include="VintagestoryLib">
-            <HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
+            <HintPath>$(VINTAGE_STORY)\VintagestoryLib.dll</HintPath>
             <Private>false</Private>
         </Reference>
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include=".ai\*" />
-        <Content Include="modinfo.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
+        <ModRootFiles Include="$(ProjectDir)modinfo.json" />
+        <ModRootFiles Include="$(ProjectDir)modicon.png" Condition="Exists('$(ProjectDir)modicon.png')" />
+        <ModAssets Include="$(ProjectDir)assets\**\*.*" Condition="Exists('$(ProjectDir)assets')" />
     </ItemGroup>
 
-    <ItemGroup>
-        <Content Include="modicon.png" Condition="Exists('modicon.png')">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
+    <Target Name="StageVintageStoryMod" AfterTargets="Build">
+        <RemoveDir Directories="$(ModStageDir)" />
+        <MakeDir Directories="$(ModStageDir)" />
+
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModStageDir)" />
+        <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(ModStageDir)" Condition="'$(Configuration)' != 'Release' And Exists('$(TargetDir)$(TargetName).pdb')" />
+        <Copy SourceFiles="@(ModRootFiles)" DestinationFolder="$(ModStageDir)" />
+        <Copy
+            SourceFiles="@(ModAssets)"
+            DestinationFiles="@(ModAssets->'$(ModStageDir)assets\%(RecursiveDir)%(Filename)%(Extension)')"
+            Condition="@(ModAssets) != ''" />
+    </Target>
+
+    <Target Name="PackageVintageStoryMod" AfterTargets="StageVintageStoryMod" Condition="'$(Configuration)' == 'Release'">
+        <MakeDir Directories="$(ModPackageDir)" />
+        <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$modInfo = Get-Content -Raw -LiteralPath '$(ProjectDir)modinfo.json' | ConvertFrom-Json; $version = [string]$modInfo.version; if ([string]::IsNullOrWhiteSpace($version)) { throw 'modinfo.json does not contain a version.' }; $safeVersion = $version -replace '[^\w\.\-]+', '_'; $packagePath = Join-Path '$(ModPackageDir)' ('$(AssemblyName)-' + $safeVersion + '.zip'); Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue; Compress-Archive -Path '$(ModStageDir)*' -DestinationPath $packagePath -Force; Write-Host ('Created package: ' + $packagePath)&quot;" />
+    </Target>
 
 </Project>
