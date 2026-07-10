@@ -645,12 +645,29 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         
         int nutritionAddQty = batches * outputPerBatch;
         
-        var nutritionType = stack.Collectible?.NutritionProps?.FoodCategory ?? EnumFoodCategory.Unknown;
+        var nutritionType = GetNutritionCategory(stack);
         NutritionStacks.TryGetValue(nutritionType, out int cur);
         NutritionStacks[nutritionType] = cur + nutritionAddQty;
         
         consumedQty = batches * inputPerBatch;
         return true;
+    }
+    private EnumFoodCategory GetNutritionCategory(ItemStack stack)
+    {
+        EnumFoodCategory? nutritionCategory = stack.Collectible?.NutritionProps?.FoodCategory;
+        if (nutritionCategory is not null
+        &&  nutritionCategory != EnumFoodCategory.Unknown
+            )
+            return nutritionCategory.Value;
+        
+        string? mealCategory =
+            stack.Collectible?.Attributes?["nutritionPropsWhenInMeal"]?["foodcategory"]?.AsString();
+        if (!string.IsNullOrEmpty(mealCategory)
+        &&  Enum.TryParse(mealCategory, true, out EnumFoodCategory mealNutritionCategory)
+            )
+            return mealNutritionCategory;
+        
+        return EnumFoodCategory.Unknown;
     }
     
     private float GetNutritionPerInput(ItemStack stack)
