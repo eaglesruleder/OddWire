@@ -62,12 +62,9 @@ public static class CollectibleObject_TryMergeStacks_HeldBagAcceptsItems_Patch
             if (slot.Empty)
             #region bag.Store(sourceStack.Clone());
             {
-                if (op.World.Side == EnumAppSide.Server)
-                {
-                    slot.Itemstack = sourceStack.Clone();
-                    slot.Itemstack.StackSize = remaining;
-                    bag.Store(bagstack, slot);
-                }
+                slot.Itemstack = sourceStack.Clone();
+                slot.Itemstack.StackSize = remaining;
+                bag.Store(bagstack, slot);
                 remaining = 0;
             }
             #endregion
@@ -79,11 +76,8 @@ public static class CollectibleObject_TryMergeStacks_HeldBagAcceptsItems_Patch
                     continue;
 
                 int moveQty = Math.Min(room, remaining);
-                if (op.World.Side == EnumAppSide.Server)
-                {
-                    slot.Itemstack.StackSize += moveQty;
-                    bag.Store(bagstack, slot);
-                }
+                slot.Itemstack.StackSize += moveQty;
+                bag.Store(bagstack, slot);
                 remaining -= moveQty;
             }
             #endregion
@@ -94,15 +88,12 @@ public static class CollectibleObject_TryMergeStacks_HeldBagAcceptsItems_Patch
         #region sourceStack.StackSize -= moved; SourceSlot/SinkSlot.MarkDirty()
         {
             op.MovedQuantity = moved;
-            if (op.World.Side == EnumAppSide.Server)
-            {
-                sourceStack.StackSize -= moved;
-                if (sourceStack.StackSize <= 0)
-                    op.SourceSlot.Itemstack = null;
+            sourceStack.StackSize -= moved;
+            if (sourceStack.StackSize <= 0)
+                op.SourceSlot.Itemstack = null;
 
-                op.SourceSlot.MarkDirty();
-                op.SinkSlot.MarkDirty();
-            }
+            op.SourceSlot.MarkDirty();
+            op.SinkSlot.MarkDirty();
         }
         #endregion
 
