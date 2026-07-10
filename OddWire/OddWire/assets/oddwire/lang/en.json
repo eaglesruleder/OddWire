@@ -2,6 +2,8 @@
     "block-compostpile-*": "Compost Pile",
     "oddwire:block-handbooktitle-oddwire:compostpile-*": "Use:",
     "oddwire:block-handbooktext-oddwire:compostpile-*": "Turns Food, <a href=\"handbook://item-rot\">Rot</a>, and <a href=\"handbook://item-drygrass\">Dry Grass</a> into <a href=\"handbook://item-compost\">Compost</a>.<br><br>Craft starter pile from Dry Grass and Rot<br>Once placed adding Rot seeds it, Dry Grass adds bulk, and adding Food increases rate and temperature.<br><br>Optimals: Temperature: Cold 20°C / Hot 55°C - Moisture: Dry 60% / Drowning 85% - Aeration: Hypoxic 35% - Rot: Unseesed lt. 80% full<br><br>Digging up pile drops processed Compost and Compost Pile.<br>Refill with the dropped compost and fresh input to restore Aeration.",
+    "oddwire:var-browns": "Browns",
+    "oddwire:var-nutrition": "Nutrition",
     "oddwire:var-inoculum": "Inoculum",
 
     "compostpile-info-composting": "Composting: {0}, {1}",
@@ -10,6 +12,12 @@
     "compostpile-info-culture": "Microbe Culture: Speed {0:0}%",
     "compostpile-info-harvest": "Drops: Compost {0} | Pile {1}",
     "compostpile-info-nutmix": "Nut Mix: {0}",
+    "compostpile-info-fill": "Fill: {0}",
+    "compostpile-info-fill-debug": "Browns {0}/{1} | Nutrition {2}/{3} | Inoculum {4}/{5}",
+    "compostpile-fill-empty": "{0} empty",
+    "compostpile-fill-nearempty": "{0} near empty",
+    "compostpile-fill-nearfull": "{0} near full",
+    "compostpile-fill-full": "{0} full",
 
     "compostpile-room-outside": "Outside",
     "compostpile-room-inside": "Inside",

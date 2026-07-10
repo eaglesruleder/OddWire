@@ -1394,9 +1394,22 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         #region Write Harvest (+ debug Nut Mix)
         if (Settings.InfoDebug)
         {
+            dsc.AppendLine(Lang.Get
+                ("oddwire:compostpile-info-fill-debug"
+                ,BrownsQty,    Settings.Browns.MaxQty
+                ,NutritionQty, Settings.Nutrition.MaxQty
+                ,InoculumQty,  Settings.Inoculum.MaxQty
+                ));
+            
             string mixLabel = GetNutritionMixLabel();
             if (!string.IsNullOrEmpty(mixLabel))
                 dsc.AppendLine(mixLabel);
+        }
+        else
+        {
+            string fillStatusLabel = GetFillStatusLabel();
+            if (!string.IsNullOrEmpty(fillStatusLabel))
+                dsc.AppendLine(fillStatusLabel);
         }
         
         dsc.AppendLine(Lang.Get
@@ -1490,6 +1503,34 @@ public class BlockEntityCompostpile : BlockEntity, IHeatSource, IBlockTint, IWat
         
         float daysPerCompost = hoursPerCompost / hoursPerDay;
         return Lang.Get("oddwire:compostpile-rate-days", daysPerCompost) + outputName;
+    }
+    private string GetFillStatusLabel()
+    {
+        List<string> states = new();
+        AppendFillStatus(states, BrownsQty, Settings.Browns.MaxQty, Lang.Get("oddwire:var-browns"));
+        AppendFillStatus(states, NutritionQty, Settings.Nutrition.MaxQty, Lang.Get("oddwire:var-nutrition"));
+        AppendFillStatus(states, InoculumQty, Settings.Inoculum.MaxQty, Lang.Get("oddwire:var-inoculum"));
+        
+        if (states.Count < 1)
+            return "";
+        
+        return Lang.Get("oddwire:compostpile-info-fill", string.Join(", ", states));
+    }
+    private void AppendFillStatus(List<string> states, int qty, int maxQty, string inputName)
+    {
+        if (maxQty < 1)
+            return;
+        
+        float fullness01 = (float)qty / maxQty;
+        
+        if (qty < 1)
+            states.Add(Lang.Get("oddwire:compostpile-fill-empty", inputName));
+        else if (qty >= maxQty)
+            states.Add(Lang.Get("oddwire:compostpile-fill-full", inputName));
+        else if (fullness01 < Settings.InfoFillWarningThreshold)
+            states.Add(Lang.Get("oddwire:compostpile-fill-nearempty", inputName));
+        else if (fullness01 > 1f - Settings.InfoFillWarningThreshold)
+            states.Add(Lang.Get("oddwire:compostpile-fill-nearfull", inputName));
     }
     private string GetNutritionMixLabel()
     {
