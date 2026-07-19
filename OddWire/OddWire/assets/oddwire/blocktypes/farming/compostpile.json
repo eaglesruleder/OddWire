@@ -13,6 +13,7 @@
 	replaceable: 200,
 	maxStackSize: 32,
 	lightAbsorption: 1,
+	walkSpeedMultiplier: 0.5,
 	textures: {
 		"block": { base: "farming/compostpile" },
 		"splat": { base: "farming/compostpile" }
@@ -21,28 +22,7 @@
 	sidesolid: { all: false },
 	emitsideao: { all: false },
 	sideopaque: { all: false },
-	collisionboxByType: {
-		"compostpile-#1": {
-			x1: 0.0625, y1: 0, z1: 0.0625,
-			x2: 0.9375, y2: 0.2, z2: 0.9375
-		},
-		"compostpile-#2": {
-			x1: 0.0625, y1: 0, z1: 0.0625,
-			x2: 0.9375, y2: 0.4, z2: 0.9375
-		},
-		"compostpile-#3": {
-			x1: 0.0625, y1: 0, z1: 0.0625,
-			x2: 0.9375, y2: 0.6, z2: 0.9375
-		},
-		"compostpile-#4": {
-			x1: 0.0625, y1: 0, z1: 0.0625,
-			x2: 0.9375, y2: 0.6, z2: 0.9375
-		},
-		"compostpile-#5": {
-			x1: 0.0625, y1: 0, z1: 0.0625,
-			x2: 0.9375, y2: 0.8, z2: 0.9375
-		},
-	},
+	collisionbox: null,
 	selectionboxByType: {
 		"compostpile-#1": {
 			x1: 0.0625, y1: 0, z1: 0.0625,
@@ -63,7 +43,7 @@
 		"compostpile-#5": {
 			x1: 0, y1: 0, z1: 0,
 			x2: 1, y2: 0.8, z2: 1
-		},
+		}
 	},
 	sounds: {
 		place: "game:block/dirt",
@@ -84,7 +64,7 @@
 		scale: 0.5
 	},
 	guiTransform: {
-		translation: { x: 0, y: -5, z: 0 },
+		translation: { x: 0, y: -5, z: 0 }
 	},
 	groundTransform: {
 		scale: 3.5
